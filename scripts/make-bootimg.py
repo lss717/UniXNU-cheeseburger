@@ -7,7 +7,8 @@ script drives edk2-msm8998's own mkbootimg.py, then re-parses the result and wri
 report next to the image.
 
 The addresses below are the ones the phone accepted on 2026-10-22:
-kernel 0x10000000, ramdisk 0x12000000, tags 0x14000000.  A non-empty ramdisk must not use
+kernel 0x10000000, ramdisk 0x12000000, tags 0x18000000.  The 64 MiB payload ends at
+0x16000000, so the tags moved up from the B1 value 0x14000000.  A non-empty ramdisk must not use
 offset 0, or the 32 MiB payload overwrites the kernel.
 """
 
@@ -87,7 +88,7 @@ def main():
     parser.add_argument('--base', type=lambda v: int(v, 0), default=0x10000000)
     parser.add_argument('--kernel-offset', type=lambda v: int(v, 0), default=0)
     parser.add_argument('--ramdisk-offset', type=lambda v: int(v, 0), default=0x02000000)
-    parser.add_argument('--tags-offset', type=lambda v: int(v, 0), default=0x04000000)
+    parser.add_argument('--tags-offset', type=lambda v: int(v, 0), default=0x08000000)
     parser.add_argument('--pagesize', type=int, default=2048, choices=(2048, 4096, 8192, 16384))
     parser.add_argument('--header-version', type=int, default=1)
     args = parser.parse_args()

@@ -27,7 +27,7 @@ G1 evidence and the measured board values live in the UniXNU tree, under
 | userdata | LBA `0x14F40`..`0x1C627FA`, 29,677,755 blocks |
 | Frame buffer | `0x9D400000`, 1080x1920, stride 1080, BGRX, `0x7E9000` bytes |
 | Keys | volume up/down and power, handled by Qualcomm `ButtonsDxe` |
-| Boot image | header v1, 2048-byte pages, kernel `0x10000000`, ramdisk `0x12000000`, tags `0x14000000` |
+| Boot image | header v1, 2048-byte pages, kernel `0x10000000`, ramdisk `0x12000000`, tags `0x18000000` (64 MiB payload) |
 
 ## Layout
 

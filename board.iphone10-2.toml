@@ -41,7 +41,7 @@ roots = []
 
 [payload]
 volume = "OP5ESP"
-size_mib = 32
+size_mib = 64
 loader = "firmware"
 title = "OnePlus 5 D21AP"
 dram_size = "0xF0000000"
