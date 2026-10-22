@@ -1,0 +1,9 @@
+# Build outputs and device inputs; nothing here is worth committing.
+/out/
+/.cache/
+/build/
+*.img
+*.fd
+*.dtb
+*.dts
+__pycache__/

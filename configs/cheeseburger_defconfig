@@ -1,0 +1,29 @@
+# Kernel configuration of the OnePlus 5 image. CONFIG_XNU_<NAME> becomes XNU_<NAME> for the
+# kernel build.
+#
+# B3 starts with the smallest set that can reach a panic: the DT platform expert, the timer and
+# the mock/ram block stack.  NativeUfs, Adreno, PMGR, PAN and MobileDisplay stay off until their
+# own milestones (B4/B5/B7).
+
+CONFIG_XNU_BUILD_ARCHIVES=y
+CONFIG_XNU_SOURCE_CORECRYPTO14=y
+CONFIG_XNU_SOURCE_PTHREAD=y
+CONFIG_XNU_ARM_DT_PLATFORM=y
+CONFIG_XNU_ARMCPU=y
+CONFIG_XNU_NATIVE_ARCH_TIMER=y
+CONFIG_XNU_NATIVE_CS_HASH_CACHE=y
+CONFIG_XNU_TRUST_CACHE_RUNTIME=y
+CONFIG_XNU_BOOT_PROGRESS=y
+CONFIG_XNU_NATIVE_LEGACY_DISPLAY=y
+CONFIG_XNU_SOURCE_MOCKFS=y
+
+CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
+
+# Not yet:
+# CONFIG_XNU_NATIVE_UFS is not set
+# CONFIG_XNU_NATIVE_ADRENO is not set
+# CONFIG_XNU_SHENG_PMGR is not set
+# CONFIG_XNU_NATIVE_PAN is not set
+# CONFIG_XNU_NATIVE_MOBILE_DISPLAY is not set
+# CONFIG_XNU_NATIVE_VIRTIO_BLOCK is not set
+# CONFIG_XNU_VERIFIED_ROOT_PROBE is not set

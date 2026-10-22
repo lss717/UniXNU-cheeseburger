@@ -1,0 +1,104 @@
+# Board description of the OnePlus 5 (cheeseburger, MSM8998), read by the unixnu build driver.
+#
+# The firmware is *not* built by "unixnu build firmware": B line decision D6/D7 keeps
+# edk2-msm8998/build.sh (GCC5, its own DSC/FDF) and packages the image with this
+# repository's scripts/make-bootimg.py.  See README.md.
+
+[board]
+name = "cheeseburger"
+soc = "MSM8998"
+description = "OnePlus 5"
+kit = "cheeseburger"
+
+# B3 fixture: the unchanged iPad7,1 iPadOS 17.7.11 restore image, the same one sheng uses.
+# The final identity is iPhone10,2 / 16.7.16; see board.iphone10-2.toml.
+[ipsw]
+url = "https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw"
+product = "iPad7,1"
+version = "17.7.11"
+build = "21H461"
+device_class = "j120ap"
+chip_id = 0x8011
+board_id = 12
+fetch = ["KernelCache", "DeviceTree", "StaticTrustCache", "Cryptex1,SystemTrustCache"]
+
+# Measured on the phone on 2026-10-22 with CheeseburgerInfo.efi:
+# LUN0 has 29,763,584 blocks of 4096 bytes; userdata is 29,677,755 blocks.
+# 29,677,755 * 4096 = 0x1C4D8BB000, the same as "fastboot getvar partition-size:userdata".
+[userdata]
+first_lba = 0x14f40
+last_lba = 0x1c627fa
+lba_bytes = 4096
+windows = [
+  { name = "OS", component = "OS" },
+  { name = "SystemOS", component = "Cryptex1,SystemOS" },
+]
+
+[kernel]
+defconfig = "cheeseburger_defconfig"
+
+# Archive builders, in order.  NativeUfs, NativeAdreno and the PMGR work belong to B5/B7;
+# the first B3 kernel only needs the platform expert, timer and the block fixtures.
+archives = [
+  "build-corecrypto-14.py",
+  "build-corecrypto-14.py --namespace",
+  "build-arm-driver.py ArmDTPlatform",
+  "build-arm-driver.py ArmCpu",
+  "build-arm-driver.py NativeRamBlock",
+  "build-mockfs-fixture.py",
+  "build-boot-progress.py",
+  "build-libpthread-kernel.py",
+  "build-native-legacy-display.py",
+]
+
+[kernel.prelink]
+tool = "kits/NativePrelink/emit_prelink.py"
+kernel = "build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/mach.development.bcm2837.unstripped.noctf"
+# kernelcache_sha256 = "..."        # TODO(B3): fill from the fetched iPad7,1 17.7.11 KernelCache
+slide = "-0x1000000"
+# Start from the sheng roots, then drop the ones that assume an Apple PMGR, UFS controller or
+# Adreno: B4 owns that pruning.  TODO(B3): tune against the first panic.
+roots = [
+  "com.apple.AppleFSCompression.AppleFSCompressionTypeZlib",
+  "com.apple.driver.AppleARMPlatform",
+  "com.apple.driver.AppleARMWatchdogTimer",
+  "com.apple.driver.AppleEffaceableStorage",
+  "com.apple.driver.AppleMobileFileIntegrity",
+  "com.apple.filesystems.apfs",
+  "com.apple.iokit.IOCryptoAcceleratorFamily",
+  "com.apple.iokit.IOHIDFamily",
+  "com.apple.iokit.IOHIDEventDriver",
+  "com.apple.iokit.IOStorageFamily",
+  "com.apple.kec.Libm",
+  "com.apple.kec.corecrypto",
+  "com.apple.kext.CoreTrust",
+  "com.apple.security.AppleImage4",
+  "com.apple.security.sandbox",
+]
+
+# The ramdisk of the boot image: a FAT volume with the UniXNU config, the kernel and its
+# device tree.  The loader (DarwinBoot) stays in the firmware volume.
+[payload]
+volume = "OP5ESP"
+size_mib = 32
+loader = "firmware"
+title = "OnePlus 5 B1"
+dram_size = "0xF0000000"           # edk2-msm8998 maps a 4 GiB window; 8 GiB are installed
+panic_screen = true
+kernel_args = [
+  "-v",
+  "debug=0x14e",
+  "boot-progress=2",
+  "offline-legacy-gop=1",
+  "offline-legacy-unit-scale=1",
+]
+
+[payload.adt]
+tool = "scripts/make-cheeseburger-adt.py"
+# TODO(B2/B3): the ADT generator needs the iPad7,1 DeviceTree from the fetched IPSW.
+# MSM8998 constants it must use: GICD 0x17a00000 (+0x10000), GICR 0x17b00000 (+0x100000,
+# stride 0x20000), timebase 19200000, CPU regs 0,1,2,3,0x100,0x101,0x102,0x103,
+# UFS node "qcom,msm8998-ufshc".
+cpu_regs = "0,1,2,3,0x100,0x101,0x102,0x103"
+owned_memory_size = "0x200000000"  # 8 GiB
+ipad_identity = true
