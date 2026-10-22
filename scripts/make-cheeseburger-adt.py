@@ -73,7 +73,7 @@ def empty_nvram_proxy():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path,
-                        default=ROOT / 'build/sheng/boot/kernel.macho.adt')
+                        default=ROOT / 'build/cheeseburger/boot/kernel.macho.adt')
     parser.add_argument('--dram-size', type=lambda value: int(value, 0), required=True,
                         help='Actual observed DRAM size, e.g. 0x230000000')
     parser.add_argument('--owned-memory-size', type=lambda value: int(value, 0), default=None,
@@ -85,17 +85,17 @@ def main():
     parser.add_argument('--chip-id', type=lambda value: int(value, 16), default=None)
     parser.add_argument('--ipad-identity', action='store_true',
                         help='/product and /buttons describe an iPad-class device without a Home button (MobileGestalt reads these from the tree); '
-                             'values follow the unchanged iPad7,1 tree, the panel geometry and button set are sheng\'s')
+                             'values follow the unchanged iPad7,1 tree, the panel geometry and button set are this board\'s')
     parser.add_argument('--cpu-regs', default='0',
                         help='Comma-separated CPU MPIDR affinity values (the /cpus reg of each core); the first is the running boot CPU. '
-                             'SM8550 numbers its cores 0x000..0x700 in Affinity1 (sm8550.dtsi). More than one adds /psci')
+                             'MSM8998 numbers Kryo Gold cores 0..3 in Affinity0 and Silver cores 0x100..0x103. More than one adds /psci')
     parser.add_argument('--psci-method', choices=['smc', 'hvc'], default='smc',
                         help='/psci method used by the secondary-CPU start (the board DT declares smc)')
     parser.add_argument('--packed-data-ramdisk', action='store_true', help='Hand off validated DBRDISK1 bytes to the native sparse block driver, without a dense memdev alias')
     parser.add_argument('--data-ramdisk', action='store_true',
                         help='/chosen/memory-map RAMDisk placeholder; the loader fills in the real range for a scratch Data seed')
     parser.add_argument('--persistent-data', action='store_true',
-                        help='The Data disk keeps its writes across boots (sheng-data-persist): no ephemeral-storage, so first-boot data migration runs')
+                        help='The Data disk keeps its writes across boots: no ephemeral-storage, so first-boot data migration runs')
     parser.add_argument('--trust-cache', action='store_true', help='Zeroed TrustCache sidecar handoff placeholder')
     parser.add_argument('--gpu-addon', action='store_true', help='Zeroed GpuAddon sidecar handoff placeholder (the loader fills in kernel.macho.gpuaddon)')
     parser.add_argument('--text-fixup', action='append', default=[],
@@ -184,7 +184,7 @@ def main():
         # The original AppleImage4 panics without a product node. Name and model are the
         # board DT's own strings.
         *( [node('buttons', [('compatible', b'buttons\0'), ('device_type', b'buttons\0'),
-                             # No 'menu' entry: sheng has no Home button. 2 = the non-mechanical answer BSPlatform passes through.
+                             # No 'menu' entry: the OnePlus 5 has no Home button. 2 = the non-mechanical answer BSPlatform passes through.
                              ('button-names', b'hold\0voldown\0volup\0'),
                              ('home-button-type', struct.pack('<I', 2))])] if args.ipad_identity else [] ),
         node('product', [('product-name', b'iPad Pro (12.9-inch) (2nd generation)\0' if args.ipad_identity else b'OnePlus 5\0'),
