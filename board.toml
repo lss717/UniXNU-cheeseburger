@@ -84,7 +84,7 @@ volume = "OP5ESP"
 size_mib = 64
 loader = "firmware"
 title = "OnePlus 5 B1"
-dram_size = "0xF0000000"           # edk2-msm8998 maps a 4 GiB window; 8 GiB are installed
+dram_size = "0x200000000"          # 8 GiB installed; the DarwinBoot window can land above 4 GiB
 panic_screen = true                 # scripts/patch-xnu-entry-probe.py + scripts/xnu-panic-screen.c
 kernel_args = [
   "-v",
