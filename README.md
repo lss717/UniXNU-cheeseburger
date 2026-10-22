@@ -37,7 +37,8 @@ board.iphone10-2.toml      B6 target profile, unused until the switch
 configs/cheeseburger_defconfig
 scripts/make-bootimg.py    edk2-msm8998 mkbootimg + header report
 scripts/check-cheeseburger.py  FD / boot image / payload preflight
-scripts/make-cheeseburger-adt.py  ADT generator (TODO: needs the IPSW DeviceTree)
+scripts/make-cheeseburger-adt.py  Apple-format device tree for the B3 boot
+scripts/check-adt.py         parse and check /cpus, /arm-io/intc, /chosen
 package/ drivers/ patches/ own modules, added by later milestones
 ```
 
@@ -60,7 +61,14 @@ python3 scripts/make-bootimg.py \
   --payload out/cheeseburger/boot/payload.img \
   --out out/cheeseburger/boot/boot.img
 
-# 4. preflight and run
+# 4. ADT (B3; B1-B2 payloads only need the UniXNU config)
+python3 scripts/make-cheeseburger-adt.py \
+  --output out/cheeseburger/boot/kernel.macho.adt \
+  --dram-size 0x200000000 --owned-memory-size 0x80000000 \
+  --cpu-regs 0,1,2,3,0x100,0x101,0x102,0x103 --ipad-identity
+python3 scripts/check-adt.py --adt out/cheeseburger/boot/kernel.macho.adt
+
+# 5. preflight and run
 python3 scripts/check-cheeseburger.py
 fastboot boot out/cheeseburger/boot/boot.img
 ```

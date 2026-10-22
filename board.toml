@@ -95,10 +95,11 @@ kernel_args = [
 
 [payload.adt]
 tool = "scripts/make-cheeseburger-adt.py"
-# TODO(B2/B3): the ADT generator needs the iPad7,1 DeviceTree from the fetched IPSW.
-# MSM8998 constants it must use: GICD 0x17a00000 (+0x10000), GICR 0x17b00000 (+0x100000,
-# stride 0x20000), timebase 19200000, CPU regs 0,1,2,3,0x100,0x101,0x102,0x103,
-# UFS node "qcom,msm8998-ufshc".
+# The generator builds the tree from the pinned MSM8998 constants (GICD 0x17a00000,
+# GICR 0x17b00000 stride 0x20000, timebase 19200000, UFS qcom,msm8998-ufshc), measured
+# by scripts/check-adt.py.  It does not read the IPSW DeviceTree yet; the B6 /product and
+# /buttons copy is a separate task.
 cpu_regs = "0,1,2,3,0x100,0x101,0x102,0x103"
-owned_memory_size = "0x200000000"  # 8 GiB
+psci_method = "smc"
+owned_memory_size = "0x80000000"   # 2 GiB DarwinBoot window for the first boot
 ipad_identity = true
