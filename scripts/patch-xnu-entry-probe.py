@@ -181,8 +181,10 @@ def llvm_tool(name):
     if found:
         return found
     candidates = [Path(prefix) / name for prefix in
-                  ('/opt/homebrew/opt/llvm/bin', '/usr/local/opt/llvm/bin')]
-    for cellar in ('/opt/homebrew/Cellar/llvm', '/usr/local/Cellar/llvm'):
+                  ('/opt/homebrew/opt/llvm/bin', '/usr/local/opt/llvm/bin',
+                   '/opt/homebrew/opt/lld/bin', '/usr/local/opt/lld/bin')]
+    for cellar in ('/opt/homebrew/Cellar/llvm', '/usr/local/Cellar/llvm',
+                   '/opt/homebrew/Cellar/lld', '/usr/local/Cellar/lld'):
         candidates.extend(sorted(Path(cellar).glob(f'*/bin/{name}'), reverse=True))
     # Debian-style versioned names (llvm-size-20, /usr/lib/llvm-20/bin/...), used by local runs.
     for pattern in (f'/usr/lib/llvm-*/bin/{name}', f'/usr/bin/{name}-*'):
