@@ -85,8 +85,7 @@ size_mib = 64
 loader = "firmware"
 title = "OnePlus 5 B1"
 dram_size = "0xF0000000"           # edk2-msm8998 maps a 4 GiB window; 8 GiB are installed
-# panic_screen stays off until the patcher and scripts/xnu-panic-screen.c are ported;
-# XNU's own video console already prints panics through boot_args->Video.
+panic_screen = true                 # scripts/patch-xnu-entry-probe.py + scripts/xnu-panic-screen.c
 kernel_args = [
   "-v",
   "debug=0x14e",

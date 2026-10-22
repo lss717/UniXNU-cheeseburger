@@ -95,9 +95,9 @@ build the firmware).
 Secrets: `UNIXNU_DEVICE_TOKEN` for a private device repository, `UNIXNU_UNIQUE_CHIP_ID` for the
 payload ADT seed.
 
-`panic_screen` is off for now: it needs sheng's `patch-xnu-entry-probe.py` and
-`scripts/xnu-panic-screen.c`, which are not in this repository.  XNU's own video console still
-prints panics through `boot_args->Video`.
+`panic_screen` is on: `scripts/patch-xnu-entry-probe.py` redirects `panic()` into
+`scripts/xnu-panic-screen.c`, which draws the message with `scripts/Font.h` and stops, so the
+panorama stays on the panel for a photograph.  `--no-reset` keeps the early stages from resetting.
 
 The first kernel builds without the legacy display and boot-progress kits: sheng's
 `build-native-legacy-display.py` / `build-boot-progress.py` are tied to its Adreno, touch and
