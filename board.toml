@@ -38,10 +38,10 @@ windows = [
 defconfig = "cheeseburger_defconfig"
 
 # Archive builders, in order.  NativeUfs, NativeAdreno and the PMGR work belong to B5/B7.
-# The first B3 kernel needs the platform expert, timer and the block fixtures.  The console
-# is a B3 prerequisite of its own: sheng's build-native-legacy-display.py and
-# build-boot-progress.py are tied to its GPU/touch/backlight probes, so a cheeseburger kit
-# has to replace them before the panic is visible on the panel.
+# The first B3 kernel needs the platform expert, timer and the block fixtures.  The kernel
+# console does not need the legacy display kit: DarwinBoot passes the GOP frame buffer in
+# boot_args->Video.  sheng's build-native-legacy-display.py / build-boot-progress.py are tied
+# to its GPU/touch/backlight probes and are a B7 (IOMobileFramebuffer) task.
 archives = [
   "build-corecrypto-14.py",
   "build-corecrypto-14.py --namespace",

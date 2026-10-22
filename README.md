@@ -97,8 +97,9 @@ payload ADT seed.
 
 The first kernel builds without the legacy display and boot-progress kits: sheng's
 `build-native-legacy-display.py` / `build-boot-progress.py` are tied to its Adreno, touch and
-backlight probes.  Until a cheeseburger kit replaces them, XNU can boot but the panic is not
-visible on the panel, so a display kit is a B3 prerequisite.
+backlight probes.  That does not hide the B3 console: DarwinBoot passes the GOP frame buffer
+through `boot_args->Video`, so XNU's own verbose/panic console draws on the panel.  The legacy
+display kit is for `IOMobileFramebuffer` and the userland UI (B7), not for B3.
 
 ## B3 inputs that are not in this repository
 

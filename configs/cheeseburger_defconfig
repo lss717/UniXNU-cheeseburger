@@ -18,8 +18,8 @@ CONFIG_XNU_SOURCE_MOCKFS=y
 CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
 
 # Not yet:
-# B3 needs a cheeseburger display/boot-progress kit before the panic is visible on the
-# panel; sheng's builders are tied to its Adreno/touch probes.
+# The legacy display kit is for IOMobileFramebuffer/userland (B7); the B3 kernel console
+# uses boot_args->Video from DarwinBoot and needs no extra kit.
 # CONFIG_XNU_NATIVE_LEGACY_DISPLAY is not set
 # CONFIG_XNU_BOOT_PROGRESS is not set
 # CONFIG_XNU_NATIVE_UFS is not set
