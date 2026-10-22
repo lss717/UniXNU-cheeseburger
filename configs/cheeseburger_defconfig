@@ -13,13 +13,15 @@ CONFIG_XNU_ARMCPU=y
 CONFIG_XNU_NATIVE_ARCH_TIMER=y
 CONFIG_XNU_NATIVE_CS_HASH_CACHE=y
 CONFIG_XNU_TRUST_CACHE_RUNTIME=y
-CONFIG_XNU_BOOT_PROGRESS=y
-CONFIG_XNU_NATIVE_LEGACY_DISPLAY=y
 CONFIG_XNU_SOURCE_MOCKFS=y
 
 CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
 
 # Not yet:
+# B3 needs a cheeseburger display/boot-progress kit before the panic is visible on the
+# panel; sheng's builders are tied to its Adreno/touch probes.
+# CONFIG_XNU_NATIVE_LEGACY_DISPLAY is not set
+# CONFIG_XNU_BOOT_PROGRESS is not set
 # CONFIG_XNU_NATIVE_UFS is not set
 # CONFIG_XNU_NATIVE_ADRENO is not set
 # CONFIG_XNU_SHENG_PMGR is not set

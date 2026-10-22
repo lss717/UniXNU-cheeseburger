@@ -75,6 +75,31 @@ fastboot boot out/cheeseburger/boot/boot.img
 
 `fastboot boot` only loads the image into RAM; nothing is written to a partition.
 
+## macOS CI
+
+The UniXNU repository carries `.github/workflows/macos-cheeseburger.yml` for the steps that
+need Xcode.  After pushing this repository:
+
+```sh
+# in the UniXNU checkout
+gh workflow run macos-cheeseburger.yml \
+  -f device_repository=<owner>/UniXNU-cheeseburger \
+  -f device_ref=main
+```
+
+It runs `unixnu defconfig cheeseburger_defconfig`, fetches the XNU sources, builds the kernel
+and the payload, and uploads `out/cheeseburger/{kernel,payload,logs}`.  The boot image is still
+assembled from the edk2-msm8998 firmware with `scripts/make-bootimg.py` (the workflow does not
+build the firmware).
+
+Secrets: `UNIXNU_DEVICE_TOKEN` for a private device repository, `UNIXNU_UNIQUE_CHIP_ID` for the
+payload ADT seed.
+
+The first kernel builds without the legacy display and boot-progress kits: sheng's
+`build-native-legacy-display.py` / `build-boot-progress.py` are tied to its Adreno, touch and
+backlight probes.  Until a cheeseburger kit replaces them, XNU can boot but the panic is not
+visible on the panel, so a display kit is a B3 prerequisite.
+
 ## B3 inputs that are not in this repository
 
 `unixnu ipsw fetch` (on macOS) caches `KernelCache`, `DeviceTree`, `StaticTrustCache` and

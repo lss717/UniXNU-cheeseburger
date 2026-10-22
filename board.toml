@@ -37,8 +37,11 @@ windows = [
 [kernel]
 defconfig = "cheeseburger_defconfig"
 
-# Archive builders, in order.  NativeUfs, NativeAdreno and the PMGR work belong to B5/B7;
-# the first B3 kernel only needs the platform expert, timer and the block fixtures.
+# Archive builders, in order.  NativeUfs, NativeAdreno and the PMGR work belong to B5/B7.
+# The first B3 kernel needs the platform expert, timer and the block fixtures.  The console
+# is a B3 prerequisite of its own: sheng's build-native-legacy-display.py and
+# build-boot-progress.py are tied to its GPU/touch/backlight probes, so a cheeseburger kit
+# has to replace them before the panic is visible on the panel.
 archives = [
   "build-corecrypto-14.py",
   "build-corecrypto-14.py --namespace",
@@ -46,9 +49,7 @@ archives = [
   "build-arm-driver.py ArmCpu",
   "build-arm-driver.py NativeRamBlock",
   "build-mockfs-fixture.py",
-  "build-boot-progress.py",
   "build-libpthread-kernel.py",
-  "build-native-legacy-display.py",
 ]
 
 [kernel.prelink]
