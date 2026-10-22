@@ -135,7 +135,7 @@ _start:
 
 def kernel_symbols(kernel):
     """Address -> name for the kernel's symbols, from llvm-nm."""
-    nm = shutil.which('llvm-nm') or '/opt/homebrew/opt/llvm/bin/llvm-nm'
+    nm = llvm_tool('llvm-nm')
     table = {}
     for line in subprocess.run([nm, '-n', kernel], capture_output=True, text=True, check=True).stdout.splitlines():
         parts = line.split()
@@ -170,15 +170,44 @@ def find_call(data, symbols, function, name, occurrence):
     return hits[occurrence - 1]
 
 
+def llvm_tool(name):
+    """PATH first, then the usual Homebrew keg locations, then "brew --prefix llvm".
+
+    Runners sometimes export the llvm bin directory after the step that uses it, or keep
+    the formula keg-only without the opt symlink; a bare /opt/homebrew fallback is not
+    enough there.
+    """
+    found = shutil.which(name)
+    if found:
+        return found
+    candidates = [Path(prefix) / name for prefix in
+                  ('/opt/homebrew/opt/llvm/bin', '/usr/local/opt/llvm/bin')]
+    for cellar in ('/opt/homebrew/Cellar/llvm', '/usr/local/Cellar/llvm'):
+        candidates.extend(sorted(Path(cellar).glob(f'*/bin/{name}'), reverse=True))
+    # Debian-style versioned names (llvm-size-20, /usr/lib/llvm-20/bin/...), used by local runs.
+    for pattern in (f'/usr/lib/llvm-*/bin/{name}', f'/usr/bin/{name}-*'):
+        candidates.extend(sorted(Path('/').glob(pattern.lstrip('/')), reverse=True))
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    try:
+        prefix = subprocess.run(['brew', '--prefix', 'llvm'], capture_output=True, text=True).stdout.strip()
+    except OSError:
+        prefix = ''
+    if prefix and (Path(prefix) / 'bin' / name).is_file():
+        return str(Path(prefix) / 'bin' / name)
+    raise SystemExit(f'{name} not found (brew install llvm)')
+
+
 def assemble_c(source, va, workdir, symbols):
     """Build a freestanding C file for VA; returns (bytes, load address of the first byte, address of panic_screen).
 
     The linker may start .text a little after VA (it keeps the ELF headers in front), so the
     load address is read back from the ELF and is what the caller must write the bytes to."""
-    clang = shutil.which('clang') or '/opt/homebrew/opt/llvm/bin/clang'
-    lld = shutil.which('ld.lld') or '/opt/homebrew/opt/llvm/bin/ld.lld'
-    objcopy = shutil.which('llvm-objcopy') or '/opt/homebrew/opt/llvm/bin/llvm-objcopy'
-    nm = shutil.which('llvm-nm') or '/opt/homebrew/opt/llvm/bin/llvm-nm'
+    clang = llvm_tool('clang')
+    lld = llvm_tool('ld.lld')
+    objcopy = llvm_tool('llvm-objcopy')
+    nm = llvm_tool('llvm-nm')
     # Font.h ships next to this script (scripts/Font.h), so the panic screen does not
     # depend on a Mu-Silicium checkout of the firmware repository.
     font_dir = Path(__file__).resolve().parent
@@ -204,7 +233,7 @@ def assemble_c(source, va, workdir, symbols):
                     *definitions, f'-I{font_dir}', '-c', source, '-o', obj], check=True)
     script = workdir / 'panic.ld'
     script.write_text('SECTIONS { . = %#x; .text : { *(.text.a_entry) *(.text.a_common) *(.text*) *(.rodata*) } /DISCARD/ : { *(.comment) *(.note*) *(.eh_frame*) *(.ARM.*) } }\n' % va)
-    size = shutil.which('llvm-size') or '/opt/homebrew/opt/llvm/bin/llvm-size'
+    size = llvm_tool('llvm-size')
     sizes = subprocess.run([size, '--format=berkeley', obj], capture_output=True, text=True, check=True).stdout.splitlines()[-1].split()
     if int(sizes[1]) or int(sizes[2]):
         # The code runs from the kernel's read-only text: a global would fault on its first store.
@@ -212,7 +241,7 @@ def assemble_c(source, va, workdir, symbols):
     subprocess.run([lld, '-T', script, '-e', 'panic_screen', obj, '-o', elf], check=True)
     # Only .text: a plain binary dump would start at the ELF headers kept in front of it.
     subprocess.run([objcopy, '-O', 'binary', '-j', '.text', elf, binary], check=True)
-    readelf = shutil.which('llvm-readelf') or '/opt/homebrew/opt/llvm/bin/llvm-readelf'
+    readelf = llvm_tool('llvm-readelf')
     load = None
     for line in subprocess.run([readelf, '-S', elf], capture_output=True, text=True, check=True).stdout.splitlines():
         parts = line.replace('[', ' ').replace(']', ' ').split()
@@ -232,7 +261,7 @@ def assemble_c(source, va, workdir, symbols):
 
 def panic_common_entry(workdir, code, load):
     """Resolve the real alternate entry and verify its distinct argument ABI."""
-    nm = shutil.which('llvm-nm') or '/opt/homebrew/opt/llvm/bin/llvm-nm'
+    nm = llvm_tool('llvm-nm')
     names = {parts[2]: int(parts[0], 16)
              for line in subprocess.check_output([nm, workdir / 'panic.elf'], text=True).splitlines()
              if len(parts := line.split()) == 3}
@@ -341,9 +370,9 @@ def branch(from_va, to_va):
 def assemble(source, va, symbols, workdir):
     asm, obj, elf, binary = (workdir / name for name in ('cave.S', 'cave.o', 'cave.elf', 'cave.bin'))
     asm.write_text(source)
-    clang = shutil.which('clang') or '/opt/homebrew/opt/llvm/bin/clang'
-    lld = shutil.which('ld.lld') or '/opt/homebrew/opt/llvm/bin/ld.lld'
-    objcopy = shutil.which('llvm-objcopy') or '/opt/homebrew/opt/llvm/bin/llvm-objcopy'
+    clang = llvm_tool('clang')
+    lld = llvm_tool('ld.lld')
+    objcopy = llvm_tool('llvm-objcopy')
     subprocess.run([clang, '--target=aarch64-none-elf', '-c', asm, '-o', obj], check=True)
     subprocess.run([lld, f'-Ttext={va:#x}', *[f'--defsym={name}={value:#x}' for name, value in symbols.items()], '-e', '_start', obj, '-o', elf], check=True)
     subprocess.run([objcopy, '-O', 'binary', elf, binary], check=True)
