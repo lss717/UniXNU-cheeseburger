@@ -95,6 +95,10 @@ build the firmware).
 Secrets: `UNIXNU_DEVICE_TOKEN` for a private device repository, `UNIXNU_UNIQUE_CHIP_ID` for the
 payload ADT seed.
 
+`panic_screen` is off for now: it needs sheng's `patch-xnu-entry-probe.py` and
+`scripts/xnu-panic-screen.c`, which are not in this repository.  XNU's own video console still
+prints panics through `boot_args->Video`.
+
 The first kernel builds without the legacy display and boot-progress kits: sheng's
 `build-native-legacy-display.py` / `build-boot-progress.py` are tied to its Adreno, touch and
 backlight probes.  That does not hide the B3 console: DarwinBoot passes the GOP frame buffer
