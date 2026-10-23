@@ -18,7 +18,9 @@ CONFIG_XNU_DT_PANIC_REGION=y
 CONFIG_XNU_TRUST_CACHE_RUNTIME=y
 CONFIG_XNU_SOURCE_MOCKFS=y
 
-CONFIG_XNU_CRYPTO_BOOTSTRAP="prelinked"
+# B3 has no prelinked corecrypto OSKext startup before kmem_crypto_init();
+# use the source bootstrap registered at STARTUP(EARLY_BOOT, FIRST).
+CONFIG_XNU_CRYPTO_BOOTSTRAP="source"
 
 # Not yet:
 # The legacy display kit is for IOMobileFramebuffer/userland (B7); the B3 kernel console
