@@ -56,7 +56,11 @@ archives = [
 tool = "kits/NativePrelink/emit_prelink.py"
 kernel = "build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/mach.development.bcm2837.unstripped.noctf"
 # kernelcache_sha256 = "..."        # TODO(B3): fill from the fetched iPad7,1 17.7.11 KernelCache
-slide = "-0x1000000"
+# B3: the original coalesced prelink ranges must sit above
+# VM_KERNEL_LINK_ADDRESS (__TEXT) for arm_vm_prot_init.  The sheng -0x1000000
+# slide put __PRELINK_TEXT 0x2d88000 below __TEXT; 0x4100000 lifts the whole
+# prelink set above the native __LINKEDIT (0x82ec000) instead.
+slide = "0x4100000"
 # Start from the sheng roots, then drop the ones that assume an Apple PMGR, UFS controller or
 # Adreno: B4 owns that pruning.  TODO(B3): tune against the first panic.
 roots = [
