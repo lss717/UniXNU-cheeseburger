@@ -234,6 +234,13 @@ def emit(native_data, original_data, roots, slide, early_security_init=None):
             if address != entries[identifier]['_PrelinkExecutableLoadAddr']:
                 raise ValueError('Original kmod address disagrees with its component header')
             struct.pack_into('<Q', output, new_offset(va + slide + 156, 8), address + slide)
+            # The coalesced __TEXT_EXEC range is not adjacent to __TEXT, so the
+            # original kmod size no longer covers the slid start/stop entry
+            # points.  Extend the range to the component's highest segment.
+            component_end = max((segment['va'] + segment['size']
+                                 for segment in modules[identifier]['segments'] if segment['va']), default=0)
+            if component_end > address:
+                struct.pack_into('<Q', output, new_offset(va + slide + 164, 8), component_end - address)
         # The OSKext range check compares these pointers with the slid kext
         # load address, so they must be slid as well (Apple's reader does the
         # same after the coalesced pointer table).
