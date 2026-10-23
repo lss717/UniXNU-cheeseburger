@@ -15,7 +15,9 @@ CONFIG_XNU_NATIVE_CS_HASH_CACHE=y
 # The BCM2837 panic-log address (0x3c0fc000) is not an MSM8998 region; use
 # /pram + /chosen/embedded-panic-log-size from the ADT instead.
 CONFIG_XNU_DT_PANIC_REGION=y
-CONFIG_XNU_TRUST_CACHE_RUNTIME=y
+# B3 has no registered img4if/amfi provider at trust_cache_init time yet.
+# Re-enable when the AppleImage4/AMFI prelink initialization order is qualified.
+# CONFIG_XNU_TRUST_CACHE_RUNTIME is not set
 CONFIG_XNU_SOURCE_MOCKFS=y
 
 # B3 has no prelinked corecrypto OSKext startup before kmem_crypto_init();
