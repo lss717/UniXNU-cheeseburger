@@ -23,6 +23,13 @@ channels. The stage code lives in the zero padding after the kernel entry
                                         Nth call, --occurrence). It replaces
                                         stage 3, so one run asks one question:
                                         did the kernel get past that call?
+  control (--reset-before-mmu)          no SCTLR write at all: paints stage 1 blue
+                                        and then waits --reset-delay seconds and
+                                        PSCI-resets at the pre-MMU site. This
+                                        proves the reset path itself works; if
+                                        this image does not reboot, the reset is
+                                        broken and stage 3/4 "no reboot" is not
+                                        evidence that the kernel hung.
 
 The bars are the 1/16th bands of the frame buffer below the green one that
 DarwinBoot paints (band index = stage). Each patch site is checked against its
@@ -46,7 +53,8 @@ PANIC_VA = 0xFFFFFFF00BF69B04      # _panic
 VINFO_VA = 0xFFFFFFF00C0A2970      # _vinfo
 PANIC_CAVE_END = 0xFFFFFFF00B9D0FF0
 CAVE_SIZE = 0x60
-CAVES = {1: 0xFFFFFFF00B9D0500, 2: 0xFFFFFFF00B9D0560, 3: 0xFFFFFFF00B9D05C0, 4: 0xFFFFFFF00B9D0620}
+CAVES = {1: 0xFFFFFFF00B9D0500, 2: 0xFFFFFFF00B9D0560, 3: 0xFFFFFFF00B9D05C0,
+         4: 0xFFFFFFF00B9D0620, 5: 0xFFFFFFF00B9D0680}
 TIMEBASE = 19200000
 
 PAINT = """
@@ -132,6 +140,9 @@ _start:
   b 1b
 """
 
+# Stage 5: reset at a symbol's first instruction (does not return).
+SOURCES[5] = RESET_BEFORE
+
 
 def kernel_symbols(kernel):
     """Address -> name for the kernel's symbols, from llvm-nm."""
@@ -142,6 +153,16 @@ def kernel_symbols(kernel):
         if len(parts) == 3:
             table.setdefault(int(parts[0], 16), parts[2])
     return table
+
+
+def symbol_address(kernel, name):
+    """Address of a symbol by name (tolerates aliases at the same address)."""
+    nm = llvm_tool('llvm-nm')
+    for line in subprocess.run([nm, '-n', kernel], capture_output=True, text=True, check=True).stdout.splitlines():
+        parts = line.split()
+        if len(parts) == 3 and parts[2] == name:
+            return int(parts[0], 16)
+    raise SystemExit(f'No symbol {name} in the kernel')
 
 
 def function_range(symbols, name):
@@ -389,11 +410,19 @@ def main():
     parser.add_argument('--reset-before', action='store_true', help='reset at the call site before invoking SYMBOL (requires --reset-after)')
     parser.add_argument('--panic-screen', action='store_true', help='draw panic() messages on the screen')
     parser.add_argument('--no-reset', action='store_true', help='no reset probe at all')
+    parser.add_argument('--reset-before-mmu', action='store_true',
+                        help='control image: reset at the pre-MMU site without writing SCTLR')
+    parser.add_argument('--reset-at', metavar='SYMBOL',
+                        help='reset at the first instruction of SYMBOL (does not execute the function)')
     parser.add_argument('--occurrence', type=int, default=1, help='which call to SYMBOL (1 = first)')
     parser.add_argument('--in', dest='function', default='_arm_init', help='function that makes the call (default _arm_init)')
     args = parser.parse_args()
     if args.reset_before and not args.reset_after:
         raise SystemExit('--reset-before requires --reset-after')
+    if args.reset_before_mmu and (args.reset_after or args.no_reset):
+        raise SystemExit('--reset-before-mmu cannot be combined with --reset-after or --no-reset')
+    if args.reset_at and (args.reset_after or args.reset_before or args.reset_before_mmu or args.no_reset):
+        raise SystemExit('--reset-at cannot be combined with --reset-after/--reset-before/--reset-before-mmu/--no-reset')
     data = bytearray(args.kernel.read_bytes())
     load_segments(data)
     kernel_names = rebase(args.kernel, data)
@@ -410,17 +439,28 @@ def main():
             raise SystemExit(f'Padding at {va:#x} is not empty')
 
     # (site, cave stage, symbols the cave is linked with)
-    sites = [(ENTRY_VA, 1, {'target': START_FIRST_CPU}),
-             (MMU_ENABLE_VA, 2, {'target': MMU_ENABLE_VA + 4})]
-    if args.no_reset:
+    stage1 = (ENTRY_VA, 1, {'target': START_FIRST_CPU})
+    if args.reset_at:
+        target = symbol_address(args.kernel, args.reset_at)
+        sites = [(target, 5, {})]
+        description = f'reset at {args.reset_at} entry ({target:#x}); the function is not executed'
+    elif args.reset_before_mmu:
+        # Do not patch the stage 2 site: it writes SCTLR.  Reset from the
+        # pre-MMU instruction instead, so a reboot proves the PSCI path.
+        sites = [stage1, (MMU_ENABLE_VA, 3, {})]
+        description = f'PSCI control reset {args.reset_delay} s at the pre-MMU site (SCTLR not written)'
+    elif args.no_reset:
+        sites = [stage1, (MMU_ENABLE_VA, 2, {'target': MMU_ENABLE_VA + 4})]
         description = 'no reset probe'
     elif args.reset_after:
         symbols = kernel_symbols(args.kernel)
         call_va, callee = find_call(data, symbols, args.function, args.reset_after, args.occurrence)
-        sites.append((call_va, 4, {'callee': callee, 'target': call_va + 4}))
+        sites = [stage1, (MMU_ENABLE_VA, 2, {'target': MMU_ENABLE_VA + 4}),
+                 (call_va, 4, {'callee': callee, 'target': call_va + 4})]
         description = f'stage 4 reset {"before" if args.reset_before else "after"} call #{args.occurrence} to {args.reset_after} in {args.function} (at {call_va:#x})'
     else:
-        sites.append((AFTER_MMU_VA, 3, {'target': AFTER_MMU_VA + 4}))
+        sites = [stage1, (MMU_ENABLE_VA, 2, {'target': MMU_ENABLE_VA + 4}),
+                 (AFTER_MMU_VA, 3, {'target': AFTER_MMU_VA + 4})]
         description = f'stage 3 reset {args.reset_delay} s after the MMU is on'
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -452,7 +492,13 @@ def main():
         struct.pack_into('<I', data, file_offset(common), branch(common, common_entry))
         description += f', panic screen ({len(code):#x} bytes at {entry:#x}; common funnel at {common:#x})'
     args.kernel.write_bytes(data)
-    print(f'patched {args.kernel.name}: stage 1 blue bar, stage 2 magenta bar, {description}')
+    if args.reset_at:
+        bars = 'no stage bars'
+    elif args.reset_before_mmu:
+        bars = 'stage 1 blue bar'
+    else:
+        bars = 'stage 1 blue bar, stage 2 magenta bar'
+    print(f'patched {args.kernel.name}: {bars}, {description}')
 
 if __name__ == '__main__':
     main()

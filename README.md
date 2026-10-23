@@ -99,6 +99,12 @@ payload ADT seed.
 `scripts/xnu-panic-screen.c`, which draws the message with `scripts/Font.h` and stops, so the
 panorama stays on the panel for a photograph.  `--no-reset` keeps the early stages from resetting.
 
+The reset probes are only evidence if the PSCI reset path itself works.  `--reset-before-mmu`
+builds a control image that paints the stage 1 blue band and resets after `--reset-delay`
+seconds at the pre-MMU site without writing `SCTLR_EL1`; run it before trusting a missing
+stage 3 reset.  `scripts/check-kernel-bases.py` prints the actual reset delay found in a
+kernel Mach-O and checks the DarwinBoot `physBase` 2 MiB congruence.
+
 The first kernel builds without the legacy display and boot-progress kits: sheng's
 `build-native-legacy-display.py` / `build-boot-progress.py` are tied to its Adreno, touch and
 backlight probes.  That does not hide the B3 console: DarwinBoot passes the GOP frame buffer
