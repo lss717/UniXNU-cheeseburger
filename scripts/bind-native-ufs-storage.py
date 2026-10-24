@@ -38,7 +38,7 @@ fixed = {
 
 obj = args.object.read_bytes()
 image = np.macho(obj)
-symcmd = next(cmd for cmd, at, size in image['commands'] if cmd == 2)
+symcmd = next(at for cmd, at, size in image['commands'] if cmd == 2)
 symoff, count, stroff, strsize = struct.unpack_from('<4I', obj, symcmd + 8)
 symbols = []
 print(f'NativeUfs symbols: symoff={symoff} count={count} stroff={stroff} strsize={strsize} size={len(obj)}')
