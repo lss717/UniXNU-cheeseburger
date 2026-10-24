@@ -110,3 +110,6 @@ cpu_regs = "0,1,2,3,0x100,0x101,0x102,0x103"
 psci_method = "smc"
 owned_memory_size = "0x80000000"   # 2 GiB DarwinBoot window for the first boot
 ipad_identity = true
+# Root selection: the OS window's APFS volume UUID in the iPad7,1 fixture.
+# This is read-only root media; Data is a separate later task.
+root_match_volume_uuid = "04769D26-2CA0-4825-B443-E2E5F88300F2"
