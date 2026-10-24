@@ -48,7 +48,7 @@ archives = [
   "build-arm-driver.py ArmDTPlatform",
   "build-arm-driver.py ArmCpu",
   "build-arm-driver.py NativeRamBlock",
-  "build-arm-driver.py NativeUfs",
+  "build-arm-driver.py NativeUfsProbe",
   "build-mockfs-fixture.py",
   "build-libpthread-kernel.py",
 ]
