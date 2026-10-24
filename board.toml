@@ -48,6 +48,7 @@ archives = [
   "build-arm-driver.py ArmDTPlatform",
   "build-arm-driver.py ArmCpu",
   "build-arm-driver.py NativeRamBlock",
+  "build-arm-driver.py NativeUfs",
   "build-mockfs-fixture.py",
   "build-libpthread-kernel.py",
 ]
@@ -96,6 +97,7 @@ kernel_args = [
   "boot-progress=2",
   "offline-legacy-gop=1",
   "offline-legacy-unit-scale=1",
+  "native-ufs-probe=20",
 ]
 
 [payload.adt]

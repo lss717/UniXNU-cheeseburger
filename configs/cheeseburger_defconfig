@@ -29,7 +29,7 @@ CONFIG_XNU_CRYPTO_BOOTSTRAP="source"
 # uses boot_args->Video from DarwinBoot and needs no extra kit.
 # CONFIG_XNU_NATIVE_LEGACY_DISPLAY is not set
 # CONFIG_XNU_BOOT_PROGRESS is not set
-# CONFIG_XNU_NATIVE_UFS is not set
+CONFIG_XNU_NATIVE_UFS=y
 # CONFIG_XNU_NATIVE_ADRENO is not set
 # CONFIG_XNU_SHENG_PMGR is not set
 # CONFIG_XNU_NATIVE_PAN is not set
