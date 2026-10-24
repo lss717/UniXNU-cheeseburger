@@ -113,8 +113,11 @@ def main():
                          f'GIC offsets under 0x17000000 are 0x17a00000/0x17b00000 ({[hex(v) for v in reg]})')
             report.check(u64(intc, 'redistributor-stride') == 0x20000, 'GICR stride is 0x20000')
         ufshc = child(armio, 'ufshc')
-        report.check(ufshc is not None and text(ufshc, 'compatible') == 'qcom,msm8998-ufshc',
-                     '/arm-io/ufshc is qcom,msm8998-ufshc')
+        compatible = ufshc['props'].get('compatible', b'') if ufshc else b''
+        report.check(ufshc is not None and b'qcom,msm8998-ufshc\0' in compatible and b'qcom,ufshc\0' in compatible,
+                     '/arm-io/ufshc is qcom,msm8998-ufshc + qcom,ufshc')
+        report.check(ufshc is not None and u32(ufshc, 'p8,msm8998-direct-dma') == 1,
+                     '/arm-io/ufshc has p8,msm8998-direct-dma=1')
 
     chosen = child(root, 'chosen')
     report.check(chosen is not None, 'has /chosen')

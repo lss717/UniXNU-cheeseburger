@@ -206,9 +206,19 @@ def main():
                                                 GIC_REDIST - ARMIO_BASE, GIC_REDIST_SIZE)),
                             ('redistributor-stride', struct.pack('<Q', REDIST_STRIDE))]),
               # UFS (0x1da4000) lies below the arm-io window (0x17000000), so a child reg
-              # offset would be negative. The node exists only for class matching; NativeUfs
-              # takes its physical windows from the board DT constants.
-              node('ufshc', [('compatible', b'qcom,msm8998-ufshc\0')])]),
+              # offset would be negative. The node exists for IOPlatformDevice matching;
+              # NativeUfsProbe takes its physical windows from the board DT constants.
+              node('ufshc', [
+                  ('compatible', b'qcom,msm8998-ufshc\0qcom,ufshc\0jedec,ufs-2.0\0'),
+                  ('p8,msm8998-direct-dma', struct.pack('<I', 1)),
+                  ('p8,hc-physical', struct.pack('<Q', UFS_HC)),
+                  ('p8,spi-intid', struct.pack('<I', 297)),
+                  ('p8,read-only', b''),
+                  ('p8,warm-link-only', b''),
+                  ('clock-names', b'core_clk\0bus_aggr_clk\0iface_clk\0core_clk_unipro\0ref_clk\0tx_lane0_sync_clk\0rx_lane0_sync_clk\0rx_lane1_sync_clk\0'),
+                  ('phy-names', b'ufsphy\0'),
+                  ('lanes-per-direction', struct.pack('<I', 2)),
+                  ('status', b'okay\0')])]),
     ])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(tree)
