@@ -89,6 +89,9 @@ if component == 'NativeAdreno':
 result = subprocess.run(command, cwd=record['directory'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 (out / 'compile.log').write_text(result.stdout)
 if result.returncode:
+    errors = [line for line in result.stdout.splitlines() if 'error:' in line]
+    if errors:
+        raise SystemExit('\n'.join(errors[-6:]))
     raise SystemExit(result.stdout[-3500:])
 data = destination.read_bytes()
 magic, cpu, subtype, kind, count, size = struct.unpack_from('<6I', data)
