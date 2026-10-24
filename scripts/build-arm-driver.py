@@ -109,4 +109,9 @@ if deployment != (2, 0x110000):
 archive = out / ('lib' + component + '.a')
 archive.unlink(missing_ok=True)
 subprocess.run(['xcrun', 'ar', 'rcs', archive, destination], check=True)
+if component == 'NativeUfsProbe':
+    subprocess.run(['python3', str(ROOT / 'scripts/bind-native-ufs-storage.py'),
+                    '--object', str(destination), '--archive', str(archive),
+                    '--bindings', str(ROOT / 'scripts/data/IOStorageFamily-bindings.json')],
+                   check=True)
 print(f'{component}: -Werror build and actual ARM64/iOS 17 object audit passed')
