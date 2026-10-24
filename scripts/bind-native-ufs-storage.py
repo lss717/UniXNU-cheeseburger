@@ -41,10 +41,20 @@ image = np.macho(obj)
 symcmd = next(cmd for cmd, at, size in image['commands'] if cmd == 2)
 symoff, count, stroff, _ = struct.unpack_from('<4I', obj, symcmd + 8)
 symbols = []
+print(f'NativeUfs symbols: symoff={symoff} count={count} stroff={stroff} strsize={strsize} size={len(obj)}')
 for index in range(count):
     name_at, kind, sect, desc, value = struct.unpack_from('<IBBHQ', obj, symoff + index * 16)
-    end = obj.index(b'\0', stroff + name_at)
-    symbols.append((obj[stroff + name_at:end].decode(), value, kind))
+    start = stroff + name_at
+    if index < 8:
+        print(f'  sym[{index}] strx={name_at} kind={kind} value={value:#x} start={start}')
+    if start < 0 or start >= len(obj):
+        name = ''
+    else:
+        end = obj.find(b'\0', start)
+        if end < 0:
+            end = min(len(obj), start + 512)
+        name = obj[start:end].decode(errors='replace')
+    symbols.append((name, value, kind))
 
 vtable = next((value for name, value, kind in symbols
                if name == '__ZTV12NativeUfsLun'), None)
