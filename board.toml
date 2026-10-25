@@ -101,6 +101,10 @@ kernel_args = [
   # Temporary B5 bring-up only: allow the unsealed iPad restore root to reach
   # launchd/AMFI. Remove this once VerifiedRoot is wired.
   "native-skip-root-auth=1",
+  # Diagnostic only: launchd was rejected with OS_REASON_EXEC /
+  # EXEC_EXIT_REASON_SECURITY_POLICY. Restore real AMFI/VerifiedRoot later.
+  "amfi_get_out_of_my_way=1",
+  "launchd_unsecure_cache=1",
 ]
 
 [payload.adt]
