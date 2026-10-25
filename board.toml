@@ -109,6 +109,9 @@ kernel_args = [
   "cs_enforcement_disable=1",
   "native-skip-exec-signature=1",
   "launchd_unsecure_cache=1",
+  # Run dyld's dylib_cache stage against the union-mounted SystemOS root;
+  # preboot/cryptex graft stages are not available in this fixture.
+  "ignition_level=1",
 ]
 
 [payload.adt]
