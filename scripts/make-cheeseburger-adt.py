@@ -155,6 +155,10 @@ def main():
                            if args.owned_memory_size else [] ),
                         ('dram-base', struct.pack('<Q', DRAM_BASE)),
                         ('dram-size', struct.pack('<Q', args.dram_size)),
+                        # Diagnostic bring-up: make PE_i_can_has_debugger() true so
+                        # AMFI accepts cs_enforcement_disable; final builds must not
+                        # rely on this.
+                        ('debug-enabled', struct.pack('<I', 1)),
                         # Image4 hash algorithm. The target iPad's DT specifies sha2-384 in /chosen; this
                         # selects the algorithm only and asserts nothing about Apple silicon or fuses.
                         ('crypto-hash-method', b'sha2-384\0'),
