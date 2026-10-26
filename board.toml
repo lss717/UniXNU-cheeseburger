@@ -93,7 +93,7 @@ size_mib = 64
 loader = "firmware"
 title = "OnePlus 5 B1"
 dram_size = "0x200000000"          # 8 GiB installed; the DarwinBoot window can land above 4 GiB
-panic_screen = true                 # scripts/patch-xnu-entry-probe.py + scripts/xnu-panic-screen.c
+panic_screen = false                # H67: skip fixed panic cave; use kernel console
 kernel_args = [
   "-v",
   "debug=0x14e",
