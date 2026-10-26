@@ -175,7 +175,11 @@ def main():
                                  ([('TrustCache', bytes(16))] if args.trust_cache else []) +
                                  ([('GpuAddon', bytes(16))] if args.gpu_addon else [])),
               # Read by the original AppleImage4 at start-up; present and empty here.
-              node('manifest-properties')]),
+              node('manifest-properties'),
+              # Relax SIP enough for the kernel shared_region path to map the
+              # dyld shared cache; values mirror ios-sweet's 0032r ADT fix.
+              node('asmb', [('lp-sip0', struct.pack('<Q', 0x6f)),
+                            ('lp-sip1', struct.pack('<I', 1))])]),
         node('cpus', children=cpus),
         *([node('psci', [('compatible', b'arm,psci-1.0\0'), ('method', args.psci_method.encode() + b'\0')])] if len(cpus) > 1 else []),
         # Suspend/resume is not implemented for this board. Use the original
