@@ -109,8 +109,9 @@ kernel_args = [
   "cs_enforcement_disable=1",
   "native-skip-exec-signature=1",
   "launchd_unsecure_cache=1",
-  # QEMU/iPadOS17 bring-up: skip ignition and use the SystemOS union directly.
-  "dyld_flags=0x00000008",
+  # QEMU/iPadOS17 bring-up: testMode + skip ignition, so DYLD_AMFI_FAKE is
+  # honored and the fallback SystemOS cache can be used.
+  "dyld_flags=0x0000000A",
   "-apfs_shared_datavolume",
 ]
 
