@@ -69,7 +69,6 @@ def text(node, key):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--adt', default=str(REPO / 'out/cheeseburger/boot/kernel.macho.adt'))
-    parser.add_argument('--identity', default='ipad7,1', choices=('ipad7,1', 'iphone10,2'))
     parser.add_argument('--dram-size', type=lambda value: int(value, 0), default=0x200000000)
     args = parser.parse_args()
 
@@ -83,7 +82,7 @@ def main():
     report.check(end == len(data), f'whole file consumed ({end} of {len(data)} bytes)')
     report.check(root['name'] == 'device-tree', 'root is device-tree')
 
-    expected_model = 'iPad7,1' if args.identity == 'ipad7,1' else 'iPhone10,2'
+    expected_model = 'iPad7,1'
     report.check((text(root, 'model') or '').startswith(expected_model),
                  f'root model is {expected_model}')
     compatible = root['props'].get('compatible', b'')
@@ -136,8 +135,7 @@ def main():
     product = child(root, 'product')
     report.check(product is not None and text(product, 'model') == 'oneplus,cheeseburger',
                  '/product model is oneplus,cheeseburger')
-    if args.identity == 'ipad7,1':
-        report.check(child(root, 'buttons') is not None, '/buttons present for the iPad fixture')
+    report.check(child(root, 'buttons') is not None, '/buttons present for the iPad route identity')
 
     if report.errors:
         print(f'{len(report.errors)} checks failed')

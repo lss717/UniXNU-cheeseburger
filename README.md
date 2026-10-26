@@ -3,16 +3,27 @@
 Device repository for the OnePlus 5 (cheeseburger, MSM8998 / Snapdragon 835), B line:
 the UniXNU loader and DarwinBoot from the firmware volume, a 4 KiB XNU, and the stock ABL.
 
-Final target: iPhone10,2 / iOS 16.7.16 (20H392).  B3 uses iPad7,1 iPadOS 17.7.11 as a
-temporary fixture to isolate the MSM8998 platform; it is not the delivery identity.
+Route: iPad7,1 / iPadOS 17.7.11 (21H461). The OnePlus 5 hardware is adapted
+underneath the iPad identity. This is the only OS profile used by the port;
+there is no second identity profile.
+
+## Relationship to UniXNU
+
+This repository is the device repository for
+[lss717/UniXNU](https://github.com/lss717/UniXNU), a fork of
+[UniXNU/UniXNU](https://github.com/UniXNU/UniXNU) modified for the OnePlus 5.
+
+The fork carries the loader, build driver and XNU patches. This repository only
+carries the board profile, ADT, boot-image packaging and device-specific drivers.
 
 ## Status
 
 | Milestone | State |
 | --- | --- |
 | B1 — UEFI + UniXNU + payload | ✅ G1 passed on hardware, 2026-10-22 |
-| B2 — this repository, ADT, payload, boot image | 🔄 skeleton (board file, defconfig, scripts) |
-| B3 — 4 KiB XNU boot chain | ⬜ needs macOS or the GitHub Actions runner |
+| B2 — device repository, ADT, payload, boot image | ✅ board file, defconfig and scripts |
+| B3–B4 — 4 KiB XNU + platform expert | ✅ XNU reaches BSD/IOKit |
+| B5 — UFS + APFS root + launchd | 🔄 root mounted; launchd exec; dyld cache diagnostic in progress |
 
 G1 evidence and the measured board values live in the UniXNU tree, under
 `plans/oneplus5-cheeseburger/` (`STATUS.md`, `PLAN.md`, `assets/`, `patches/`).
@@ -32,12 +43,11 @@ G1 evidence and the measured board values live in the UniXNU tree, under
 ## Layout
 
 ```text
-board.toml                 board, IPSW fixture, userdata, kernel, payload
-board.iphone10-2.toml      B6 target profile, unused until the switch
+board.toml                 board, iPad7,1 route, userdata, kernel, payload
 configs/cheeseburger_defconfig
 scripts/make-bootimg.py    edk2-msm8998 mkbootimg + header report
 scripts/check-cheeseburger.py  FD / boot image / payload preflight
-scripts/make-cheeseburger-adt.py  Apple-format device tree for the B3 boot
+scripts/make-cheeseburger-adt.py  Apple-format device tree for the iPad7,1 route
 scripts/check-adt.py         parse and check /cpus, /arm-io/intc, /chosen
 package/ drivers/ patches/ own modules, added by later milestones
 ```
@@ -53,7 +63,7 @@ UniXNU, this repository and `edk2-msm8998` side by side.
 cd /home/ls/edk2-msm8998
 UNIXNU_TREE=/home/ls/UniXNU bash build.sh --device cheeseburger --release RELEASE
 
-# 2. payload (B1: just the UniXNU config; B3 adds the kernel, ADT and trust cache)
+# 2. payload (adds the kernel, ADT and trust cache)
 #    out/cheeseburger/boot/payload.img, FAT label OP5ESP
 
 # 3. boot image
@@ -61,7 +71,7 @@ python3 scripts/make-bootimg.py \
   --payload out/cheeseburger/boot/payload.img \
   --out out/cheeseburger/boot/boot.img
 
-# 4. ADT (B3; B1-B2 payloads only need the UniXNU config)
+# 4. ADT (iPad7,1 route identity)
 python3 scripts/make-cheeseburger-adt.py \
   --output out/cheeseburger/boot/kernel.macho.adt \
   --dram-size 0x200000000 --owned-memory-size 0x80000000 \
@@ -111,7 +121,7 @@ backlight probes.  That does not hide the B3 console: DarwinBoot passes the GOP 
 through `boot_args->Video`, so XNU's own verbose/panic console draws on the panel.  The legacy
 display kit is for `IOMobileFramebuffer` and the userland UI (B7), not for B3.
 
-## B3 inputs that are not in this repository
+## Firmware inputs that are not in this repository
 
 `unixnu ipsw fetch` (on macOS) caches `KernelCache`, `DeviceTree`, `StaticTrustCache` and
 `Cryptex1,SystemTrustCache` under `.cache/firmware/`; the kernel and prelink steps also

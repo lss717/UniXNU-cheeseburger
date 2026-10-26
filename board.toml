@@ -10,8 +10,8 @@ soc = "MSM8998"
 description = "OnePlus 5"
 kit = "cheeseburger"
 
-# B3 fixture: the unchanged iPad7,1 iPadOS 17.7.11 restore image, the same one sheng uses.
-# The final identity is iPhone10,2 / 16.7.16; see board.iphone10-2.toml.
+# Route target: the unchanged iPad7,1 iPadOS 17.7.11 restore image. This is the
+# only OS profile used by the port; there is no second identity switch.
 [ipsw]
 url = "https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw"
 product = "iPad7,1"
@@ -118,8 +118,8 @@ kernel_args = [
 tool = "scripts/make-cheeseburger-adt.py"
 # The generator builds the tree from the pinned MSM8998 constants (GICD 0x17a00000,
 # GICR 0x17b00000 stride 0x20000, timebase 19200000, UFS qcom,msm8998-ufshc), measured
-# by scripts/check-adt.py.  It does not read the IPSW DeviceTree yet; the B6 /product and
-# /buttons copy is a separate task.
+# by scripts/check-adt.py.  The /product and /buttons nodes follow the iPad7,1
+# route identity.
 cpu_regs = "0,1,2,3,0x100,0x101,0x102,0x103"
 psci_method = "smc"
 owned_memory_size = "0x80000000"   # 2 GiB DarwinBoot window for the first boot

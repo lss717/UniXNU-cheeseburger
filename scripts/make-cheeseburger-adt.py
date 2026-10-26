@@ -14,8 +14,8 @@ board DT and the values measured on the phone:
 
 This is first-boot bring-up data: the platform has no matching platform expert yet,
 so the kernel is expected to reach the video console and report the genuine
-missing-driver panic on screen.  --ipad-identity keeps the temporary iPad7,1 B3
-fixture; the real iPhone10,2 /product and /buttons trees are a B6 task.
+missing-driver panic on screen.  --ipad-identity selects the iPad7,1 route
+identity used by the OS/SystemOS fixture.
 """
 from pathlib import Path
 import argparse
