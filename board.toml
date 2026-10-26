@@ -106,8 +106,8 @@ kernel_args = [
   "native-skip-root-auth=1",
   # Diagnostic only: launchd was rejected with OS_REASON_EXEC /
   # EXEC_EXIT_REASON_SECURITY_POLICY. Restore real AMFI/VerifiedRoot later.
-  "amfi_get_out_of_my_way=1",
-  "amfi=0x94",
+  "amfi_get_out_of_my_way=0x1",
+  "amfi=0x80",
   "amfi_allow_any_signature=1",
   "cs_enforcement_disable=1",
   "native-skip-exec-signature=1",
