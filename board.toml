@@ -62,6 +62,9 @@ kernel = "build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/mach.development.bcm2837.u
 # slide put __PRELINK_TEXT 0x2d88000 below __TEXT; 0x4100000 lifts the whole
 # prelink set above the native __LINKEDIT (0x82ec000) instead.
 slide = "0x4100000"
+# Run the original AMFI early-security initializer so dyld's
+# amfi_check_dyld_policy_self path is initialized.
+early_security_init = "com.apple.driver.AppleMobileFileIntegrity=0xfffffff005ab4ae0"
 # Start from the sheng roots, then drop the ones that assume an Apple PMGR, UFS controller or
 # Adreno: B4 owns that pruning.  TODO(B3): tune against the first panic.
 roots = [
