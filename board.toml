@@ -114,7 +114,7 @@ kernel_args = [
   "launchd_unsecure_cache=1",
   # QEMU/iPadOS17 bring-up: testMode + skip ignition, so DYLD_AMFI_FAKE is
   # honored and the fallback SystemOS cache can be used.
-  "dyld_flags=0x0000000A",
+  "dyld_flags=0x0000008A",
   "-apfs_shared_datavolume",
 ]
 
