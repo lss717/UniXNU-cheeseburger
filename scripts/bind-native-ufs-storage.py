@@ -75,7 +75,10 @@ if not all(slot_names):
 
 undefined = [name for name, value, kind in symbols
              if kind == 1 and 'IOBlockStorageDevice' in name]
-out = {}
+# The base class metadata is shared by every storage transport. NativeRamBlock
+# inherits IOBlockStorageDevice even when NativeUfsLun itself does not reference
+# the vtable, so always publish the fixed original-class aliases.
+out = dict(fixed)
 for name in undefined:
     if name in fixed:
         out[name] = fixed[name]
