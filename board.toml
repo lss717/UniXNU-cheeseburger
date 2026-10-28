@@ -115,6 +115,9 @@ kernel_args = [
   # QEMU/iPadOS17 bring-up: testMode + skip ignition, so DYLD_AMFI_FAKE is
   # honored and the fallback SystemOS cache can be used.
   "dyld_flags=0x0000008A",
+  # Temporary H81: -1 falls back to max_task_footprint; 0 removes the global
+  # per-task cap so the private cache cannot trigger per-process jetsam.
+  "max_task_pmem=0",
   "-apfs_shared_datavolume",
 ]
 
