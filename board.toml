@@ -89,7 +89,7 @@ roots = [
 # device tree.  The loader (DarwinBoot) stays in the firmware volume.
 [payload]
 volume = "OP5ESP"
-size_mib = 64
+size_mib = 76
 loader = "firmware"
 title = "OnePlus 5 B1"
 dram_size = "0x200000000"          # 8 GiB installed; the DarwinBoot window can land above 4 GiB
