@@ -105,6 +105,9 @@ kernel_args = [
   # launch daemons before launchd exec.
   "sheng-disable-watchdogd=1",
   "sheng-lite=1",
+  # Diagnostic H82l: keep the launchd core from scrolling the console and
+  # from spending two minutes on a 256 MiB Data volume.
+  "native-skip-coredump=1",
   # Temporary B5 bring-up only: allow the unsealed iPad restore root to reach
   # launchd/AMFI. Remove this once VerifiedRoot is wired.
   "native-skip-root-auth=1",
