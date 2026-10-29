@@ -100,7 +100,7 @@ kernel_args = [
   "boot-progress=2",
   "offline-legacy-gop=1",
   "offline-legacy-unit-scale=1",
-  "native-ufs-probe=20",
+  "native-ufs-probe=0",
   # Temporary B5 bring-up only: allow the unsealed iPad restore root to reach
   # launchd/AMFI. Remove this once VerifiedRoot is wired.
   "native-skip-root-auth=1",
