@@ -101,6 +101,10 @@ kernel_args = [
   "offline-legacy-gop=1",
   "offline-legacy-unit-scale=1",
   "native-ufs-probe=0",
+  # sheng bring-up policy: disable watchdogd and the known XPC/crash-loop
+  # launch daemons before launchd exec.
+  "sheng-disable-watchdogd=1",
+  "sheng-lite=1",
   # Temporary B5 bring-up only: allow the unsealed iPad restore root to reach
   # launchd/AMFI. Remove this once VerifiedRoot is wired.
   "native-skip-root-auth=1",
