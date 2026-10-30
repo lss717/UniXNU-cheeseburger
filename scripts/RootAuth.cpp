@@ -93,3 +93,62 @@ extern "C" int native_verified_block_manifest_sha384(dev_t device, const char *u
 // keeps the verified read path linkable without overriding the real producer.
 extern "C" void boot_progress_poll(void) __attribute__((weak));
 extern "C" void boot_progress_poll(void) {}
+
+// Resolve one authenticated IOMedia by UUID. This is the UFS-only equivalent of
+// the original verified-block volume query; it does not reuse root authority.
+extern "C" int
+native_verified_block_volume_device(const char *uuid, dev_t *device,
+                                    char *path, size_t size)
+{
+  if (!uuid || !device || !path || size < 6 || strlen(uuid) != 36) return 0;
+  *device = NODEV;
+  path[0] = 0;
+  OSDictionary *matching = IOService::serviceMatching("IOMedia");
+  OSDictionary *properties = OSDictionary::withCapacity(1);
+  OSString *wanted = OSString::withCString(uuid);
+  if (!matching || !properties || !wanted) {
+    OSSafeReleaseNULL(wanted); OSSafeReleaseNULL(properties); OSSafeReleaseNULL(matching);
+    return 0;
+  }
+  bool ready = properties->setObject("UUID", wanted) &&
+               matching->setObject("IOPropertyMatch", properties);
+  OSSafeReleaseNULL(wanted); OSSafeReleaseNULL(properties);
+  OSIterator *iterator = ready ? IOService::getMatchingServices(matching) : nullptr;
+  OSSafeReleaseNULL(matching);
+  if (!iterator) return 0;
+  unsigned matches = 0;
+  bool authorized = false;
+  dev_t candidate = NODEV;
+  char candidatePath[64] = {};
+  while (OSObject *object = iterator->getNextObject()) {
+    IOService *media = OSDynamicCast(IOService, object);
+    if (!media) continue;
+    if (++matches != 1) { authorized = false; break; }
+    OSString *identity = OSDynamicCast(OSString, media->getProperty("UUID"));
+    OSString *name = OSDynamicCast(OSString, media->getProperty(kIOBSDNameKey));
+    OSNumber *major = OSDynamicCast(OSNumber, media->getProperty(kIOBSDMajorKey));
+    OSNumber *minor = OSDynamicCast(OSNumber, media->getProperty(kIOBSDMinorKey));
+    if (!identity || strcmp(identity->getCStringNoCopy(), uuid) || !name ||
+        !major || !minor || !name->getLength() ||
+        name->getLength() >= sizeof(candidatePath) - 6 ||
+        name->getLength() >= size - 6 ||
+        major->unsigned64BitValue() > 255 || minor->unsigned64BitValue() > 0xffffff) {
+      continue;
+    }
+    candidate = static_cast<dev_t>(makedev(major->unsigned32BitValue(),
+                                           minor->unsigned32BitValue()));
+    bool authenticated = false;
+    for (IOService *provider = media; provider; provider = provider->getProvider()) {
+      int ufs = native_ufs_block_authenticates(provider, uuid, nullptr);
+      if (ufs >= 0) { authenticated = (ufs == 1); break; }
+    }
+    if (!authenticated) continue;
+    snprintf(candidatePath, sizeof(candidatePath), "/dev/%s", name->getCStringNoCopy());
+    authorized = true;
+  }
+  OSSafeReleaseNULL(iterator);
+  if (!authorized || matches != 1) return 0;
+  *device = candidate;
+  strlcpy(path, candidatePath, size);
+  return 1;
+}
