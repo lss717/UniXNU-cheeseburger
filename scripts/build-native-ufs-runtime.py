@@ -78,12 +78,12 @@ common = ['-I', str(ROOT / 'build/storage-abi/include'),
           '-I', str(ROOT / 'drivers/NativeVirtioBlock'),
           '-mgeneral-regs-only']
 compile_source(ROOT / 'drivers/NativeUfs/NativeUfs.cpp', 'NativeUfs', cpp_record,
-               common + ['-DNATIVE_VERIFIED_BLOCK=1', '-DNATIVE_VERIFIED_BLOCK_MULTI_POLICY=1'])
+               common + ['-DNATIVE_VERIFIED_BLOCK=1', '-DNATIVE_VERIFIED_BLOCK_MULTI_POLICY=1', '-DVR_HASH_BYTES=8'])
 compile_source(ROOT / 'scripts/RootAuth.cpp', 'RootAuth', cpp_record, common)
 compile_source(ROOT / 'kits/VerifiedRoot/src/verified_root.c', 'verified_root', c_record,
-               ['-I', str(ROOT / 'kits/VerifiedRoot/include')])
+               ['-I', str(ROOT / 'kits/VerifiedRoot/include'), '-DVR_HASH_BYTES=8'])
 compile_source(ROOT / 'kits/VerifiedRoot/adapters/xnu_crypto.c', 'xnu_crypto', c_record,
-               ['-I', str(ROOT / 'kits/VerifiedRoot/include')])
+               ['-I', str(ROOT / 'kits/VerifiedRoot/include'), '-DVR_HASH_BYTES=8'])
 inputs_object = policy / 'inputs.o'
 sdk = subprocess.check_output(['xcrun', '--sdk', 'iphoneos', '--show-sdk-path'], text=True).strip()
 subprocess.run(['xcrun', 'clang', '-target', 'arm64-apple-ios17.0', '-isysroot', sdk, '-c',
