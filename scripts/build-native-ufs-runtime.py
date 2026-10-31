@@ -8,6 +8,7 @@ IOStorageFamily ABI aliases.  It is linked only when XNU_NATIVE_UFS=1.
 import argparse
 import hashlib
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -76,9 +77,20 @@ def compile_source(source, name, record, extra):
 common = ['-I', str(ROOT / 'build/storage-abi/include'),
           '-I', str(ROOT / 'kits/VerifiedRoot/include'),
           '-I', str(ROOT / 'drivers/NativeVirtioBlock'),
+          '-I', str(ROOT / 'scripts'),
           '-mgeneral-regs-only']
-compile_source(ROOT / 'drivers/NativeUfs/NativeUfs.cpp', 'NativeUfs', cpp_record,
+native_source = out / 'NativeUfs.cpp'
+shutil.copyfile(ROOT / 'scripts/NativeUfsWarm.cpp', native_source)
+native_obj = compile_source(native_source, 'NativeUfs', cpp_record,
                common + ['-DNATIVE_VERIFIED_BLOCK=1', '-DNATIVE_VERIFIED_BLOCK_MULTI_POLICY=1', '-DVR_HASH_BYTES=8'])
+llvm_objcopy = Path('/opt/local/libexec/llvm-20/bin/llvm-objcopy')
+if not llvm_objcopy.is_file():
+    llvm_objcopy = Path('/opt/local/bin/llvm-objcopy')
+native_late = out / 'NativeUfs.late.o'
+subprocess.run([str(llvm_objcopy), '--remove-section=__DATA,__mod_init_func',
+                '--globalize-symbol=__GLOBAL__sub_I_NativeUfs.cpp',
+                str(native_obj), str(native_late)], check=True)
+objects[objects.index(native_obj)] = native_late
 compile_source(ROOT / 'scripts/RootAuth.cpp', 'RootAuth', cpp_record, common)
 compile_source(ROOT / 'kits/VerifiedRoot/src/verified_root.c', 'verified_root', c_record,
                ['-I', str(ROOT / 'kits/VerifiedRoot/include'), '-DVR_HASH_BYTES=8'])

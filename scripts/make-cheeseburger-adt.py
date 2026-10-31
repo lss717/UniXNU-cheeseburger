@@ -130,6 +130,8 @@ def main():
         *([('target-type', b'J120\0')] if args.ipad_identity else []),
         # Root compatible strings of the compiled board DT (oneplus,cheeseburger / qcom,msm8998).
         ('compatible', b'oneplus,cheeseburger\0qcom,msm8998\0'),
+        # The guarded PMGR provider matches this board marker (NUL-terminated).
+        ('unixnu,board-id', b'oneplus,cheeseburger\0'),
         ('#address-cells', struct.pack('<I', 2)),
         ('#size-cells', struct.pack('<I', 2)),
     ], [
@@ -141,6 +143,9 @@ def main():
                         # This boots the normal target OS. Volatile Data is
                         # described separately by ephemeral-storage below.
                         ('osenvironment', b'main\0'),
+                        # Bring-up placeholder for the owner boot manifest hash; mount-phase-1
+                        # requires the property to exist. Replace with the real owner manifest later.
+                        ('boot-manifest-hash', bytes(48)),
                         # Security status as on a dev-fused, undemoted board (tuple 0,0,1,1), as read by MobileGestalt: mobileactivationd's
                         # DeviceType then takes its native "Hactivation" branch (Activated without an activation record; no SEP or
                         # baseband). Values established on hardware by github.com/dipa-studio/ios-sweet (tools/mkadt.py).
@@ -162,6 +167,10 @@ def main():
                         # Image4 hash algorithm. The target iPad's DT specifies sha2-384 in /chosen; this
                         # selects the algorithm only and asserts nothing about Apple silicon or fuses.
                         ('crypto-hash-method', b'sha2-384\0'),
+        # Original SystemVolume root-hash IM4P from the target IPSW.
+        # APFS reads /chosen/system-volume-auth-blob during root import.
+        *([('system-volume-auth-blob', (ROOT / 'scripts/data/SystemVolume.im4p').read_bytes())]
+          if (ROOT / 'scripts/data/SystemVolume.im4p').is_file() else []),
                         *( [('root-matching', ('<dict><key>IOProviderClass</key><string>IOMedia</string>'
                                                '<key>IOPropertyMatch</key><dict><key>UUID</key><string>' +
                                                args.root_match_volume_uuid.upper() + '</string></dict></dict>\0').encode())]
