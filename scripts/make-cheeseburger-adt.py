@@ -70,6 +70,31 @@ def empty_nvram_proxy():
             ('nvram-proxy-data', bytes(image))]
 
 
+def gpu_nodes():
+    """A540 provider references copied from the OnePlus 5 Android boot DT."""
+    return [
+        node('kgsl-3d0', [
+            ('compatible', b'qcom,adreno-540.1\0qcom,kgsl-3d0\0'),
+            ('reg', struct.pack('<QQ', 0, 0x40000)),
+            ('qcom,chipid', struct.pack('<I', 0x5040001)),
+            ('qcom,gpmu-firmware', b'a540_gpmu.fw2\0'),
+            ('qcom,zap-shader', b'a540_zap\0'),
+            ('status', b'okay\0')]),
+        node('gpucc', [
+            ('compatible', b'qcom,gpucc-8998-v2\0'),
+            ('reg', struct.pack('<QQ', 0x65000, 0x9000)),
+            ('status', b'okay\0')]),
+        node('gfxcc', [
+            ('compatible', b'qcom,gfxcc-8998-v2\0'),
+            ('reg', struct.pack('<QQ', 0x65000, 0x9000)),
+            ('status', b'okay\0')]),
+        node('kgsl-iommu', [
+            ('compatible', b'qcom,kgsl-smmu-v2\0'),
+            ('reg', struct.pack('<QQ', 0x40000, 0x10000)),
+            ('status', b'okay\0')]),
+    ]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path,
@@ -83,6 +108,7 @@ def main():
     parser.add_argument('--unique-chip-id', type=lambda value: int(value, 16), default=None,
                         help='/chosen/unique-chip-id (8 bytes) and --chip-id (4 bytes) seed XNU IOPlatformUUID; software identity seeds, not Apple silicon IDs')
     parser.add_argument('--chip-id', type=lambda value: int(value, 16), default=None)
+    parser.add_argument('--gpu', action='store_true', help='Add the A540 GPU/GPUCC provider reference node (diagnostic; no hardware init)')
     parser.add_argument('--ipad-identity', action='store_true',
                         help='/product and /buttons describe an iPad-class device without a Home button (MobileGestalt reads these from the tree); '
                              'values follow the unchanged iPad7,1 tree, the panel geometry and button set are this board\'s')
@@ -236,6 +262,11 @@ def main():
                   ('phy-names', b'ufsphy\0'),
                   ('lanes-per-direction', struct.pack('<I', 2)),
                   ('status', b'okay\0')])]),
+        *([node('arm-io-gpu', [('device_type', b'arm-io\0'),
+                              ('#address-cells', struct.pack('<I', 2)),
+                              ('#size-cells', struct.pack('<I', 2)),
+                              ('ranges', struct.pack('<QQQ', 0, 0x5000000, 0x100000))],
+                             gpu_nodes())] if args.gpu else []),
     ])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(tree)
