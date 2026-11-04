@@ -149,6 +149,14 @@ def main():
                                    ('compatible', b'arm,cortex-a73\0' if reg < 0x100 else b'arm,cortex-a53\0'),
                                    ('timebase-frequency', struct.pack('<I', TIMEBASE))])
             for index, reg in enumerate(cpu_regs)]
+    seed_hex = os.environ.get('CHEESEBURGER_RANDOM_SEED')
+    if seed_hex:
+        random_seed = bytes.fromhex(seed_hex)
+        if len(random_seed) != 64:
+            parser.error('CHEESEBURGER_RANDOM_SEED must be 64 bytes of hex')
+    else:
+        random_seed = os.urandom(64)
+
     tree = node('device-tree', [
         # hw.product/hw.machine/hw.target come from the root 'model'/'target-type' (IODTPlatformExpert);
         # libMobileGestalt prefix-matches hw.product against iPhone/iPod/iPad, so the iPad identity needs both here.
@@ -161,7 +169,7 @@ def main():
         ('#address-cells', struct.pack('<I', 2)),
         ('#size-cells', struct.pack('<I', 2)),
     ], [
-        node('chosen', [('random-seed', os.urandom(64)),
+        node('chosen', [('random-seed', random_seed),
                         # Without these XNU never publishes IOPlatformUUID and gethostuuid() blocks forever
                         # for callers (configd) that pass a zero timeout.
                         *([('unique-chip-id', struct.pack('<Q', args.unique_chip_id)), ('chip-id', struct.pack('<I', args.chip_id))]
