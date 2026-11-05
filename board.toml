@@ -47,8 +47,12 @@ archives = [
   "build-corecrypto-14.py --namespace",
   "build-arm-driver.py ArmDTPlatform",
   "build-arm-driver.py ArmCpu",
+  "build-arm-driver.py NativeAES",
+  "build-arm-driver.py NativeVirtioBlock",
   "build-arm-driver.py NativeRamBlock",
   "build-arm-driver.py NativeUfsProbe",
+  "build-native-ufs-runtime.py",
+  "build-sheng-pmgr.py",
   "build-mockfs-fixture.py",
   "build-libpthread-kernel.py",
 ]
@@ -61,7 +65,7 @@ kernel = "build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/mach.development.bcm2837.u
 # VM_KERNEL_LINK_ADDRESS (__TEXT) for arm_vm_prot_init.  The sheng -0x1000000
 # slide put __PRELINK_TEXT 0x2d88000 below __TEXT; 0x4100000 lifts the whole
 # prelink set above the native __LINKEDIT (0x82ec000) instead.
-slide = "0x4100000"
+slide = "0x5000000"
 # Run the original AMFI early-security initializer so dyld's
 # amfi_check_dyld_policy_self path is initialized.
 early_security_init = "com.apple.driver.AppleMobileFileIntegrity=0xfffffff005ab4ae0"
@@ -77,6 +81,10 @@ roots = [
   "com.apple.iokit.IOCryptoAcceleratorFamily",
   "com.apple.iokit.IOHIDFamily",
   "com.apple.iokit.IOHIDEventDriver",
+  # B7: the original Legacy framebuffer and its IOSurface/IOAV dependencies.
+  "com.apple.iokit.IOMobileGraphicsFamily",
+  # H103fo: IOGPUFamily supplies IOAcceleratorES for the A540 stub.
+  "com.apple.iokit.IOGPUFamily",
   "com.apple.iokit.IOStorageFamily",
   "com.apple.kec.Libm",
   "com.apple.kec.corecrypto",
