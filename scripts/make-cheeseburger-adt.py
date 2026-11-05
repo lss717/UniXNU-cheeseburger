@@ -70,6 +70,31 @@ def empty_nvram_proxy():
             ('nvram-proxy-data', bytes(image))]
 
 
+def gpu_nodes():
+    """A540 provider references copied from the OnePlus 5 Android boot DT."""
+    return [
+        node('kgsl-3d0', [
+            ('compatible', b'qcom,adreno-540.1\0qcom,kgsl-3d0\0'),
+            ('reg', struct.pack('<QQ', 0, 0x40000)),
+            ('qcom,chipid', struct.pack('<I', 0x5040001)),
+            ('qcom,gpmu-firmware', b'a540_gpmu.fw2\0'),
+            ('qcom,zap-shader', b'a540_zap\0'),
+            ('status', b'okay\0')]),
+        node('gpucc', [
+            ('compatible', b'qcom,gpucc-8998-v2\0'),
+            ('reg', struct.pack('<QQ', 0x65000, 0x9000)),
+            ('status', b'okay\0')]),
+        node('gfxcc', [
+            ('compatible', b'qcom,gfxcc-8998-v2\0'),
+            ('reg', struct.pack('<QQ', 0x65000, 0x9000)),
+            ('status', b'okay\0')]),
+        node('kgsl-iommu', [
+            ('compatible', b'qcom,kgsl-smmu-v2\0'),
+            ('reg', struct.pack('<QQ', 0x40000, 0x10000)),
+            ('status', b'okay\0')]),
+    ]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path,
@@ -83,6 +108,7 @@ def main():
     parser.add_argument('--unique-chip-id', type=lambda value: int(value, 16), default=None,
                         help='/chosen/unique-chip-id (8 bytes) and --chip-id (4 bytes) seed XNU IOPlatformUUID; software identity seeds, not Apple silicon IDs')
     parser.add_argument('--chip-id', type=lambda value: int(value, 16), default=None)
+    parser.add_argument('--gpu', action='store_true', help='Add the A540 GPU/GPUCC provider reference node (diagnostic; no hardware init)')
     parser.add_argument('--ipad-identity', action='store_true',
                         help='/product and /buttons describe an iPad-class device without a Home button (MobileGestalt reads these from the tree); '
                              'values follow the unchanged iPad7,1 tree, the panel geometry and button set are this board\'s')
@@ -123,6 +149,14 @@ def main():
                                    ('compatible', b'arm,cortex-a73\0' if reg < 0x100 else b'arm,cortex-a53\0'),
                                    ('timebase-frequency', struct.pack('<I', TIMEBASE))])
             for index, reg in enumerate(cpu_regs)]
+    seed_hex = os.environ.get('CHEESEBURGER_RANDOM_SEED')
+    if seed_hex:
+        random_seed = bytes.fromhex(seed_hex)
+        if len(random_seed) != 64:
+            parser.error('CHEESEBURGER_RANDOM_SEED must be 64 bytes of hex')
+    else:
+        random_seed = os.urandom(64)
+
     tree = node('device-tree', [
         # hw.product/hw.machine/hw.target come from the root 'model'/'target-type' (IODTPlatformExpert);
         # libMobileGestalt prefix-matches hw.product against iPhone/iPod/iPad, so the iPad identity needs both here.
@@ -130,10 +164,12 @@ def main():
         *([('target-type', b'J120\0')] if args.ipad_identity else []),
         # Root compatible strings of the compiled board DT (oneplus,cheeseburger / qcom,msm8998).
         ('compatible', b'oneplus,cheeseburger\0qcom,msm8998\0'),
+        # The guarded PMGR provider matches this board marker (NUL-terminated).
+        ('unixnu,board-id', b'oneplus,cheeseburger\0'),
         ('#address-cells', struct.pack('<I', 2)),
         ('#size-cells', struct.pack('<I', 2)),
     ], [
-        node('chosen', [('random-seed', os.urandom(64)),
+        node('chosen', [('random-seed', random_seed),
                         # Without these XNU never publishes IOPlatformUUID and gethostuuid() blocks forever
                         # for callers (configd) that pass a zero timeout.
                         *([('unique-chip-id', struct.pack('<Q', args.unique_chip_id)), ('chip-id', struct.pack('<I', args.chip_id))]
@@ -141,6 +177,9 @@ def main():
                         # This boots the normal target OS. Volatile Data is
                         # described separately by ephemeral-storage below.
                         ('osenvironment', b'main\0'),
+                        # Bring-up placeholder for the owner boot manifest hash; mount-phase-1
+                        # requires the property to exist. Replace with the real owner manifest later.
+                        ('boot-manifest-hash', bytes(48)),
                         # Security status as on a dev-fused, undemoted board (tuple 0,0,1,1), as read by MobileGestalt: mobileactivationd's
                         # DeviceType then takes its native "Hactivation" branch (Activated without an activation record; no SEP or
                         # baseband). Values established on hardware by github.com/dipa-studio/ios-sweet (tools/mkadt.py).
@@ -162,6 +201,10 @@ def main():
                         # Image4 hash algorithm. The target iPad's DT specifies sha2-384 in /chosen; this
                         # selects the algorithm only and asserts nothing about Apple silicon or fuses.
                         ('crypto-hash-method', b'sha2-384\0'),
+        # Original SystemVolume root-hash IM4P from the target IPSW.
+        # APFS reads /chosen/system-volume-auth-blob during root import.
+        *([('system-volume-auth-blob', (ROOT / 'scripts/data/SystemVolume.im4p').read_bytes())]
+          if (ROOT / 'scripts/data/SystemVolume.im4p').is_file() else []),
                         *( [('root-matching', ('<dict><key>IOProviderClass</key><string>IOMedia</string>'
                                                '<key>IOPropertyMatch</key><dict><key>UUID</key><string>' +
                                                args.root_match_volume_uuid.upper() + '</string></dict></dict>\0').encode())]
@@ -227,6 +270,11 @@ def main():
                   ('phy-names', b'ufsphy\0'),
                   ('lanes-per-direction', struct.pack('<I', 2)),
                   ('status', b'okay\0')])]),
+        *([node('arm-io-gpu', [('device_type', b'arm-io\0'),
+                              ('#address-cells', struct.pack('<I', 2)),
+                              ('#size-cells', struct.pack('<I', 2)),
+                              ('ranges', struct.pack('<QQQ', 0, 0x5000000, 0x100000))],
+                             gpu_nodes())] if args.gpu else []),
     ])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(tree)
