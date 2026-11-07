@@ -130,9 +130,22 @@ void CheeseburgerPlatformPower::stop(IOService *p) {
  ready=false;IOService::stop(p);
 }
 void CheeseburgerPlatformPower::free() { if(nub)panic("P11 PMGR: free with live nub");IOService::free(); }
+// H165: the prelink bootstrap counters (iokit/Kernel/IOStartIOKit.cpp).
+// A boot that never registers the prelinked kexts loses AMFI, APFS and this
+// PMGR dependency at once; print what readStartupExtensions() actually did
+// instead of failing with only "requests to user space are disabled".
+extern volatile uint32_t native_prelink_section_size;
+extern volatile int native_prelink_parse_ok,native_prelink_kext_count,native_prelink_fn_set;
 extern "C" void cheeseburger_pmgr_startup(void) {
  if(ready)return;
- if(OSKextLoadKextWithIdentifier("com.apple.driver.ApplePMGR"))panic("P11 PMGR: original dependency not loaded");
+ int pmgrLoad=OSKextLoadKextWithIdentifier("com.apple.driver.ApplePMGR");
+ IOLog("P11 PMGR: prelink fn=%d sect=%x parse=%d kexts=%d load=%d\n",
+       native_prelink_fn_set,(unsigned)native_prelink_section_size,
+       native_prelink_parse_ok,native_prelink_kext_count,pmgrLoad);
+ if(pmgrLoad) {
+  IOLog("P11 PMGR: original dependency unavailable; continuing without the ApplePMGR nub\n");
+  return;
+ }
  auto parent=lookup("ApplePMGR");
  if(!parent||parent!=&ApplePMGR::gMetaClass||parent->getClassSize()!=0x4b8a8)panic("P11 PMGR: original base ABI mismatch");
  if(!classReady){
