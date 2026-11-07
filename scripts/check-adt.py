@@ -70,6 +70,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--adt', default=str(REPO / 'out/cheeseburger/boot/kernel.macho.adt'))
     parser.add_argument('--dram-size', type=lambda value: int(value, 0), default=0x200000000)
+    parser.add_argument('--require', action='append', default=[], metavar='NAME',
+                        help='Require a zeroed /chosen/memory-map sidecar placeholder (TrustCache, GpuAddon, '
+                             'RAMDisk, PackedRAMDisk); DarwinBoot refuses a payload whose sidecar file has no placeholder')
     args = parser.parse_args()
 
     path = Path(args.adt)
@@ -126,6 +129,11 @@ def main():
                      f'/chosen dram-size is {args.dram_size:#x}')
         report.check(text(chosen, 'crypto-hash-method') == 'sha2-384', '/chosen crypto-hash-method is sha2-384')
         report.check(u32(chosen, 'amfi-only-platform-code') == 1, '/chosen keeps AMFI enforcing')
+        memory_map = child(chosen, 'memory-map')
+        placeholders = set(memory_map['props']) - {'name'} if memory_map else set()
+        report.check(memory_map is not None, 'has /chosen/memory-map')
+        for name in args.require:
+            report.check(name in placeholders, f'/chosen/memory-map has the {name} placeholder')
 
     defaults = child(root, 'defaults')
     report.check(defaults is not None and u32(defaults, 'sleep-disabled') == 1,

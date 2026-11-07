@@ -71,12 +71,18 @@ python3 scripts/make-bootimg.py \
   --payload out/cheeseburger/boot/payload.img \
   --out out/cheeseburger/boot/boot.img
 
-# 4. ADT (iPad7,1 route identity)
+# 4. ADT (iPad7,1 route identity; placeholders must match the payload sidecars)
 python3 scripts/make-cheeseburger-adt.py \
   --output out/cheeseburger/boot/kernel.macho.adt \
-  --dram-size 0x200000000 --owned-memory-size 0x80000000 \
-  --cpu-regs 0,1,2,3,0x100,0x101,0x102,0x103 --ipad-identity
-python3 scripts/check-adt.py --adt out/cheeseburger/boot/kernel.macho.adt
+  --dram-size 0x200000000 --owned-memory-size 0x100000000 \
+  --cpu-regs 0,1,2,3,0x100,0x101,0x102,0x103 --ipad-identity \
+  --packed-data-ramdisk --trust-cache --gpu-addon \
+  --root-match-volume-uuid 04769D26-2CA0-4825-B443-E2E5F88300F2
+python3 scripts/check-adt.py --adt out/cheeseburger/boot/kernel.macho.adt \
+  --require PackedRAMDisk --require TrustCache --require GpuAddon
+# Every sidecar the payload carries needs its zeroed /chosen/memory-map placeholder:
+# DarwinBoot reports "boot refused: Compromised Data" and stays in the UEFI boot
+# manager when a sidecar file exists without one (H181, 2026-11-08).
 
 # 5. preflight and run
 python3 scripts/check-cheeseburger.py
