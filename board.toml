@@ -99,7 +99,7 @@ roots = [
 volume = "OP5ESP"
 size_mib = 76
 loader = "firmware"
-title = "OnePlus 5 B1"
+title = "OnePlus 5 iOS"
 dram_size = "0x200000000"          # 8 GiB installed; the DarwinBoot window can land above 4 GiB
 panic_screen = false                # H67: skip fixed panic cave; use kernel console
 kernel_args = [
@@ -137,6 +137,19 @@ kernel_args = [
   "max_task_pmem=0",
   "-apfs_shared_datavolume",
 ]
+
+# Extra action entries appended after the kernel entry. The UniXNU UI already
+# implements the reset/shutdown actions; these give the OP5 menu its own
+# reboot and power-off rows.
+[[payload.menu]]
+id = "reset"
+title = "Restart"
+action = "reset"
+
+[[payload.menu]]
+id = "shutdown"
+title = "Shut down"
+action = "shutdown"
 
 [payload.adt]
 tool = "scripts/make-cheeseburger-adt.py"
