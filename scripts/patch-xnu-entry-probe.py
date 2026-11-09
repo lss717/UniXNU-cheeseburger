@@ -77,7 +77,7 @@ PAINT = """
 """
 
 SOURCES = {
-    1: ".text\n.global _start\n_start:\n" + PAINT.format(args='x0', band=1, lo='0x00FF', hi='0xFF00') + "  b target\n",
+    1: ".text\n.global _start\n_start:\n" + PAINT.format(args='x0', band='{band}', lo='0x00FF', hi='0xFF00') + "  b target\n",
     2: ".text\n.global _start\n_start:\n" + PAINT.format(args='x20', band=2, lo='0x00FF', hi='0xFFFF')
        + "  msr SCTLR_EL1, x0\n  b target\n",
     3: """.text
@@ -406,6 +406,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('kernel', type=Path, help='the COPY of the kernel to patch in place')
     parser.add_argument('--reset-delay', type=int, default=6, help='seconds before the reset')
+    parser.add_argument('--band', type=int, default=1, help='1/16 band of the frame buffer used by the stage 1 bar (8 = middle)')
     parser.add_argument('--reset-after', metavar='SYMBOL', help='place the reset after this call in arm_init instead of stage 3')
     parser.add_argument('--reset-before', action='store_true', help='reset at the call site before invoking SYMBOL (requires --reset-after)')
     parser.add_argument('--panic-screen', action='store_true', help='draw panic() messages on the screen')
@@ -434,9 +435,36 @@ def main():
     for va, value in expected.items():
         if word(va) != value:
             raise SystemExit(f'{va:#x} holds {word(va):#010x}, expected {value:#010x}: not the kernel these probes are for')
-    for va in CAVES.values():
-        if any(data[file_offset(va):file_offset(va) + CAVE_SIZE]):
-            raise SystemExit(f'Padding at {va:#x} is not empty')
+    def cave_empty(va):
+        off = file_offset(va)
+        return not any(data[off:off + CAVE_SIZE])
+
+    used_caves = []
+
+    def cave_for(stage):
+        """The preferred padding after the entry, or the next zero run in the same segment.
+
+        Kernel builds differ in what the assembler left after _start; the fixed
+        offsets are only a preference, so scan forward for real padding instead
+        of refusing an otherwise matching kernel. Each stage gets its own run.
+        """
+        va = CAVES[stage]
+        if cave_empty(va) and all(abs(va - other) >= CAVE_SIZE for other in used_caves):
+            used_caves.append(va)
+            return va
+        segment = next((s for s in SEGMENTS if s[0] <= va < s[0] + min(s[1], s[3])), None)
+        if segment is None:
+            raise SystemExit(f'Cave {va:#x} is outside a file-backed segment')
+        base, size, _, filesize = segment
+        end = base + min(size, filesize) - CAVE_SIZE
+        probe = va
+        while probe <= end:
+            if cave_empty(probe) and all(abs(probe - other) >= CAVE_SIZE for other in used_caves):
+                used_caves.append(probe)
+                print(f'cave stage {stage}: {va:#x} is occupied, using {probe:#x}')
+                return probe
+            probe += 4
+        raise SystemExit(f'No zero padding for stage {stage} near {va:#x}')
 
     # (site, cave stage, symbols the cave is linked with)
     stage1 = (ENTRY_VA, 1, {'target': START_FIRST_CPU})
@@ -463,9 +491,12 @@ def main():
                  (AFTER_MMU_VA, 3, {'target': AFTER_MMU_VA + 4})]
         description = f'stage 3 reset {args.reset_delay} s after the MMU is on'
 
+    for stage in {site[1] for site in sites}:
+        CAVES[stage] = cave_for(stage)
+
     with tempfile.TemporaryDirectory() as tmp:
         for site, stage, symbols in sites:
-            source = RESET_BEFORE if (stage == 4 and args.reset_before) else SOURCES[stage].format(ticks=TIMEBASE * args.reset_delay)
+            source = RESET_BEFORE if (stage == 4 and args.reset_before) else SOURCES[stage].format(ticks=TIMEBASE * args.reset_delay, band=args.band)
             code = assemble(source, CAVES[stage], symbols, Path(tmp))
             if len(code) > CAVE_SIZE:
                 raise SystemExit(f'Stage {stage} code is too large')
