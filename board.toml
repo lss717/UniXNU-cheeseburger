@@ -113,6 +113,11 @@ kernel_args = [
   "offline-legacy-gop=1",
   "offline-legacy-unit-scale=1",
   "native-ufs-probe=0",
+  # H272k: the ring flush interval is 10 s by default, so an I/O storm that ends the
+  # boot inside one interval leaves nothing on disk (H272e: 51 err 60 then panic, no
+  # ring lines).  1 s turns every short run into a data point; writes are incremental
+  # and silent when nothing changed (H106 batching), so wear is unchanged.
+  "h103-log-secs=1",
   # sheng bring-up policy: disable watchdogd and the known XPC/crash-loop
   # launch daemons before launchd exec.
   "sheng-disable-watchdogd=1",
