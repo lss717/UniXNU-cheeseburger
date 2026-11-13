@@ -100,6 +100,10 @@ volume = "OP5ESP"
 size_mib = 76
 loader = "firmware"
 title = "OnePlus 5 IOS"
+# H324: a fresh Data seed boots into Setup and reruns data migration on every boot, which keeps
+# SpringBoard in the setup flow instead of the home screen. The payload step runs this tool on a
+# copy of the seed (docs/guide/skip-setup.md) when --skip-setup is passed.
+skip_setup_tool = "scripts/seed-data-skip-setup.py"
 logo = true
 ui_title = "UniXNU"
 dram_size = "0x200000000"          # 8 GiB installed; the DarwinBoot window can land above 4 GiB
