@@ -174,6 +174,13 @@ def main():
                         # for callers (configd) that pass a zero timeout.
                         *([('unique-chip-id', struct.pack('<Q', args.unique_chip_id)), ('chip-id', struct.pack('<I', args.chip_id))]
                           if args.unique_chip_id is not None else []),
+                        # H322: MobileGestalt resolves the Wi-Fi/Bluetooth MAC from these two properties and,
+                        # when they are absent, waits for an IONetworkController that this board never
+                        # publishes - once per question, while launchservicesd seeds its database.
+                        # ios-sweet records the same stall and fixes it the same way (tools/mkadt.py);
+                        # these are locally administered addresses, not hardware identities.
+                        ('mac-address-wifi0', bytes([0x02, 0x00, 0x00, 0x00, 0x00, 0x01])),
+                        ('mac-address-bluetooth0', bytes([0x02, 0x00, 0x00, 0x00, 0x00, 0x02])),
                         # This boots the normal target OS. Volatile Data is
                         # described separately by ephemeral-storage below.
                         ('osenvironment', b'main\0'),
