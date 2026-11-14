@@ -152,6 +152,13 @@ kernel_args = [
 ]
 
 # Extra action entries appended after the kernel entry. The UniXNU UI already
+# Same iPad7,1/21H461 AW class-initializer cycle fixed by upstream sheng da9fab9.
+# Original bytes verified in the actual 21H461 cache; kernel refuses mismatches.
+text_fixups = [
+  "dyld_shared_cache_arm64.15,421e8bc,28ad1bb0008544f9,c0035fd6008544f9",
+]
+
+# Extra action entries appended after the kernel entry. The UniXNU UI already
 # implements the reset/shutdown actions; these give the OP5 menu its own
 # reboot and power-off rows.
 [[payload.menu]]
