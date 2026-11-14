@@ -215,6 +215,17 @@ probeQusb2(const GateState &gates)
 void
 usbProbeThread(void *, wait_result_t)
 {
+	uint32_t delaySeconds = 130;
+	if (PE_parse_boot_argn("cheeseburger-usb-delay", &delaySeconds,
+	    sizeof delaySeconds) && delaySeconds > 600) {
+		delaySeconds = 600;
+	}
+	if (delaySeconds != 0) {
+		IOLog("CHEESEBURGER_USB: delaying probe %u seconds for persistent logging\n",
+		    delaySeconds);
+		IOSleep(delaySeconds * 1000U);
+	}
+
 	IOLog("CHEESEBURGER_USB: build=port-r1 mode=probe\n");
 	GateState gates{};
 	probeGcc(gates);
