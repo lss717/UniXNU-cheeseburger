@@ -3,7 +3,6 @@
 // changes GCC/GDSC state, resets DWC3, allocates DMA, or enables endpoints.
 #include <IOKit/IOLib.h>
 #include <IOKit/IOMemoryDescriptor.h>
-#include <IOKit/IOMemoryMap.h>
 #include <kern/thread.h>
 #include <libkern/libkern.h>
 #include <pexpert/pexpert.h>
