@@ -2066,6 +2066,21 @@ probe boot     D064F3DD8F620A23E9DE0E05B0491737C02E53F091FCC1A014C677D826F5CD3F
 内部。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-cpu-bootstrap-probe`。
 
+`_cpu_bootstrap` 入口探针立即重启，证明 `_machine_set_current_thread` 已返回。
+下一探针选择紧随其后的 `_rtclock_early_init` 入口：
+
+```text
+reset VA       0xFFFFFFF0073FACCC
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   14FF3FE4ED3C24437E444F3FBCB2E7F0778AB6261F757FE8077F11090D764577
+probe payload  DF8B3027BDA008A80F4721FF8464BA2C08F32F69B7C0ED87940ED2B6FA5F6B8D
+probe boot     0EE6F4B6B99D424AD0D323730D289B68A7CAC48E69042DBE2E8BEBB50E07B13B
+```
+
+立即 reset 表示 `_cpu_bootstrap` 已返回；不 reset 表示仍停在该函数内部。
+Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-rtclock-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
