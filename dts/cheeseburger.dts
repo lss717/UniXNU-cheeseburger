@@ -1,0 +1,58 @@
+/dts-v1/;
+
+/include/ "msm8998.dtsi"
+
+/ {
+    model = "OnePlus 5";
+    compatible = "oneplus,cheeseburger", "qcom,msm8998";
+    unixnu,board-id = "oneplus,cheeseburger";
+
+    memory@80000000 {
+        device_type = "memory";
+        reg = <0x0 0x80000000 0x2 0x0>;
+    };
+
+    reserved-memory {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+
+        framebuffer@9d400000 {
+            reg = <0x0 0x9d400000 0x0 0x2400000>;
+            no-map;
+        };
+
+        ramoops@ac000000 {
+            compatible = "ramoops";
+            reg = <0x0 0xac000000 0x0 0x200000>;
+            no-map;
+        };
+
+        ipa_firmware@f6800000 {
+            compatible = "shared-dma-pool";
+            reg = <0x0 0xf6800000 0x0 0x5000>;
+            no-map;
+        };
+
+        zap_shader@f6900000 {
+            compatible = "shared-dma-pool";
+            reg = <0x0 0xf6900000 0x0 0x2000>;
+            no-map;
+        };
+    };
+
+    chosen {
+        #address-cells = <2>;
+        #size-cells = <2>;
+        ranges;
+
+        framebuffer@9d400000 {
+            compatible = "simple-framebuffer";
+            reg = <0x0 0x9d400000 0x0 0x2400000>;
+            width = <1080>;
+            height = <1920>;
+            stride = <4320>;
+            format = "a8r8g8b8";
+        };
+    };
+};

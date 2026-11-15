@@ -1,9 +1,31 @@
-# Build outputs and device inputs; nothing here is worth committing.
-/out/
+# Build outputs and private inputs.
 /.cache/
 /build/
+/out/
+/references/
+/local.toml
+/unixnu.local.toml
 *.img
 *.fd
 *.dtb
-*.dts
+*.dmg
+*.ipsw
+*.im4p
+*.dbr
+*.macho
+*.o
+*.a
+*.dylib
+*.efi
+*.bin
+*.mbn
+*.fw
+*.pem
+*.key
+.DS_Store
 __pycache__/
+*.pyc
+
+# Board DTS sources are tracked.
+!dts/*.dts
+!dts/**/*.dts

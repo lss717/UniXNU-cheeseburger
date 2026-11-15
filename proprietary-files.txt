@@ -1,0 +1,8 @@
+# Input | Source | SHA-256 | Consumer
+# Private binaries stay under .cache/firmware and are never committed.
+KernelCache | iPad7,1 17.7.11 21H461 IPSW | f18b4df865405f2a287b84977d7aca745e056d656d9fc9df1662970ce2969de7 | XnuPrelink
+StaticTrustCache | iPad7,1 17.7.11 21H461 IPSW | 7416ca4f8377146626bb284e2133c76bee6cb4e3ee0af5d648b186235a7323a7 | DarwinBoot and AMFI
+Cryptex1,SystemTrustCache | iPad7,1 17.7.11 21H461 IPSW | 8900d6a93d7a59ce1a872a5c081e559f4240a218f97e12d44d22dda46644d68f | SystemOS trust path
+OS | iPad7,1 17.7.11 21H461 IPSW | e5634d04a8ac35f024845f583394e0a35deb26a04cb0c00286a8674e25a9a4f2 | Root APFS volume window
+Cryptex1,SystemOS | iPad7,1 17.7.11 21H461 IPSW | b4908cde41d23e6bc05e6af51a2c9eeb00cf0f863a6a18b1600c96a3fd70414f | SystemOS window
+DeviceTree | iPad7,1 17.7.11 21H461 IPSW | PENDING | Hardware comparison only

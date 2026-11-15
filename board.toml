@@ -1,17 +1,31 @@
-# Board description of the OnePlus 5 (cheeseburger, MSM8998), read by the unixnu build driver.
+# Format 2 board description for the OnePlus 5 (cheeseburger, MSM8998).
 #
-# The firmware is *not* built by "unixnu build firmware": B line decision D6/D7 keeps
-# edk2-msm8998/build.sh (GCC5, its own DSC/FDF) and packages the image with this
-# repository's scripts/make-bootimg.py.  See README.md.
+# The format 1 configuration that produced the current device images is kept
+# verbatim at docs/migration/board-format1.toml. This file changes the profile
+# architecture first; it does not claim a new kernel or boot image was tested.
+
+schema_version = 2
 
 [board]
 name = "cheeseburger"
 soc = "MSM8998"
+soc_source = "msm8998"
+os_profile = "ipados-17.7.11-21H461"
 description = "OnePlus 5"
 kit = "cheeseburger"
 
-# Route target: the unchanged iPad7,1 iPadOS 17.7.11 restore image. This is the
-# only OS profile used by the port; there is no second identity switch.
+[components]
+include = [
+  "ArmDTPlatform",
+  "ArmCpu",
+  "SoftwareAES",
+  "RamBlock",
+  "AppleKeyStoreState",
+  "XnuPrelink",
+  "DarwinBoot",
+]
+
+# Route target: the unchanged iPad7,1 iPadOS 17.7.11 restore image.
 [ipsw]
 url = "https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw"
 product = "iPad7,1"
@@ -24,35 +38,39 @@ fetch = ["KernelCache", "DeviceTree", "StaticTrustCache", "Cryptex1,SystemTrustC
 
 # Measured on the phone on 2026-10-22 with CheeseburgerInfo.efi:
 # LUN0 has 29,763,584 blocks of 4096 bytes; userdata is 29,677,755 blocks.
-# 29,677,755 * 4096 = 0x1C4D8BB000, the same as "fastboot getvar partition-size:userdata".
 [userdata]
 first_lba = 0x14f40
 last_lba = 0x1c627fa
 lba_bytes = 4096
-windows = [
-  { name = "OS", component = "OS" },
-  { name = "SystemOS", component = "Cryptex1,SystemOS" },
-]
 
 [kernel]
 defconfig = "cheeseburger_defconfig"
+config_fragments = [
+  "arch:configs/common.config",
+  "soc:configs/msm8998.config",
+  "os:configs/ipados.config",
+]
+patch_series = [
+  "arch:patches/xnu/series",
+  "soc:patches/xnu/series",
+  "os:patches/xnu/series",
+  "device:patches/xnu/series",
+]
 
-# Archive builders, in order.  NativeUfs, NativeAdreno and the PMGR work belong to B5/B7.
-# The first B3 kernel needs the platform expert, timer and the block fixtures.  The kernel
-# console does not need the legacy display kit: DarwinBoot passes the GOP frame buffer in
-# boot_args->Video.  sheng's build-native-legacy-display.py / build-boot-progress.py are tied
-# to its GPU/touch/backlight probes and are a B7 (IOMobileFramebuffer) task.
+# The component entries use canonical catalog IDs. Auxiliary device-local
+# builders remain explicit scripts. This preserves the current archive order
+# while making component ownership resolvable.
 archives = [
   "build-corecrypto-14.py",
   "build-corecrypto-14.py --namespace",
-  "build-arm-driver.py ArmDTPlatform",
-  "build-arm-driver.py ArmCpu",
-  "build-arm-driver.py NativeAES",
-  "build-arm-driver.py NativeVirtioBlock",
-  "build-arm-driver.py NativeRamBlock",
+  "component:ArmDTPlatform",
+  "component:ArmCpu",
+  "component:SoftwareAES",
+  "build-software-aes-bindings.py",
+  "component:RamBlock",
+  "component:AppleKeyStoreState",
   "build-arm-driver.py NativeUfsProbe",
   "build-arm-driver.py CheeseburgerUsb",
-  "build-arm-driver.py NativeKeyStoreEvents",
   "build-native-ufs-runtime.py",
   "build-sheng-pmgr.py",
   "build-mockfs-fixture.py",
@@ -60,19 +78,11 @@ archives = [
 ]
 
 [kernel.prelink]
-tool = "kits/NativePrelink/emit_prelink.py"
+tool = "kits/XnuPrelink/emit_prelink.py"
 kernel = "build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/mach.development.bcm2837.unstripped.noctf"
-# kernelcache_sha256 = "..."        # TODO(B3): fill from the fetched iPad7,1 17.7.11 KernelCache
-# B3: the original coalesced prelink ranges must sit above
-# VM_KERNEL_LINK_ADDRESS (__TEXT) for arm_vm_prot_init.  The sheng -0x1000000
-# slide put __PRELINK_TEXT 0x2d88000 below __TEXT; 0x4100000 lifts the whole
-# prelink set above the native __LINKEDIT (0x82ec000) instead.
+# kernelcache_sha256 is supplied by the selected OS profile.
 slide = "0x5000000"
-# Run the original AMFI early-security initializer so dyld's
-# amfi_check_dyld_policy_self path is initialized.
 early_security_init = "com.apple.driver.AppleMobileFileIntegrity=0xfffffff005ab4ae0"
-# Start from the sheng roots, then drop the ones that assume an Apple PMGR, UFS controller or
-# Adreno: B4 owns that pruning.  TODO(B3): tune against the first panic.
 roots = [
   "com.apple.AppleFSCompression.AppleFSCompressionTypeZlib",
   "com.apple.driver.AppleARMPlatform",
@@ -83,9 +93,7 @@ roots = [
   "com.apple.iokit.IOCryptoAcceleratorFamily",
   "com.apple.iokit.IOHIDFamily",
   "com.apple.iokit.IOHIDEventDriver",
-  # B7: the original Legacy framebuffer and its IOSurface/IOAV dependencies.
   "com.apple.iokit.IOMobileGraphicsFamily",
-  # H103fo: IOGPUFamily supplies IOAcceleratorES for the A540 stub.
   "com.apple.iokit.IOGPUFamily",
   "com.apple.iokit.IOStorageFamily",
   "com.apple.kec.Libm",
@@ -95,95 +103,108 @@ roots = [
   "com.apple.security.sandbox",
 ]
 
-# The ramdisk of the boot image: a FAT volume with the UniXNU config, the kernel and its
-# device tree.  The loader (DarwinBoot) stays in the firmware volume.
 [payload]
 volume = "OP5ESP"
 size_mib = 76
 loader = "firmware"
 title = "OnePlus 5 IOS"
-# H324: a fresh Data seed boots into Setup and reruns data migration on every boot, which keeps
-# SpringBoard in the setup flow instead of the home screen. The payload step runs this tool on a
-# copy of the seed (docs/guide/skip-setup.md) when --skip-setup is passed.
 skip_setup_tool = "scripts/seed-data-skip-setup.py"
-logo = true
-ui_title = "UniXNU"
-dram_size = "0x200000000"          # 8 GiB installed; the DarwinBoot window can land above 4 GiB
-panic_screen = false                # H67: skip fixed panic cave; use kernel console
+dram_size = "0x200000000"
+panic_screen = false
+text_fixups = [
+  "dyld_shared_cache_arm64.15,421e8bc,28ad1bb0008544f9,c0035fd6008544f9",
+]
+
+# This is the current diagnostic command line. It still contains the temporary
+# root, AMFI, execution-signature and dyld cache bypasses documented in
+# docs/migration/README.md. Do not label an image with these arguments as a
+# release-candidate or as proof that the security chain is complete.
 kernel_args = [
   "-v",
-  # DinnerABC's successful iPadOS 17.7.11 baseline runs a single CPU.
   "cpus=1",
   "debug=0x14e",
   "boot-progress=2",
   "offline-legacy-gop=1",
   "offline-legacy-unit-scale=1",
   "native-ufs-probe=0",
-  # H272k: the ring flush interval is 10 s by default, so an I/O storm that ends the
-  # boot inside one interval leaves nothing on disk (H272e: 51 err 60 then panic, no
-  # ring lines).  1 s turns every short run into a data point; writes are incremental
-  # and silent when nothing changed (H106 batching), so wear is unchanged.
   "h103-log-secs=1",
-  # sheng bring-up policy: disable watchdogd and the known XPC/crash-loop
-  # launch daemons before launchd exec.
   "sheng-disable-watchdogd=1",
   "sheng-lite=1",
-  # Diagnostic H82l: keep the launchd core from scrolling the console and
-  # from spending two minutes on a 256 MiB Data volume.
   "native-skip-coredump=1",
-  # Temporary B5 bring-up only: allow the unsealed iPad restore root to reach
-  # launchd/AMFI. Remove this once VerifiedRoot is wired.
   "native-skip-root-auth=1",
-  # Diagnostic only: launchd was rejected with OS_REASON_EXEC /
-  # EXEC_EXIT_REASON_SECURITY_POLICY. Restore real AMFI/VerifiedRoot later.
   "amfi_get_out_of_my_way=1",
   "amfi=0x94",
   "amfi_allow_any_signature=1",
   "cs_enforcement_disable=1",
   "native-skip-exec-signature=1",
   "launchd_unsecure_cache=1",
-  # QEMU/iPadOS17 bring-up: testMode + skip ignition, so DYLD_AMFI_FAKE is
-  # honored and the fallback SystemOS cache can be used.
   "dyld_flags=0x0000008A",
-  # Temporary H81: -1 falls back to max_task_footprint; 0 removes the global
-  # per-task cap so the private cache cannot trigger per-process jetsam.
   "max_task_pmem=0",
   "-apfs_shared_datavolume",
 ]
 
-# Extra action entries appended after the kernel entry. The UniXNU UI already
-# Same iPad7,1/21H461 AW class-initializer cycle fixed by upstream sheng da9fab9.
-# Original bytes verified in the actual 21H461 cache; kernel refuses mismatches.
-text_fixups = [
-  "dyld_shared_cache_arm64.15,421e8bc,28ad1bb0008544f9,c0035fd6008544f9",
-]
-
-# Extra action entries appended after the kernel entry. The UniXNU UI already
-# implements the reset/shutdown actions; these give the OP5 menu its own
-# reboot and power-off rows.
-[[payload.menu]]
-id = "reset"
-title = "Restart"
-action = "reset"
-
-[[payload.menu]]
-id = "shutdown"
-title = "Shut down"
-action = "shutdown"
-
 [payload.adt]
-tool = "scripts/make-cheeseburger-adt.py"
-# The generator builds the tree from the pinned MSM8998 constants (GICD 0x17a00000,
-# GICR 0x17b00000 stride 0x20000, timebase 19200000, UFS qcom,msm8998-ufshc), measured
-# by scripts/check-adt.py.  The /product and /buttons nodes follow the iPad7,1
-# route identity.
-cpu_regs = "0,1,2,3,0x100,0x101,0x102,0x103"
-psci_method = "smc"
-owned_memory_size = "0x100000000"  # 4 GiB DarwinBoot window; cache mapping needs headroom
-ipad_identity = true
-# Packed DBRDISK1 Data seed: the logical Data disk is larger than the payload
-# file, so core dumps and launchd state do not exhaust a small raw seed.
+# The common generator adds the OS identity, random seed, NVRAM proxy and
+# sidecar placeholders. Only board-owned payload inputs remain here.
+chip_id = "0x8011"
+unique_chip_id = "required"
+owned_memory_size = "0x100000000"
 packed_data_ramdisk = true
-# Root selection: the OS window's APFS volume UUID in the iPad7,1 fixture.
-# This is read-only root media; Data is a separate later task.
 root_match_volume_uuid = "04769D26-2CA0-4825-B443-E2E5F88300F2"
+
+[device_tree]
+source = "device:dts/cheeseburger.dts"
+include_dirs = ["soc:dts"]
+
+[package]
+unixnu = "../references/UniXNU"
+
+[package.defconfig]
+"ipados-17.7.11-21H461" = "cheeseburger_defconfig"
+
+# Board-specific typed ADT values that are not supplied by the OS profile.
+[adt.root.string]
+"unixnu,board-id" = "oneplus,cheeseburger"
+
+[adt.chosen.bytes]
+# Temporary owner boot-manifest placeholder. The security migration replaces
+# this with a verified owner manifest.
+"boot-manifest-hash" = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+"mac-address-wifi0" = "020000000001"
+"mac-address-bluetooth0" = "020000000002"
+# Contents of scripts/data/SystemVolume.im4p, retained as a typed ADT value so
+# the format 2 generator does not need a device-specific ADT script.
+"system-volume-auth-blob" = "3081e21604494d34501604697379731601300481d00200000000000000010000002000000061f50c6269a33b16100d87e8a69de5797ccf07c1ab54ad68b02d5f236f36674500000000000000000000000000000000000000000000000000000000000000008a413a0cda7f6a6502edabd0a8d1c7f139995a1f6b3b034abcee8dbf2e6dff2900000000000000000000000000000000000000000000000000000000000000006f445c471a849af9c22fcef44be334badf77981d881549faf4bda03e8ff0750e0000000000000000000000000000000000000000000000000000000000000000"
+
+[adt.chosen.u32]
+# Diagnostic bring-up: PE_i_can_has_debugger() must remain false in a release
+# candidate unless the resulting security model is documented and verified.
+"debug-enabled" = 1
+
+[adt.chosen.asmb.u64]
+# Temporary SIP relaxation retained from the format 1 ADT.
+"lp-sip0" = "0x6f"
+
+[adt.chosen.asmb.u32]
+"lp-sip1" = 1
+
+[adt.product.string]
+model = "oneplus,cheeseburger"
+
+[adt.product.u32]
+artwork-device-subtype = 1920
+thin-bezel = 1
+
+[adt.defaults.u32]
+sleep-disabled = 1
+"kern.maxvnodes" = 66560
+
+[adt.buttons.string]
+compatible = "buttons"
+device_type = "buttons"
+
+[adt.buttons.strings]
+button-names = ["hold", "voldown", "volup"]
+
+[adt.buttons.u32]
+home-button-type = 2

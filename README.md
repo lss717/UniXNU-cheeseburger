@@ -1,135 +1,120 @@
 # UniXNU-cheeseburger
 
-Device repository for the OnePlus 5 (cheeseburger, MSM8998 / Snapdragon 835), B line:
-the UniXNU loader and DarwinBoot from the firmware volume, a 4 KiB XNU, and the stock ABL.
+Format 2 device repository for the OnePlus 5 (cheeseburger, MSM8998).
 
-Route: iPad7,1 / iPadOS 17.7.11 (21H461). The OnePlus 5 hardware is adapted
-underneath the iPad identity. This is the only OS profile used by the port;
-there is no second identity profile.
-
-## Relationship to UniXNU
-
-This repository is the device repository for
-[lss717/UniXNU](https://github.com/lss717/UniXNU), a fork of
-[UniXNU/UniXNU](https://github.com/UniXNU/UniXNU) modified for the OnePlus 5.
-
-The fork carries the loader, build driver and XNU patches. This repository only
-carries the board profile, ADT, boot-image packaging and device-specific drivers.
+The port uses the official UniXNU format 2 ARM64, MSM8998, iPadOS 17.7.11 and
+device layers. The selected OS identity is iPad7,1 / iPadOS 17.7.11 (21H461).
 
 ## Status
 
-| Milestone | State |
+| Area | State |
 | --- | --- |
-| B1 — UEFI + UniXNU + payload | ✅ G1 passed on hardware, 2026-10-22 |
-| B2 — device repository, ADT, payload, boot image | ✅ board file, defconfig and scripts |
-| B3–B4 — 4 KiB XNU + platform expert | ✅ XNU reaches BSD/IOKit |
-| B5 — UFS + APFS root + launchd | 🔄 root mounted; launchd exec; dyld cache diagnostic in progress |
+| Format 2 configuration and source roles | Migrated and host-parseable |
+| MSM8998 common DTSI | Host DTS compile passed |
+| Board DTS and common ADT path | Added; node-level comparison pending |
+| Component and patch resolution | Verified by the official resolver |
+| Kernel, payload and boot image | Not rebuilt in this Windows workspace |
+| Hardware boot checkpoint | Not re-qualified after the migration |
+| UFS formal root path | Unresolved; A/B/C/D matrix pending |
+| Release security chain | Not complete |
 
-G1 evidence and the measured board values live in the UniXNU tree, under
-`plans/oneplus5-cheeseburger/` (`STATUS.md`, `PLAN.md`, `assets/`, `patches/`).
+The format 1 source and resolver output are preserved under
+`docs/migration/`. Historical device results remain format 1 evidence and are
+not presented as format 2 results.
 
-## Measured board values (2026-10-22)
+## Repositories
 
-| Item | Value |
-| --- | --- |
-| RAM | 8 GB installed, 7039 MiB visible to UEFI |
-| UFS logical block | 4096 bytes |
-| UFS LUN0 | 29,763,584 blocks, 116,264 MiB |
-| userdata | LBA `0x14F40`..`0x1C627FA`, 29,677,755 blocks |
-| Frame buffer | `0x9D400000`, 1080x1920, stride 1080, BGRX, `0x7E9000` bytes |
-| Keys | volume up/down and power, handled by Qualcomm `ButtonsDxe` |
-| Boot image | header v1, 2048-byte pages, kernel `0x10000000`, ramdisk `0x12000000`, tags `0x18000000` (64 MiB payload) |
-
-## Layout
+Use these checkouts side by side:
 
 ```text
-board.toml                 board, iPad7,1 route, userdata, kernel, payload
-configs/cheeseburger_defconfig
-scripts/make-bootimg.py    edk2-msm8998 mkbootimg + header report
-scripts/check-cheeseburger.py  FD / boot image / payload preflight
-scripts/make-cheeseburger-adt.py  Apple-format device tree for the iPad7,1 route
-scripts/check-adt.py         parse and check /cpus, /arm-io/intc, /chosen
-package/ drivers/ patches/ own modules, added by later milestones
+UniXNU/                    official 578ae75c
+UniXNU-cheeseburger/       this repository
+UniXNU-msm8998-common/     board-independent MSM8998 support
+edk2-msm8998/              firmware
+```
+
+`feeds.toml` pins the MSM8998 common revision. `local.toml` can point the same
+source at a local checkout while it is being developed.
+
+The common pin must be pushed to
+`lss717/UniXNU-msm8998-common` before a clean checkout or GitHub workflow can
+resolve it without the local override.
+
+The device carries one reviewed UniXNU compatibility patch for exporting the
+MSM8998 UFS profile properties through the common ADT converter. The package
+script applies it idempotently to the pinned official checkout.
+
+## Resolve
+
+From this repository, with the official reference checkout at
+`../references/UniXNU`:
+
+```sh
+python3 ../references/UniXNU/unixnu defconfig cheeseburger_defconfig -D .
+python3 ../references/UniXNU/unixnu status --json -D .
+python3 ../references/UniXNU/unixnu tree -D .
+python3 ../references/UniXNU/scripts/porting-record.py check --device .
+```
+
+The expected output root is:
+
+```text
+out/cheeseburger/ipados-17.7.11-21H461/cheeseburger/
 ```
 
 ## Build
 
-Firmware is built by `edk2-msm8998/build.sh`, not by `unixnu build firmware`: the B line
-keeps the GCC5 DSC/FDF and its own boot image layout (plan decisions D6/D7).  Clone
-UniXNU, this repository and `edk2-msm8998` side by side.
+The final build needs macOS and Xcode for the kernel, or the documented Linux
+toolchain. The board package entry point is:
 
 ```sh
-# 1. firmware (UniXNU + DarwinBoot + initrd block device)
-cd /home/ls/edk2-msm8998
-UNIXNU_TREE=/home/ls/UniXNU bash build.sh --device cheeseburger --release RELEASE
-
-# 2. payload (adds the kernel, ADT and trust cache)
-#    out/cheeseburger/boot/payload.img, FAT label OP5ESP
-
-# 3. boot image
-python3 scripts/make-bootimg.py \
-  --payload out/cheeseburger/boot/payload.img \
-  --out out/cheeseburger/boot/boot.img
-
-# 4. ADT (iPad7,1 route identity; placeholders must match the payload sidecars)
-python3 scripts/make-cheeseburger-adt.py \
-  --output out/cheeseburger/boot/kernel.macho.adt \
-  --dram-size 0x200000000 --owned-memory-size 0x100000000 \
-  --cpu-regs 0,1,2,3,0x100,0x101,0x102,0x103 --ipad-identity \
-  --packed-data-ramdisk --trust-cache --gpu-addon \
-  --root-match-volume-uuid 04769D26-2CA0-4825-B443-E2E5F88300F2
-python3 scripts/check-adt.py --adt out/cheeseburger/boot/kernel.macho.adt \
-  --require PackedRAMDisk --require TrustCache --require GpuAddon
-# Every sidecar the payload carries needs its zeroed /chosen/memory-map placeholder:
-# DarwinBoot reports "boot refused: Compromised Data" and stays in the UEFI boot
-# manager when a sidecar file exists without one (H181, 2026-11-08).
-
-# 5. preflight and run
-python3 scripts/check-cheeseburger.py
-fastboot boot out/cheeseburger/boot/boot.img
+bash scripts/package.sh --check --os 17
+bash scripts/package.sh --os 17 --uefi ../edk2-msm8998
 ```
 
-`fastboot boot` only loads the image into RAM; nothing is written to a partition.
+The firmware remains an edk2-msm8998 build. The device tree selected by
+`board.toml` is compiled by the common UniXNU payload path:
 
-## macOS CI
+```text
+dts/cheeseburger.dts + UniXNU-msm8998-common/dts/msm8998.dtsi
+-> hardware.dtb
+-> common ADT generator
+-> kernel.macho.adt
+```
 
-The UniXNU repository carries `.github/workflows/macos-cheeseburger.yml` for the steps that
-need Xcode.  After pushing this repository:
+Check a generated ADT with:
 
 ```sh
-# in the UniXNU checkout
-gh workflow run macos-cheeseburger.yml \
-  -f device_repository=<owner>/UniXNU-cheeseburger \
-  -f device_ref=main
+python3 scripts/check-format2-adt.py --adt path/to/kernel.macho.adt
 ```
 
-It runs `unixnu defconfig cheeseburger_defconfig`, fetches the XNU sources, builds the kernel
-and the payload, and uploads `out/cheeseburger/{kernel,payload,logs}`.  The boot image is still
-assembled from the edk2-msm8998 firmware with `scripts/make-bootimg.py` (the workflow does not
-build the firmware).
+## Diagnostic Builds
 
-Secrets: `UNIXNU_DEVICE_TOKEN` for a private device repository, `UNIXNU_UNIQUE_CHIP_ID` for the
-payload ADT seed.
+`board.toml` currently carries the format 1 diagnostic command line. It includes
+root authentication, AMFI, execution-signature, dyld cache and debugger
+bypasses. These arguments are retained only to avoid changing several variables
+during the profile migration.
 
-`panic_screen` is on: `scripts/patch-xnu-entry-probe.py` redirects `panic()` into
-`scripts/xnu-panic-screen.c`, which draws the message with `scripts/Font.h` and stops, so the
-panorama stays on the panel for a photograph.  `--no-reset` keeps the early stages from resetting.
+Do not describe an image built from this file as a release candidate. The
+release security path still needs VerifiedRoot, trust-cache, AMFI and SystemOS
+policy verification.
 
-The reset probes are only evidence if the PSCI reset path itself works.  `--reset-before-mmu`
-builds a control image that paints the stage 1 blue band and resets after `--reset-delay`
-seconds at the pre-MMU site without writing `SCTLR_EL1`; run it before trusting a missing
-stage 3 reset.  `scripts/check-kernel-bases.py` prints the actual reset delay found in a
-kernel Mach-O and checks the DarwinBoot `physBase` 2 MiB congruence.
+## Storage
 
-The first kernel builds without the legacy display and boot-progress kits: sheng's
-`build-native-legacy-display.py` / `build-boot-progress.py` are tied to its Adreno, touch and
-backlight probes.  That does not hide the B3 console: DarwinBoot passes the GOP frame buffer
-through `boot_args->Video`, so XNU's own verbose/panic console draws on the panel.  The legacy
-display kit is for `IOMobileFramebuffer` and the userland UI (B7), not for B3.
+The current UFS configuration is intentionally considered unresolved:
 
-## Firmware inputs that are not in this repository
+- `CONFIG_XNU_NATIVE_UFS_PROBE=y`;
+- `native-ufs-probe=0` in the kernel arguments;
+- runtime UFS archive enabled;
+- `CONFIG_XNU_NATIVE_UFS` disabled.
 
-`unixnu ipsw fetch` (on macOS) caches `KernelCache`, `DeviceTree`, `StaticTrustCache` and
-`Cryptex1,SystemTrustCache` under `.cache/firmware/`; the kernel and prelink steps also
-need Xcode.  The `kernelcache_sha256` and the prelink roots in `board.toml` are filled in
-when that first cache exists.
+The next storage task is the four single-path configurations in
+`docs/NEXT-STEPS-FORMAT2-MIGRATION.md`, not another mixed-path boot.
+
+## Inputs
+
+Private IPSW members, trust caches, Data seeds and firmware binaries stay under
+`.cache/firmware` and are never committed. `proprietary-files.txt` records the
+source and known hashes. `local.toml.example` documents local source overrides.
+
+Detailed migration evidence and open work are in `docs/migration/README.md`.

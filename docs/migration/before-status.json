@@ -1,0 +1,556 @@
+{
+  "schema_version": 1,
+  "device": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger",
+  "name": "cheeseburger",
+  "output": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\out\\cheeseburger",
+  "configuration": null,
+  "build_config": null,
+  "config_path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\out\\cheeseburger\\.config",
+  "configured": true,
+  "profiles": {
+    "device": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger"
+  },
+  "configuration_sources": [
+    "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\board.toml"
+  ],
+  "board": {
+    "board": {
+      "name": "cheeseburger",
+      "soc": "MSM8998",
+      "description": "OnePlus 5",
+      "kit": "cheeseburger"
+    },
+    "ipsw": {
+      "url": "https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw",
+      "product": "iPad7,1",
+      "version": "17.7.11",
+      "build": "21H461",
+      "device_class": "j120ap",
+      "chip_id": 32785,
+      "board_id": 12,
+      "fetch": [
+        "KernelCache",
+        "DeviceTree",
+        "StaticTrustCache",
+        "Cryptex1,SystemTrustCache"
+      ]
+    },
+    "userdata": {
+      "first_lba": 85824,
+      "last_lba": 29763578,
+      "lba_bytes": 4096,
+      "windows": [
+        {
+          "name": "OS",
+          "component": "OS"
+        },
+        {
+          "name": "SystemOS",
+          "component": "Cryptex1,SystemOS"
+        }
+      ]
+    },
+    "kernel": {
+      "defconfig": "cheeseburger_defconfig",
+      "archives": [
+        "build-corecrypto-14.py",
+        "build-corecrypto-14.py --namespace",
+        "build-arm-driver.py ArmDTPlatform",
+        "build-arm-driver.py ArmCpu",
+        "build-arm-driver.py NativeAES",
+        "build-arm-driver.py NativeVirtioBlock",
+        "build-arm-driver.py NativeRamBlock",
+        "build-arm-driver.py NativeUfsProbe",
+        "build-arm-driver.py CheeseburgerUsb",
+        "build-arm-driver.py NativeKeyStoreEvents",
+        "build-native-ufs-runtime.py",
+        "build-sheng-pmgr.py",
+        "build-mockfs-fixture.py",
+        "build-libpthread-kernel.py"
+      ],
+      "prelink": {
+        "tool": "kits/NativePrelink/emit_prelink.py",
+        "kernel": "build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/mach.development.bcm2837.unstripped.noctf",
+        "slide": "0x5000000",
+        "early_security_init": "com.apple.driver.AppleMobileFileIntegrity=0xfffffff005ab4ae0",
+        "roots": [
+          "com.apple.AppleFSCompression.AppleFSCompressionTypeZlib",
+          "com.apple.driver.AppleARMPlatform",
+          "com.apple.driver.AppleARMWatchdogTimer",
+          "com.apple.driver.AppleEffaceableStorage",
+          "com.apple.driver.AppleMobileFileIntegrity",
+          "com.apple.filesystems.apfs",
+          "com.apple.iokit.IOCryptoAcceleratorFamily",
+          "com.apple.iokit.IOHIDFamily",
+          "com.apple.iokit.IOHIDEventDriver",
+          "com.apple.iokit.IOMobileGraphicsFamily",
+          "com.apple.iokit.IOGPUFamily",
+          "com.apple.iokit.IOStorageFamily",
+          "com.apple.kec.Libm",
+          "com.apple.kec.corecrypto",
+          "com.apple.kext.CoreTrust",
+          "com.apple.security.AppleImage4",
+          "com.apple.security.sandbox"
+        ]
+      }
+    },
+    "payload": {
+      "volume": "OP5ESP",
+      "size_mib": 76,
+      "loader": "firmware",
+      "title": "OnePlus 5 IOS",
+      "skip_setup_tool": "scripts/seed-data-skip-setup.py",
+      "logo": true,
+      "ui_title": "UniXNU",
+      "dram_size": "0x200000000",
+      "panic_screen": false,
+      "kernel_args": [
+        "-v",
+        "cpus=1",
+        "debug=0x14e",
+        "boot-progress=2",
+        "offline-legacy-gop=1",
+        "offline-legacy-unit-scale=1",
+        "native-ufs-probe=0",
+        "h103-log-secs=1",
+        "sheng-disable-watchdogd=1",
+        "sheng-lite=1",
+        "native-skip-coredump=1",
+        "native-skip-root-auth=1",
+        "amfi_get_out_of_my_way=1",
+        "amfi=0x94",
+        "amfi_allow_any_signature=1",
+        "cs_enforcement_disable=1",
+        "native-skip-exec-signature=1",
+        "launchd_unsecure_cache=1",
+        "dyld_flags=0x0000008A",
+        "max_task_pmem=0",
+        "-apfs_shared_datavolume"
+      ],
+      "text_fixups": [
+        "dyld_shared_cache_arm64.15,421e8bc,28ad1bb0008544f9,c0035fd6008544f9"
+      ],
+      "menu": [
+        {
+          "id": "reset",
+          "title": "Restart",
+          "action": "reset"
+        },
+        {
+          "id": "shutdown",
+          "title": "Shut down",
+          "action": "shutdown"
+        }
+      ],
+      "adt": {
+        "tool": "scripts/make-cheeseburger-adt.py",
+        "cpu_regs": "0,1,2,3,0x100,0x101,0x102,0x103",
+        "psci_method": "smc",
+        "owned_memory_size": "0x100000000",
+        "ipad_identity": true,
+        "packed_data_ramdisk": true,
+        "root_match_volume_uuid": "04769D26-2CA0-4825-B443-E2E5F88300F2"
+      }
+    }
+  },
+  "components": [],
+  "modules": [
+    {
+      "kind": "driver",
+      "name": "Adreno740",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\Adreno740",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "AdrenoMetal",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\AdrenoMetal",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "AppleKeyStoreState",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\AppleKeyStoreState",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "ArmCpu",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\ArmCpu",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "ArmDTPlatform",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\ArmDTPlatform",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "ArmVirtPlatform",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\ArmVirtPlatform",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "CheeseburgerUsb",
+      "path": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\drivers\\CheeseburgerUsb",
+      "origin": "device",
+      "local": false,
+      "revision": "0c66d9998a91da526a2de1bad0e58d4f1847c88f",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "DarwinBoot",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\DarwinBoot",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "GopFramebuffer",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\GopFramebuffer",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "QcomBaseband",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\QcomBaseband",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "QcomGeniSpi",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\QcomGeniSpi",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "RamBlock",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\RamBlock",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "SoftwareAES",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\SoftwareAES",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "VirtioMmioBlock",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\VirtioMmioBlock",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "driver",
+      "name": "VirtioMmioConsole",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\drivers\\VirtioMmioConsole",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "kit",
+      "name": "AdrenoFirmware",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\kits\\AdrenoFirmware",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "kit",
+      "name": "AdrenoPM4",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\kits\\AdrenoPM4",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "kit",
+      "name": "AirNir",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\kits\\AirNir",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "kit",
+      "name": "ArmSmmu4K",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\kits\\ArmSmmu4K",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "kit",
+      "name": "NativePrelink",
+      "path": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\kits\\NativePrelink",
+      "origin": "device",
+      "local": false,
+      "revision": "0c66d9998a91da526a2de1bad0e58d4f1847c88f",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "kit",
+      "name": "VerifiedRoot",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\kits\\VerifiedRoot",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "kit",
+      "name": "XnuPrelink",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\kits\\XnuPrelink",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "package",
+      "name": "device",
+      "path": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\package",
+      "origin": "device",
+      "local": false,
+      "revision": "0c66d9998a91da526a2de1bad0e58d4f1847c88f",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "package",
+      "name": "main",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\package",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "patch",
+      "name": "libpthread",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\patches\\libpthread",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": "c0e60fb5ecfc54cf379c261d3f9572cc22ded891",
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "patch",
+      "name": "mesa",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\patches\\mesa",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "patch",
+      "name": "xnu",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\patches\\xnu",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": "d8b80295118ef25ac3a784134bcf95cd8e88109f",
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "patch",
+      "name": "xnu-12377",
+      "path": "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\patches\\xnu-12377",
+      "origin": "base",
+      "local": false,
+      "revision": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "refer",
+      "name": "AvailabilityVersions",
+      "path": null,
+      "origin": "git",
+      "local": false,
+      "revision": null,
+      "pin": "933f9360f1b70dfbda5548386a3d65e0358b4f7d",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/AvailabilityVersions.git"
+    },
+    {
+      "kind": "refer",
+      "name": "IOStorageFamily",
+      "path": null,
+      "origin": "git",
+      "local": false,
+      "revision": null,
+      "pin": "e45fbe30a7879e0b16e26dddb78538f1b00e0bff",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/IOStorageFamily.git"
+    },
+    {
+      "kind": "refer",
+      "name": "corecrypto-2023",
+      "path": null,
+      "origin": "git",
+      "local": false,
+      "revision": null,
+      "pin": "11fba65b12d8830630e248dfa8344caf8b065f26",
+      "scope": null,
+      "repository": "https://github.com/ONLYA/corecrypto-2023.git"
+    },
+    {
+      "kind": "refer",
+      "name": "edk2",
+      "path": null,
+      "origin": "git",
+      "local": false,
+      "revision": null,
+      "pin": "cfb93724a06ff86ff5ba971413368a7809ee42a5",
+      "scope": null,
+      "repository": "https://github.com/microsoft/mu_basecore.git"
+    },
+    {
+      "kind": "refer",
+      "name": "libdispatch",
+      "path": null,
+      "origin": "git",
+      "local": false,
+      "revision": null,
+      "pin": "30fe6a7d945340ce69cef121132f049e810089a5",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/libdispatch.git"
+    },
+    {
+      "kind": "refer",
+      "name": "libplatform",
+      "path": null,
+      "origin": "git",
+      "local": false,
+      "revision": null,
+      "pin": "a00a4cc36da2110578bcf3b8eeeeb93dcc7f4e11",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/libplatform.git"
+    },
+    {
+      "kind": "refer",
+      "name": "libpthread",
+      "path": null,
+      "origin": "git",
+      "local": false,
+      "revision": null,
+      "pin": "c0e60fb5ecfc54cf379c261d3f9572cc22ded891",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/libpthread.git"
+    },
+    {
+      "kind": "refer",
+      "name": "xnu",
+      "path": null,
+      "origin": "git",
+      "local": false,
+      "revision": null,
+      "pin": "d8b80295118ef25ac3a784134bcf95cd8e88109f",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/xnu.git"
+    }
+  ],
+  "patch_order": []
+}

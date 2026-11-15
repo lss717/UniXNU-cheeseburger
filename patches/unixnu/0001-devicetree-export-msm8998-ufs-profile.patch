@@ -1,0 +1,19 @@
+diff --git a/scripts/unixnu/devicetree.py b/scripts/unixnu/devicetree.py
+index 3dde210..5fc6ea1 100644
+--- a/scripts/unixnu/devicetree.py
++++ b/scripts/unixnu/devicetree.py
+@@ -202,10 +202,10 @@ def arm_io_window(hardware):
+     return base, top - base
+ 
+ 
+-STRINGS = {'compatible', 'device_type', 'reg-names', 'interrupt-names', 'clock-names', 'method'}
+-U32 = {'phandle', 'linux,phandle', '#interrupt-cells', '#iommu-cells', '#clock-cells', 'clock-frequency', 'timebase-frequency', 'transport-encoding', 'transport-speed'}
+-U64 = {'redistributor-stride'}
+-FLAGS = {'interrupt-controller', 'dma-coherent'}
++STRINGS = {'compatible', 'device_type', 'reg-names', 'interrupt-names', 'clock-names', 'phy-names', 'method'}
++U32 = {'phandle', 'linux,phandle', '#address-cells', '#size-cells', '#interrupt-cells', '#iommu-cells', '#clock-cells', '#phy-cells', '#redistributor-regions', 'clock-frequency', 'timebase-frequency', 'transport-encoding', 'transport-speed', 'lanes-per-direction', 'p8,spi-intid', 'p8,msm8998-direct-dma'}
++U64 = {'redistributor-stride', 'p8,hc-physical'}
++FLAGS = {'interrupt-controller', 'dma-coherent', 'p8,read-only', 'p8,warm-link-only'}
+ REFERENCES = {'interrupt-parent': None, 'iommus': '#iommu-cells', 'clocks': '#clock-cells'}
+ 
+ 

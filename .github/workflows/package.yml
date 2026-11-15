@@ -1,0 +1,76 @@
+name: package
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: "OS profile of the images"
+        type: choice
+        options: ["17"]
+        default: "17"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: macos-26
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: device
+          submodules: recursive
+      - uses: actions/checkout@v4
+        with:
+          repository: UniXNU/UniXNU
+          ref: 578ae75c8e7356d4d562bcfc294ab26dfe640a31
+          path: references/UniXNU
+          submodules: recursive
+      - uses: actions/checkout@v4
+        with:
+          repository: lss717/edk2-msm8998
+          ref: unixnu-cheeseburger
+          path: uefi-msm8998
+          submodules: recursive
+      - name: tools
+        run: |
+          brew install dtc llvm lld cmake mtools blacktop/tap/ipsw
+          ok=1
+          for t in clang xcodebuild make git ninja cmake dtc fdtget fdtput aea compression_tool \
+                   mformat mcopy ipsw; do
+            command -v "$t" >/dev/null || { echo "missing tool: $t"; ok=0; }
+          done
+          for t in lld-link llvm-lib llvm-rc llvm-nm llvm-objcopy; do
+            [ -f "/opt/homebrew/opt/llvm/bin/$t" ] || [ -f "/opt/homebrew/opt/lld/bin/$t" ] || { echo "missing tool: $t"; ok=0; }
+          done
+          [ "$ok" = 1 ]
+      - name: seed
+        env:
+          seed: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
+        run: |
+          if ! [[ "$seed" =~ ^[0-9a-fA-F]{8}$ ]]; then
+            echo 'Set UNIXNU_UNIQUE_CHIP_ID to the device platform seed.' >&2
+            exit 1
+          fi
+      - name: package
+        working-directory: device
+        env:
+          UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-msm8998
+      - name: images
+        uses: actions/upload-artifact@v4
+        with:
+          name: images-${{ inputs.os }}
+          retention-days: 1
+          if-no-files-found: error
+          path: |
+            references/UniXNU/out/cheeseburger/*/*/boot/boot.img
+            references/UniXNU/out/cheeseburger/*/*/payload/payload.img
+            references/UniXNU/out/cheeseburger/*/*/kernel/kernel.macho
+            references/UniXNU/out/cheeseburger/*/*/package.manifest.json

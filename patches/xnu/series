@@ -1,0 +1,2 @@
+# Board XNU patches, one path per line in application order.
+# Empty is valid while device-specific changes remain in the diagnostic fork.

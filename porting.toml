@@ -1,0 +1,192 @@
+schema_version = 1
+
+[device]
+name = "cheeseburger"
+soc = "MSM8998"
+os_profile = "ipados-17.7.11-21H461"
+summary = "OnePlus 5 migrated to format 2 profiles and a board DTS; runtime and storage qualification remain pending."
+
+[[area]]
+id = "configuration"
+status = "implemented"
+components = ["ArmDTPlatform", "XnuPrelink"]
+paths = ["board.toml", "feeds.toml", "configs/**", "dts/**", ".github/**", "local.toml.example"]
+inputs = ["Preserve the measured OnePlus 5 values while selecting ARM64, MSM8998, iPadOS 17.7.11 and device profiles."]
+configuration = ["board.toml uses schema_version 2, reports the MSM8998 common source and selects the pinned iPadOS profile."]
+procedure = ["Run the official UniXNU defconfig, status and porting-record checks."]
+findings = ["The format 1 resolver reported schema 1 with no components or patch order; the migration records that baseline before changing the board."]
+completion = ["The official resolver reports schema 2, four profiles, nonempty components, ordered patches and the profile-qualified output path."]
+limits = ["A successful parse is a host-side result and does not qualify a kernel or boot image on hardware."]
+next_action = ["Run the official resolver and attach the resulting status JSON to this migration record."]
+evidence = [
+  { kind = "source", reference = "docs/migration/README.md", result = "Records the format 1 baseline, source revisions and the static migration scope." },
+  { kind = "source", reference = "docs/migration/after-status.json", result = "Official resolver output reports schema 2, four profiles, seven components and fifty-nine ordered patches." },
+]
+
+[[area]]
+id = "firmware"
+status = "planned"
+components = ["DarwinBoot"]
+paths = ["proprietary-files.txt", ".github/workflows/package.yml"]
+inputs = ["DarwinBoot is selected from the official component catalog; the firmware checkout remains edk2-msm8998."]
+configuration = ["The payload keeps loader=firmware and the existing 76 MiB OP5ESP volume."]
+procedure = ["Build the firmware with edk2-msm8998, then package it with the format 2 payload and boot image steps."]
+findings = ["The current firmware checkout has no Git metadata in this workspace, so its exact source revision is not reproducible from this record yet."]
+completion = ["FD, payload and boot image build from pinned inputs and reproduce the same hashes on a clean checkout."]
+limits = ["No firmware was rebuilt in this Windows workspace."]
+next_action = ["Record the edk2-msm8998 commit and source remote before the next firmware build."]
+evidence = []
+
+[[area]]
+id = "cpu"
+status = "planned"
+components = ["ArmCpu"]
+paths = ["dts/**", "drivers/**"]
+inputs = ["Eight MSM8998 MPIDR values, 19.2 MHz timebase and PSCI SMC from the Linux MSM8998 and OnePlus 5 device trees."]
+configuration = ["The common DTSI declares 4x Cortex-A53 and 4x Cortex-A73 clusters with E/P cluster tags."]
+procedure = ["Compile the board DTS, generate the ADT and boot with one CPU before enabling all cores."]
+findings = ["The current diagnostic command line still uses cpus=1 while the ADT declares all eight CPUs."]
+completion = ["Every enabled CPU starts and timer/IPI handling is verified on hardware."]
+limits = ["CPU topology and PSCI have not been re-qualified against the format 2 image."]
+next_action = ["Boot one CPU first, then add secondary CPUs with separate evidence."]
+evidence = []
+
+[[area]]
+id = "memory"
+status = "planned"
+components = []
+paths = ["dts/**"]
+inputs = ["8 GiB installed RAM at 0x80000000, a 4 GiB DarwinBoot window and the measured framebuffer, ramoops, IPA and ZAP reservations."]
+configuration = ["cheeseburger.dts declares one contiguous 8 GiB memory node and board-owned reserved-memory ranges."]
+procedure = ["Compare generated ADT memory properties with the format 1 ADT before booting."]
+findings = ["The common generator derives one arm-io window from exported hardware registers; the new UFS range lowers that window below the old 0x17000000 base."]
+completion = ["Memory map, arm-io translation and all reserved ranges match the bootloader inventory."]
+limits = ["The generated format 2 ADT has not been compared byte-for-byte with the format 1 ADT."]
+next_action = ["Generate both ADTs and classify every node and property difference."]
+evidence = []
+
+[[area]]
+id = "storage"
+status = "planned"
+components = ["RamBlock"]
+paths = ["configs/**", "drivers/**", "scripts/*ufs*", "scripts/*storage*", "dts/**"]
+inputs = ["UFS HC 0x1da4000, PHY 0x1da7000, SPI 265 and 4096-byte logical blocks."]
+configuration = ["The common DTSI exports ufshc and ufsphy; the board keeps the current probe and runtime archive entries."]
+procedure = ["Run the four single-path UFS matrix configurations defined by the migration plan."]
+findings = ["The diagnostic command line disables native-ufs-probe while its defconfig enables the probe and the archive plan also builds the runtime path."]
+completion = ["Exactly one formal root storage path is selected and verified for read, write, flush, recovery and restart persistence."]
+limits = ["The provider of the current root block device has not been isolated with the format 2 build."]
+next_action = ["Run the A/B/C/D UFS matrix before attributing userland failures to storage."]
+evidence = []
+
+[[area]]
+id = "display"
+status = "planned"
+components = []
+paths = ["dts/**", "drivers/**", "scripts/*display*", "scripts/*gop*"]
+inputs = ["GOP framebuffer at 0x9d400000, 1080x1920, stride 4320 bytes and BGRX pixels."]
+configuration = ["The board DTS describes the simple framebuffer and reserved region."]
+procedure = ["Verify early XNU console output first, then the userland display component."]
+findings = ["The earlier device claim that root mounted and launchd executed does not establish a usable compositor or first frame."]
+completion = ["Known content appears with correct geometry, then the native display stack presents frames."]
+limits = ["No display path is qualified by this format 2 migration."]
+next_action = ["Capture the first post-migration kernel console checkpoint."]
+evidence = []
+
+[[area]]
+id = "input"
+status = "planned"
+components = []
+paths = ["dts/**", "drivers/**", "scripts/*input*", "scripts/*button*"]
+inputs = ["Power and volume keys in the button set; the board has no mechanical Home button."]
+configuration = ["The board ADT declares hold, voldown and volup with home-button-type 2."]
+procedure = ["Confirm UEFI key handling, then validate the native HID path separately."]
+findings = ["The format 1 ADT button values are preserved in typed format 2 tables."]
+completion = ["Buttons produce stable HID events and touch works after a native input component is selected."]
+limits = ["No native touch component is selected in the initial format 2 set."]
+next_action = ["Keep UEFI and native input evidence separate."]
+evidence = []
+
+[[area]]
+id = "gpu"
+status = "planned"
+components = []
+paths = ["dts/**", "drivers/**", "scripts/*gpu*", "scripts/*adreno*"]
+inputs = ["Adreno 540, A540 firmware, GPU reserved memory and power sequencing."]
+configuration = ["The initial component set does not select an official MSM8998 GPU implementation."]
+procedure = ["Select a catalog implementation only after its MSM8998 resource and ABI requirements are documented."]
+findings = ["SM8550 Adreno740 is not a substitute for an Adreno 540 implementation."]
+completion = ["A known GPU submission completes and a frame is presented."]
+limits = ["GPU work is outside the first static migration."]
+next_action = ["Inventory the existing A540 probe and decide whether it becomes a device component or a shared component."]
+evidence = []
+
+[[area]]
+id = "network"
+status = "planned"
+components = []
+paths = ["dts/**", "drivers/**", "scripts/*wifi*", "scripts/*bluetooth*"]
+inputs = ["WCN3990-class Wi-Fi and Bluetooth hardware plus the OnePlus firmware inputs."]
+configuration = ["No network component is selected in the initial format 2 set."]
+procedure = ["Collect firmware, power, PCIe/UART and DMA requirements before selecting a driver."]
+findings = ["Current bring-up policy disables watchdogd and several services; that does not qualify networking."]
+completion = ["Scan, association, DHCP and sustained traffic pass independently."]
+limits = ["Networking is not part of this migration checkpoint."]
+next_action = ["Create a board firmware and resource inventory for the wireless subsystem."]
+evidence = []
+
+[[area]]
+id = "audio"
+status = "planned"
+components = []
+paths = ["dts/**", "drivers/**", "scripts/*audio*", "scripts/*dsp*"]
+inputs = ["MSM8998 ADSP, codec and board audio routing."]
+configuration = ["No audio component is selected in the initial format 2 set."]
+procedure = ["Collect ADSP firmware, transport and codec topology before implementation."]
+findings = ["No format 2 audio evidence exists."]
+completion = ["Declared capture and playback routes work end to end."]
+limits = ["Audio is outside the migration checkpoint."]
+next_action = ["Inventory codec, ADSP and board routing inputs."]
+evidence = []
+
+[[area]]
+id = "power"
+status = "planned"
+components = ["SoftwareAES"]
+paths = ["dts/**", "drivers/**", "scripts/*pmgr*", "scripts/*power*"]
+inputs = ["MSM8998 PMGR/RPM resources, USB/UFS rails and fixed firmware-managed power handoff."]
+configuration = ["SoftwareAES is covered here as an OS-facing crypto service; its runtime implementation remains the official catalog component."]
+procedure = ["Verify CPU, UFS and USB power domains independently before claiming suspend or resume."]
+findings = ["The current sheng PMGR builder remains an auxiliary script and has not been assigned to the MSM8998 common layer."]
+completion = ["Each claimed power transition restores dependent peripherals."]
+limits = ["Suspend and resume are not implemented or qualified."]
+next_action = ["Classify the PMGR implementation as SoC, component or diagnostic."]
+evidence = []
+
+[[area]]
+id = "packaging"
+status = "planned"
+components = ["XnuPrelink"]
+paths = ["scripts/package.sh", ".github/workflows/**", "patches/**"]
+inputs = ["Pinned official UniXNU revision, selected OS profile, kernelcache and owner trust inputs."]
+configuration = ["The package script resolves the official checkout from board.toml and maps the OS profile to cheeseburger_defconfig."]
+procedure = ["Run release --check before the full package build."]
+findings = ["The prelink tool moved from the fork-local NativePrelink path to the official XnuPrelink component ID."]
+completion = ["Clean-checkout packaging produces kernel, payload and boot image with a manifest of revisions and patch hashes."]
+limits = ["The Windows host cannot run the Xcode-dependent kernel build; the tracked UniXNU converter patch must be applied before payload generation."]
+next_action = ["Run package preflight on macOS after publishing the MSM8998 source."]
+evidence = []
+
+[[area]]
+id = "diagnostics"
+status = "planned"
+components = ["AppleKeyStoreState"]
+paths = ["docs/**", "scripts/check-*", "scripts/*probe*", "unixnu.lock"]
+inputs = ["Migration baseline JSON, preserved format 1 board file and existing device diagnostics."]
+configuration = ["AppleKeyStoreState is selected because the current diagnostic path publishes the key-store service before userland startup."]
+procedure = ["Attach status JSON, build logs, image hashes and hardware checkpoints as separate evidence."]
+findings = ["The current kernel arguments still bypass root, AMFI and execution signature checks and enable a debug path."]
+completion = ["Every claimed checkpoint points to an image hash, source revision and raw log or photograph."]
+limits = ["No format 2 kernel or boot image has been produced in this workspace."]
+next_action = ["Build on macOS and record the first failing checkpoint without changing unrelated drivers."]
+evidence = []

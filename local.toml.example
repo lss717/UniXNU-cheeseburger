@@ -1,0 +1,15 @@
+# Copy to local.toml for machine-specific module overrides.
+
+[[source]]
+kind = "soc"
+name = "msm8998"
+local = "../UniXNU-msm8998-common"
+
+[[source]]
+kind = "kit"
+name = "XnuPrelink"
+local = "kits/NativePrelink"
+
+[local]
+drivers = "../dev/drivers"
+kits = "../dev/kits"

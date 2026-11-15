@@ -1,0 +1,5 @@
+[[source]]
+name = "msm8998"
+kind = "soc"
+git = "https://github.com/lss717/UniXNU-msm8998-common"
+commit = "6573824dc5c7bd6ef1eb87abd1a96fb9e69da5f1"
