@@ -2218,6 +2218,21 @@ probe boot     E373B99BA34D1225151BD85438DD2E9A4712875A3B0BC8E0759F1EDE141FA991
 Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-machine-init-probe`。
 
+`_machine_init` 入口探针立即重启，证明 `_kernel_bootstrap` 前半段已通过。下一探针
+选择下一中段边界 `_clock_init` 入口：
+
+```text
+reset VA       0xFFFFFFF007271274
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   A01C19BF4B6A462C04B2040864329C5C0D31AFA1E5680E269E311B47459F44DB
+probe payload  377D41625D80F38EE5E6A32D4BFEDC634A9AE121AF7F11E6958BEB49DF34918F
+probe boot     2919F68D69D212F932417BC9A1FECB8EA4332EF777DA2AA3DB4F05B1A37F4CB9
+```
+
+立即 reset 表示 `_machine_init` 和 `_thread_machine_init_template` 已返回；不 reset
+表示停点位于 `_clock_init` 之前。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-clock-init-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
