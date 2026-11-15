@@ -124,6 +124,7 @@ the formal root storage implementation.
 4. Run `porting-record.py check`.
 5. Build on macOS, then record the first hardware checkpoint and failure.
 
-The MSM8998 common revision exists locally and is pinned in `feeds.toml`, but
-has not been pushed. Publish `6573824dc5c7bd6ef1eb87abd1a96fb9e69da5f1`
-before expecting a clean checkout or CI run to resolve the SoC source.
+The MSM8998 common revision
+`6573824dc5c7bd6ef1eb87abd1a96fb9e69da5f1` was published to
+`https://github.com/lss717/UniXNU-msm8998-common` on 2026-11-15. A clean
+checkout and CI can resolve the SoC source from `feeds.toml`.

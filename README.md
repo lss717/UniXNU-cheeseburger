@@ -36,9 +36,9 @@ edk2-msm8998/              firmware
 `feeds.toml` pins the MSM8998 common revision. `local.toml` can point the same
 source at a local checkout while it is being developed.
 
-The common pin must be pushed to
-`lss717/UniXNU-msm8998-common` before a clean checkout or GitHub workflow can
-resolve it without the local override.
+The common pin is published at
+`https://github.com/lss717/UniXNU-msm8998-common`, so a clean checkout and the
+GitHub workflow can resolve it without the local override.
 
 The device carries one reviewed UniXNU compatibility patch for exporting the
 MSM8998 UFS profile properties through the common ADT converter. The package
