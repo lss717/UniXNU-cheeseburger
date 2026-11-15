@@ -2278,6 +2278,22 @@ probe boot     10C7ED81A2689CB6CE2086A04AD0AD23BAE747E5ADFDD3844D885191772E527C
 `_load_context` 之前。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-load-context-probe`。
 
+`_load_context` 入口探针立即重启，证明整个 `_kernel_bootstrap` 主线程准备阶段已
+完成。`_load_context` 最终调用 `_machine_load_context` 切换到主内核线程；下一探针
+直接选择 continuation `_kernel_bootstrap_thread` 入口：
+
+```text
+reset VA       0xFFFFFFF00798F06C
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   9C9A17FCD10E09B0F71F2C76B2597DA2A68C65BF8FC86CA806C6F3CE086D9E61
+probe payload  41329F81B87F9E6CA7F9BEAC91724B2911F34C47DE1886BDF83147238B266B1F
+probe boot     621FAEE8E22C7E0A5C7486F5F7779276617EDB350C523F721575D723B833D886
+```
+
+立即 reset 表示上下文切换已进入主内核线程；不 reset 表示停点仍在该交接之前。
+Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-kernel-bootstrap-thread-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
