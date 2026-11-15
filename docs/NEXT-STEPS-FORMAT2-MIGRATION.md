@@ -1445,6 +1445,71 @@ tags     0x18000000
 47 项 ADT、FD/FV、boot header、payload、manifest 和 SHA-256 检查。第一版
 boot image 和失败证据保持不变。
 
+### 第二版非持久实机结果
+
+第二版 boot image：
+
+```text
+de86e1c2c773389bd1c3d23e0a5c275e2680607f8c712786f56f709aa2a1ea59
+```
+
+`fastboot product` 为 `msm8998`，仅执行 `fastboot boot`，返回
+`Sending OKAY; Booting OKAY`。用户手动选择 IOS 后，屏幕看到：
+
+```text
+Synchronous Exception at 0x000000017ADBC378
+UNIXNU: menu: enter: booting 0
+UNIXNU: boot: entry 'xnu' (OnePlus 5 IOS)
+UNIXNU: xnu: handing off 0 staged kext(s) to loader
+```
+
+随后菜单仍在，IOS 条目上保留同一异常文字。该轮没有自动重试，也没有执行
+flash、erase、format、dd、GPT 或槽位操作。
+
+检查点结果：
+
+| 检查点 | 状态 |
+| --- | --- |
+| BootShim / FD / UEFI 菜单 | 已到达 |
+| 手动 IOS 启动项派发 | 已到达 |
+| `RunXnu -> Loader->Boot` | 已到达 |
+| 旧 4 GiB `NO WINDOW` 分支 | 未再出现 |
+| DarwinBoot 精确子阶段 | 未确定 |
+| 完整 kernel handoff / XNU entry | 未证明 |
+
+`Synchronous Exception at` 来自 EDK2 的
+`ArmPkg/Library/DefaultExceptionHandlerLib/AArch64/DefaultExceptionHandler.c`。
+该行打印的是 `SystemContextAArch64->ELR`，即出错指令地址，不是 FAR，也不是
+LR。上下文中的 `ESR/FAR/SPSR/LR/SP/FP` 存在，但 RELEASE 构建把详细 dump
+编译掉了，因此当前只有 ELR。
+
+第二版 `DarwinBoot.efi` 是可重定位 PE，`ImageBase=0`、`SizeOfImage=0xC000`、
+`SectionAlignment=0x1000`。没有运行时 `LoadedImage.ImageBase`，就不能把
+`0x17ADBC378` 合法映射到某个 DarwinBoot 函数。按不同对齐 base 反推会得到
+`Boot`、`RamdiskLayout`、`ReadBootVideo` 或 `GetMap` 等多个互相竞争的候选，
+因此当前不归因。
+
+`RunXnu` 在打印 `handing off 0 staged kext(s)` 后立即调用
+`Loader->Boot`。在 DarwinBoot 第一次打印正常 `DARWINBOOT: ARM64 ...` 之前，
+仍可能失败于 ramdisk layout、kernel read/parse、ADT、sidecar、video、
+window allocation 或 image copy 任一步。旧 `NO WINDOW` 消失只能说明没有走
+旧的 4 GiB 失败分支，不能单独证明 128 MiB window 已完成分配。
+
+`0 staged kext(s)` 是预期结果：配置为 `[kits] autoload = false`，且没有
+`[[entry.kext]]`，因此不把 kext 数量当作根因。
+
+下一步只做诊断，不盲改内存/UFS/USB：
+
+1. 在 EDK2 AArch64 默认异常处理器中无条件输出
+   `ELR/SPSR/ESR/FAR/LR/SP/FP`。
+2. 调用已有 `GetImageName(ELR, ...)`，输出 image name、runtime image base 和
+   `ELR - ImageBase`，解决本次无法精确符号化的问题。
+3. 在 DarwinBoot 的关键调用前输出短阶段码，至少覆盖 request、
+   ramdisk、read-kernel、parse-kernel、read-ADT、ADT-parse、video、
+   allocate-window、place-image 和 copy-kernel。
+4. 保留手动选择 IOS 和禁止自动重试的策略；诊断镜像通过检查和单独授权后才
+   能再次上机。
+
 暂不启用 `darwinboot-memory-excluded`。当前 iPadOS 17.7.11 profile 没有
 `window-memory-excluded-ranges.patch`，直接发布 excluded 属性会声明一个
 目标内核尚未证明支持的能力。

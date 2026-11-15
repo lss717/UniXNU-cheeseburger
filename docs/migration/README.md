@@ -72,8 +72,9 @@ The first format 2 hardware dispatch has separate evidence in
 | BootShim / FD / UEFI | Reached |
 | UniXNU graphical menu | Reached |
 | `OnePlus 5 IOS` dispatch | Reached |
-| DarwinBoot `AllocateWindow` | Failed `EFI_OUT_OF_RESOURCES`; longest run `0xFCCD0000` for a 4 GiB request |
-| DarwinBoot handoff / XNU | Not reached |
+| DarwinBoot 4 GiB request | Failed `EFI_OUT_OF_RESOURCES`; longest run `0xFCCD0000` |
+| DarwinBoot 128 MiB retry | Reached `Loader->Boot` without `NO WINDOW`; then UEFI synchronous exception at ELR `0x17ADBC378` |
+| DarwinBoot handoff / XNU | Not proven |
 
 ## Migration changes
 

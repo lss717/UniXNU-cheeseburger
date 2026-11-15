@@ -16,7 +16,7 @@ device layers. The selected OS identity is iPad7,1 / iPadOS 17.7.11 (21H461).
 | Kernel and payload | Built on macOS; payload ADT checks passed |
 | Package | Built on macOS with matched LLVM 20 clang/lld |
 | Firmware and boot image | Built on macOS with CLANG38 + LLD; boot-image checks passed |
-| Hardware boot checkpoint | Graphical UEFI and IOS dispatch reached; DarwinBoot 4 GiB window allocation failed |
+| Hardware boot checkpoint | Graphical UEFI, IOS dispatch and `Loader->Boot` reached; 128 MiB candidate hit a UEFI synchronous exception at ELR `0x17ADBC378` |
 | UFS formal root path | Unresolved; A/B/C/D matrix pending |
 | Release security chain | Not complete |
 

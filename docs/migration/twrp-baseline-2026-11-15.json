@@ -216,23 +216,6 @@
         "sha256": "af7de5883570ea208640dd8c5d87b7eee6470d3929c121fac1027e3424e13b51"
       }
     },
-    "firmware_modules": {
-      "UniXNU": {
-        "guid": "9b665204-a133-47a2-9396-9e2b370a4e25",
-        "ffs_bytes": 131120,
-        "ffs_sha256": "c49e76c101f6876f6dc934b98e60ea9fb2b5cd6cb6779d9ced9442d97e30541a"
-      },
-      "UniXNUDxe": {
-        "guid": "29b950cf-586d-49ea-9d71-f88645ccdaf6",
-        "ffs_bytes": 20592,
-        "ffs_sha256": "e4f5396f9358cb114f59bd2c4634f74e7370231e562143bed315dac2a5e7adc9"
-      },
-      "DarwinBoot": {
-        "guid": "1b64af87-8415-4b57-9b16-680d70913b9f",
-        "ffs_bytes": 49208,
-        "ffs_sha256": "4845f20de3f7d064d9448d2aa6ee365f0a9108e9365114407c0fb904955533a0"
-      }
-    },
     "hardware_boot": {
       "mode": "fastboot boot, non-persistent",
       "fastboot_product": "msm8998",
@@ -257,6 +240,70 @@
       "xnu_proven": false,
       "device_writes_performed": false,
       "evidence": "docs/migration/device-run-2026-11-15-01.md"
+    }
+  },
+  "candidate_image_v2": {
+    "status": "built_and_dispatched",
+    "owned_memory_size": "0x08000000",
+    "windows_bundle": "E:/WindowsData/Project/ios-backups/op5-20261115-window128",
+    "sha256": {
+      "boot.img": "de86e1c2c773389bd1c3d23e0a5c275e2680607f8c712786f56f709aa2a1ea59",
+      "payload.img": "d3daf229b0c7d84dd8c2264b3df7d9800726a921f0959e301cfff85649a064bb",
+      "kernel.macho": "5a9e2fa148973b96565725df36a1867d0d5753c90b54cab9a28331127ea9043e",
+      "hardware.dtb": "3809aa23a82a409735b32af07a9cbe9118257a8b0ed03062994ac5b2931f755b",
+      "kernel.macho.adt": "311069c0fa38fb0d17f54bebca8db0a7e701a3198e4ca3b3acdffb87289406e0",
+      "MSM8998PKG_UEFI.fd": "c099dfd1ded1c1b89eb4fb4024eb4024750c40fbc70edac1e615a1fd32f6cf32",
+      "package.manifest.json": "7e5b459fdd870a47ec403de4e9f53c390d11672897e669525799409fa5469675"
+    },
+    "revisions": {
+      "device": "9c118c87bf56c4767ac6eeb6b7255a62efb3f8f6",
+      "unixnu_downstream": "7d3f04dacfbffb343db936e24cb9af69877e078a",
+      "unixnu_upstream_base": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "darwinboot": "d90c9113836d61af3e90285d873cae9edd528d09",
+      "edk2_msm8998": "da889248ba63e3b76003e016ee8744b34aa91a01"
+    },
+    "firmware_modules": {
+      "UniXNU": {
+        "guid": "9b665204-a133-47a2-9396-9e2b370a4e25",
+        "ffs_bytes": 131120,
+        "ffs_sha256": "a952d3c8c7b5d65436f95ebf5d06fbd5fc543e977058273aa6622d0d7283f8da"
+      },
+      "UniXNUDxe": {
+        "guid": "29b950cf-586d-49ea-9d71-f88645ccdaf6",
+        "ffs_bytes": 20592,
+        "ffs_sha256": "457a538fa90a31df812707ce0aac96b279bdc992e81d8d41fb3fd6f98fdd3434"
+      },
+      "DarwinBoot": {
+        "guid": "1b64af87-8415-4b57-9b16-680d70913b9f",
+        "ffs_bytes": 49208,
+        "ffs_sha256": "598e44255e75fb9ec554f9343e79f674f8163a4250de2784dd65a5a5140bc926"
+      }
+    },
+    "checks": {
+      "adt_checks_passed": 47,
+      "adt_window": "0x08000000",
+      "fd_fv_checks_passed": true,
+      "boot_image_checks_passed": true,
+      "manifest_checks_passed": true,
+      "seed_fingerprint_absent_from_manifest_and_logs": true
+    },
+    "hardware_dispatch": {
+      "fastboot_product": "msm8998",
+      "fastboot_result": "Sending OKAY; Booting OKAY",
+      "host_adb_or_fastboot_after_20s": false,
+      "manual_ios_dispatch": true,
+      "screen_result": "Synchronous Exception at 0x000000017ADBC378 after loader handoff log",
+      "exception_register": "ELR",
+      "exception_elr": "0x000000017ADBC378",
+      "runtime_image_base": null,
+      "exact_function": "unresolved pending runtime image base",
+      "window_no_window_observed": false,
+      "kernel_handoff_proven": false,
+      "xnu_entry_proven": false,
+      "staged_kext_count": 0,
+      "staged_kext_expected": true,
+      "device_writes_performed": false,
+      "evidence": "docs/migration/device-run-2026-11-15-02.md"
     }
   },
   "device_writes_performed": false
