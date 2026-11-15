@@ -1847,6 +1847,35 @@ DT/configure-misc 到 stall 之前。完整记录见
 `docs/migration/device-run-2026-11-16-05.md`。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-platform-stall-probe`。
 
+### 第九轮 platform-stall 正结果与 CPU-topology 边界
+
+`_platform_stall_panic_or_spin` 入口探针 boot
+`4e070c38fe1e5cb7335b9b812ea01fbf65cfa0de8efe35ebd05dca021c90c031`
+在手动选择 IOS 后立即重启，证明：
+
+```text
+configure misc stubs 返回
+Secure DT lookup/property 完成
+到达 _platform_stall_panic_or_spin 0xFFFFFFF007279D1C
+```
+
+此时尚未证明 stall 本身返回。下一单点放在紧随其后的
+`_ml_get_boot_cpu_number` 入口，用于区分 stall/topology 是否正常返回：
+
+```text
+entry       0xFFFFFFF0073F5BE0
+source      0xB0FFEC68  ADRP
+patch       0x1418E1C4
+kernel      D84147BBC6A06518A0F51272FD95D68589C7870BC205B88525741AFA788ABA05
+payload     5F43320BC5A86A455F03F4433D2980AA3777AA12601C79FFC2EE9F6BA71AFC44
+boot        36B30577ADBFFF5E941822BD17037D8CE6BCF9F27F5720759D4FF28F576FD37C
+```
+
+立即 reset 表示 platform stall 和 `_ml_parse_cpu_topology` 均已返回；不 reset
+表示停点在这两者内，`_reattach_wait`/WFE 仍是最高优先级。完整记录见
+`docs/migration/device-run-2026-11-16-06.md`。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-boot-cpu-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
