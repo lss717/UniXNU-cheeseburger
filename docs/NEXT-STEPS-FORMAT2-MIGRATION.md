@@ -2156,6 +2156,21 @@ probe boot     F38AC26743B390606D8E176D46D6AAD2B59E83042195E7F2CA6B88D88E94BA98
 内部。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-serial-init-probe`。
 
+`_serial_init` 入口探针立即重启，证明 `_PE_consistent_debug_inherit` 已返回。
+下一探针选择 `_kernel_startup_initialize_upto` 入口：
+
+```text
+reset VA       0xFFFFFFF00798EDE0
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   827AB7090130A20DE570F9A62B60B9BAF93AAD5424C8D5A680CAED1F544500D1
+probe payload  E232DBA778611876E557FD0C08388E9D56B9CFC43577545CE9CBF03E35BF9483
+probe boot     36F7EE1A8D22FFC3CCCEE3BEB1C98BE8CAC8477A91E78817E256ABB88243A68A
+```
+
+立即 reset 表示 `_serial_init` 已返回；不 reset 表示仍停在该函数内部。Windows
+目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-startup-initialize-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
