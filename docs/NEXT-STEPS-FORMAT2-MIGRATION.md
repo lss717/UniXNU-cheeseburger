@@ -37,6 +37,19 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
 
 因此当前结论是：**format 2 静态迁移完成，完整迁移完成标准尚未满足。**
 
+### 主机构建记录
+
+- macOS 干净 checkout 的 `defconfig/status/tree/porting-record/package --check`
+  已通过。
+- 首次 kernel 构建发现公共 boot-progress patch 内含未声明的 PMGR 依赖；现已在
+  device series 中显式排序 `sheng-platform-power` 和进度标记 patch。
+- 第二次构建进入 XNU bootstrap 后触发 NativeAES guard：设备 defconfig 仍用
+  `CONFIG_XNU_CRYPTO_BOOTSTRAP="source"` 覆盖 OS profile 的 `prelinked`。
+  该覆盖属于 format 1 诊断遗留，现已对齐到 format 2 的 prelinked closure。
+- 第三次构建发现设备仓库的同名 `build-arm-driver.py` 覆盖了官方
+  canonical-aware builder。设备 probe 已改为
+  `build-cheeseburger-driver.py`，官方组件继续使用 UniXNU 脚本。
+
 ## 审计基线（迁移前）
 
 审计时使用的参考版本：

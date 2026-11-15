@@ -44,6 +44,11 @@ The device carries one reviewed UniXNU compatibility patch for exporting the
 MSM8998 UFS profile properties through the common ADT converter. The package
 script applies it idempotently to the pinned official checkout.
 
+Official catalog components use the canonical-aware builder from UniXNU.
+Device-local `NativeUfsProbe` and `CheeseburgerUsb` use
+`scripts/build-cheeseburger-driver.py`, so the device repository no longer
+shadows `scripts/build-arm-driver.py` during tree assembly.
+
 ## Resolve
 
 From this repository, with the official reference checkout at

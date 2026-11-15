@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile the generic platform expert against the actual source-kernel ABI."""
+"""Compile a cheeseburger-local probe against the actual source-kernel ABI."""
 import argparse
 import json
 from pathlib import Path
