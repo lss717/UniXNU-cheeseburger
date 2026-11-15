@@ -1,0 +1,14 @@
+diff --git a/scripts/build-arm-driver.py b/scripts/build-arm-driver.py
+index b027a9b..c436c4c 100644
+--- a/scripts/build-arm-driver.py
++++ b/scripts/build-arm-driver.py
+@@ -84,7 +84,8 @@ while index < len(arguments):
+     index += 1
+ command.extend(['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter',
+                 '-Wno-c99-designator', '-Wno-reorder-init-list', '-Wno-deprecated-enum-enum-conversion',
+-                '-Wno-unnecessary-virtual-specifier', '-I', str(ROOT / '.cache/xnu-work/osfmk')])
++                '-Wno-unnecessary-virtual-specifier', '-Wno-unknown-warning-option',
++                '-I', str(ROOT / '.cache/xnu-work/osfmk')])
+ if component in ('NativeVirtioBlock', 'NativeRamBlock', 'NativeUfs'):
+     command += ['-I', str(ROOT / 'build/storage-abi/include')]
+     if args.verified_root:

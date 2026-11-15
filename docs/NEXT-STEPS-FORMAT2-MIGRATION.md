@@ -49,6 +49,8 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
 - 第三次构建发现设备仓库的同名 `build-arm-driver.py` 覆盖了官方
   canonical-aware builder。设备 probe 已改为
   `build-cheeseburger-driver.py`，官方组件继续使用 UniXNU 脚本。
+- 第四次构建发现 Xcode 26.3 把旧 `-Wno-unnecessary-virtual-specifier`
+  视为未知警告选项；已加入显式 `-Wno-unknown-warning-option` 兼容 patch。
 
 ## 审计基线（迁移前）
 
