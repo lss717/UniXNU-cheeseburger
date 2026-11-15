@@ -2521,6 +2521,22 @@ probe boot     5201F4F8DCDBCD40244022395E6937C094C93E45B63DFE24D43A3E44899B2FF6
 lock 初始化或之前。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-lock-return-probe`。
 
+lock 初始化返回后 `0x22B0` 仍未触发，停点缩到 `0x1FA8..0x22B0`。下一张先测 op
+分派点 `0x20E0`：
+
+```text
+reset VA       0xFFFFFFF0073C20E0
+source word    0xF0003BD5  ADRP
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   13BB04FAF3C02310A346F180F0617199422D65C0C06EC9B31F52424C0AA852CE
+probe payload  2099E0AAA053DDEEADA694EC5192C94B1CFC20F55C1782330C18580E06F450EC
+probe boot     486EF80DFB413CD036B599204552C6D9C0FEF5FAE59F3183D36018BFB64ADAAA
+```
+
+立即 reset 表示 lock 初始化返回与派生 vinfo 设置已完成；不 reset 表示停点在
+`0x1FA8..0x20E0`。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-op-dispatch-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
