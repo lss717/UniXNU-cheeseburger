@@ -394,7 +394,7 @@ struct Ep0Device {
 		write(depcmdPar1(endpoint), p1);
 		write(depcmdPar2(endpoint), p2);
 		write(depcmd(endpoint), type | kDepcmdCmdact);
-		for (unsigned elapsed = 0; elapsed < 1000; elapsed++) {
+		for (unsigned elapsed = 0; elapsed < 1000000; elapsed++) {
 			uint32_t value = read(depcmd(endpoint));
 			if ((value & kDepcmdCmdact) == 0) {
 				uint32_t status = (value >> 12) & 0xf;
@@ -407,7 +407,8 @@ struct Ep0Device {
 			}
 			IODelay(1);
 		}
-		IOLog("CHEESEBURGER_USB: ep%u command %u timeout\n", endpoint, type);
+		IOLog("CHEESEBURGER_USB: ep%u command %u timeout value=%08x\n",
+		    endpoint, type, read(depcmd(endpoint)));
 		return false;
 	}
 
@@ -749,9 +750,11 @@ struct Ep0Device {
 			    read(kDctl));
 			return false;
 		}
+		IOSleep(10);
 		uint32_t gctl = read(kGctl);
 		gctl = (gctl & ~(3U << 12)) | (1U << 12);
 		write(kGctl, gctl);
+		IOSleep(10);
 
 		const uint64_t eventPhysical = dmaPhysical + kEventOffset;
 		write(kGevntadrlo, static_cast<uint32_t>(eventPhysical));
