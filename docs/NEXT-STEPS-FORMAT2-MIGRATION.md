@@ -2373,6 +2373,23 @@ probe boot     0DB6CBB1193003FD93E015AAFD684FE6E21DB5E0EA297686A445D4948C3A2A10
 `docs/migration/device-run-2026-11-16-09.md`。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-oskext-remove-probe`。
 
+`_OSKextRemoveKextBootstrap` 探针冻结不重启，说明停点位于
+`_PE_init_iokit.._OSKextRemoveKextBootstrap`。下一探针取区间中点
+`_mac_policy_initmach` 入口：
+
+```text
+reset VA       0xFFFFFFF007946CD8
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   2A4A14DDA7D1EF28805DEB4096727A559F38BDE564221CEB39F4CF3943D41696
+probe payload  F4FEA400DEC11E6B9BD4A1FAE7C640D95E707099BD1EFA7F26584805551BB892
+probe boot     789C07ECEEDD77E192120A9248A859D018C8963C0A76F62CDB2C1DD06261779F
+```
+
+立即 reset 表示 `_initialize_screen`、`_vm_commpage_init` 和
+`_vm_commpage_text_init` 均已返回；不 reset 表示停点位于 screen/commpage
+初始化。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-mac-policy-initmach-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
