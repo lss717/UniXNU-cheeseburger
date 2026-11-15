@@ -2186,6 +2186,22 @@ probe boot     890F68237702C9D252E3363F83723435EE10D707795E11853ADAD9D26D6F6CED
 不 reset 表示停点位于 startup initialize 到 `_machine_startup` 之间。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-machine-startup-probe`。
 
+`_machine_startup` 入口探针立即重启，证明早期初始化链已到达机器启动函数。该函数先
+调用 `_machine_conf`，随后尾跳 `_kernel_bootstrap`。下一探针直接选择
+`_kernel_bootstrap` 入口：
+
+```text
+reset VA       0xFFFFFFF0072BAACC
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   93F8353686809435447130F6E0C3B906282BC1E09AD09A001DB1AE481477E9F6
+probe payload  67A199BE1A3DFD4B856431AABA57737CC8327F0983733FB5A75AA04EB63BB053
+probe boot     22847449BAFD31AB4BBA94E8364FDF4707C24813A8A98D1981C0BA106979971A
+```
+
+立即 reset 表示 `_machine_conf` 已返回并进入 `_kernel_bootstrap`；不 reset 表示
+仍停在 `_machine_conf` 内部。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-kernel-bootstrap-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
