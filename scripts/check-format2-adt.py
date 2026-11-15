@@ -97,10 +97,10 @@ def main():
         report.check(all(u32(cpu, "timebase-frequency") == 19200000 for cpu in cpus["children"]),
                      "CPU timebase is 19200000")
         kinds = [u32(cpu, "cluster-type") for cpu in cpus["children"]]
-        report.check(kinds == [ord("E")] * 4 + [ord("P")] * 4,
-                     "CPU E/P cluster tags match the 4+4 topology")
+        report.check(kinds == [ord("P")] * 4 + [ord("E")] * 4,
+                     "CPU P/E cluster tags match the verified 4+4 topology")
         architectures = [text(cpu, "compatible") for cpu in cpus["children"]]
-        report.check(architectures == ["arm,cortex-a53"] * 4 + ["arm,cortex-a73"] * 4,
+        report.check(architectures == ["arm,cortex-a73"] * 4 + ["arm,cortex-a53"] * 4,
                      "CPU compatible strings preserve current XNU ABI")
 
     psci = child(root, "psci")

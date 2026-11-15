@@ -43,7 +43,7 @@ status = "planned"
 components = ["ArmCpu"]
 paths = ["dts/**", "drivers/**"]
 inputs = ["Eight MSM8998 MPIDR values, 19.2 MHz timebase and PSCI SMC from the Linux MSM8998 and OnePlus 5 device trees."]
-configuration = ["The common DTSI declares 4x Cortex-A53 and 4x Cortex-A73 clusters with E/P cluster tags."]
+configuration = ["The common DTSI preserves 4x Cortex-A73 at MPIDR 0..3 and 4x Cortex-A53 at 0x100..0x103 with P/E cluster tags."]
 procedure = ["Compile the board DTS, generate the ADT and boot with one CPU before enabling all cores."]
 findings = ["The current diagnostic command line still uses cpus=1 while the ADT declares all eight CPUs."]
 completion = ["Every enabled CPU starts and timer/IPI handling is verified on hardware."]

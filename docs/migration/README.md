@@ -13,7 +13,7 @@ new hardware boot.
 | `UniXNU-cheeseburger` | `0c66d9998a91da526a2de1bad0e58d4f1847c88f` | Starting device revision |
 | Official `UniXNU/UniXNU` reference | `578ae75c8e7356d4d562bcfc294ab26dfe640a31` | Resolver baseline |
 | `lss717/UniXNU` fork | `d04fad7c2ed4e8d35743142d3f89d37222a2c13b` | Existing working UniXNU tree |
-| `UniXNU-msm8998-common` | `6573824dc5c7bd6ef1eb87abd1a96fb9e69da5f1` | New shared skeleton |
+| `UniXNU-msm8998-common` | `24fcb916e359f1fc207cc09b24bfc8c2901af827` | New shared skeleton |
 | `edk2-msm8998` | Not available | Workspace checkout has no Git metadata |
 
 The format 1 resolver output is saved as `before-status.json`. It reports:
@@ -77,10 +77,11 @@ format 2 image.
    but the README now labels them explicitly.
 
 The board DTS compiles with `dtc` 1.7.0. A generated format 2 ADT was checked
-with `scripts/check-format2-adt.py`: 47 structural checks passed. The checked
-ADT was 16,460 bytes with SHA-256
-`a92cb2a36bb7babe3326887c7352122adde404ad42156b36122df1f5c1157a99` using a
-test platform seed, so the hash is not a boot-image identifier.
+with `scripts/check-format2-adt.py`: 47 structural checks passed. With a
+deterministic test seed, the format 1 ADT is 14,936 bytes
+(`d2a6256b...`) and the format 2 ADT is 16,460 bytes (`0a5a9973...`).
+See `adt-diff-2026-11-15.md` for the raw comparison and
+`adt-diff-review-2026-11-15.md` for the ownership review.
 
 The UFS probe needs `p8,msm8998-direct-dma`. The official converter at the
 selected revision drops that property. A reviewed compatibility patch is kept
@@ -101,7 +102,8 @@ ADT:
 | Timer/PHY nodes | Not exported | Exported | Common SoC ownership |
 
 No measured physical address changed. Only the `arm-io` offset base and the set
-of exported child nodes changed.
+of exported child nodes changed. The full comparison found no format 1 node
+missing from format 2 and no unexplained critical property loss.
 
 ## Open storage conflict
 
@@ -125,6 +127,6 @@ the formal root storage implementation.
 5. Build on macOS, then record the first hardware checkpoint and failure.
 
 The MSM8998 common revision
-`6573824dc5c7bd6ef1eb87abd1a96fb9e69da5f1` was published to
+`24fcb916e359f1fc207cc09b24bfc8c2901af827` was published to
 `https://github.com/lss717/UniXNU-msm8998-common` on 2026-11-15. A clean
 checkout and CI can resolve the SoC source from `feeds.toml`.

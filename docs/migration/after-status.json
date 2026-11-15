@@ -609,7 +609,7 @@
       "path": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\kits\\NativePrelink",
       "origin": "local (feeds)",
       "local": true,
-      "revision": "0c66d9998a91da526a2de1bad0e58d4f1847c88f",
+      "revision": "554092f6c30fb278d89be5d7c678c7cb7cb176f1",
       "pin": null,
       "scope": "tool",
       "repository": "https://github.com/UniXNU/XnuPrelink.git"
@@ -620,7 +620,7 @@
       "path": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\package",
       "origin": "device",
       "local": false,
-      "revision": "0c66d9998a91da526a2de1bad0e58d4f1847c88f",
+      "revision": "554092f6c30fb278d89be5d7c678c7cb7cb176f1",
       "pin": null,
       "scope": null,
       "repository": null
@@ -664,7 +664,7 @@
       "path": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\patches\\unixnu",
       "origin": "device",
       "local": false,
-      "revision": "0c66d9998a91da526a2de1bad0e58d4f1847c88f",
+      "revision": "554092f6c30fb278d89be5d7c678c7cb7cb176f1",
       "pin": null,
       "scope": null,
       "repository": null
@@ -675,7 +675,7 @@
       "path": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\patches\\xnu",
       "origin": "device",
       "local": false,
-      "revision": "0c66d9998a91da526a2de1bad0e58d4f1847c88f",
+      "revision": "554092f6c30fb278d89be5d7c678c7cb7cb176f1",
       "pin": "d8b80295118ef25ac3a784134bcf95cd8e88109f",
       "scope": null,
       "repository": null
@@ -785,7 +785,7 @@
       "path": "E:\\WindowsData\\Project\\ios\\UniXNU-msm8998-common",
       "origin": "local (feeds)",
       "local": true,
-      "revision": "6573824dc5c7bd6ef1eb87abd1a96fb9e69da5f1",
+      "revision": "24fcb916e359f1fc207cc09b24bfc8c2901af827",
       "pin": null,
       "scope": null,
       "repository": "https://github.com/lss717/unixnu-msm8998-common"
