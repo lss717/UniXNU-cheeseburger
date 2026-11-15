@@ -2537,6 +2537,31 @@ probe boot     486EF80DFB413CD036B599204552C6D9C0FEF5FAE59F3183D36018BFB64ADAAA
 `0x1FA8..0x20E0`。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-op-dispatch-probe`。
 
+后续探针确认 `initialize_screen` 的首次命中来自更早的
+`PE_create_console(op=1)`：`0x217C`、`0x22A0`、common return `0x2488` 均立即
+重启，说明 op1 正常返回。boot 线程唯一的 `op=4` 调用点在：
+
+```text
+0xFFFFFFF00798F31C
+boot 1AD31251903CAC687C4161B4DC66B72A61E6B5D10FEE5EB94C7D1E64B91FCE82
+```
+
+该调用点探针未触发，证明真正的停点在 `_PE_init_iokit` 内，op4 尚未开始。
+
+下一阶段沿 `_PE_init_iokit` 的调用序列二分，第一中点为 `_InitIOKit`：
+
+```text
+reset VA       0xFFFFFFF007788BB10
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   4DF35266A7615F27C7E4D85F2E17B84EB7AE9C10D3E3668C0984F9A97DAB2EB8
+probe payload  CF32C7BC5042E5511CA139026208600B1A32A63BE4D3F1F58D4F1B570D21954F
+probe boot     97FFFA1DE4596B2B33AB522B49D590AA23F00DD4C10D2E55DA71F9A125ED8E77
+```
+
+立即 reset 表示 console/progress/DT 初始化已到 `_InitIOKit`；不 reset 表示停点
+更早。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-init-iokit-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
