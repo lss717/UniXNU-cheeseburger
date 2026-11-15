@@ -142,12 +142,52 @@
     }
   },
   "platform_seed": {
-    "status": "blocked",
-    "reason": "UNIXNU_UNIQUE_CHIP_ID is a synthetic 64-bit software identity seed, not an Apple or Qualcomm hardware ID. TWRP exposes no canonical value, and the executed H403 ADT omitted this property. No previously qualified non-test value was found."
+    "status": "created",
+    "generation_method": "operating-system CSPRNG, exactly 8 bytes",
+    "format": "raw 8-byte binary",
+    "sha256_fingerprint": "1e8a3854f9c16f2ab693c0a31793d80f07a9671efa53b22514d53f2284c2beae",
+    "plaintext_recorded_in_repository": false,
+    "primary_path": "E:/WindowsData/Project/ios-backups/op5-20261115-twrp/secrets/unique-chip-id.seed",
+    "backup_host": "192.168.10.127",
+    "backup_path": "/home/ls/private/op5-platform-seed/unique-chip-id.seed",
+    "build_machine_path": "/Users/lss/private/op5-platform-seed/unique-chip-id.seed",
+    "acl_summary": {
+      "windows_primary_directory": ["C24\\ls:FullControl", "NT AUTHORITY\\SYSTEM:FullControl", "BUILTIN\\Administrators:FullControl"],
+      "windows_primary_file": ["C24\\ls:FullControl", "NT AUTHORITY\\SYSTEM:FullControl", "BUILTIN\\Administrators:FullControl"],
+      "remote_backup": "mode 600, owner ls:ls",
+      "mac_build_copy": "mode 600, owner lss:staff"
+    }
   },
   "candidate_image": {
-    "status": "not_built",
-    "reason": "A real platform seed has not been supplied or safely established."
+    "status": "built",
+    "hardware_boot_attempted": false,
+    "windows_bundle": "E:/WindowsData/Project/ios-backups/op5-20261115-candidate",
+    "windows_boot_image": "E:/WindowsData/Project/ios-backups/op5-20261115-candidate/boot.img",
+    "mac_boot_image": "/Users/lss/private/op5-candidate/boot.img",
+    "sha256": {
+      "boot.img": "935a54dfe1afa622e4bfad6cdd9ed4cd8a04190fa9021d7f2cae7e3e1eb36c06",
+      "payload.img": "fab288c84e9ef9586dfdf080ee065e54563f46bdba3e9365b9a8419d120bad66",
+      "kernel.macho": "a2059efa18cb9de12f4b2131eed5606c628f5ad72e1fd7f5cfb4b1bb499b0117",
+      "hardware.dtb": "3809aa23a82a409735b32af07a9cbe9118257a8b0ed03062994ac5b2931f755b",
+      "kernel.macho.adt": "d090c075149ab7ca47625a15de3d322c4df9375726c169de3fc32928035d2fec",
+      "MSM8998PKG_UEFI.fd": "733084c21f3e6e62b319a491386a8eae3220d5447c137abf72c56ab9999f31c6",
+      "package.manifest.json": "f323772656ba477fae25e04af3396f986d36f14ad70f030c072194fe69714751"
+    },
+    "revisions": {
+      "device": "85490ba682ab1e178a35f40fd80f42ea3aac08c9",
+      "unixnu_downstream": "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e",
+      "unixnu_upstream_base": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "darwinboot": "2ba9cad556f1794fb74ac8af164bc34b0e096338",
+      "msm8998_common": "8227828eb1706b51aea9762bd46006328d91db26",
+      "edk2_msm8998": "da889248ba63e3b76003e016ee8744b34aa91a01"
+    },
+    "checks": {
+      "adt_checks_passed": 47,
+      "fd_fv_checks_passed": true,
+      "boot_image_checks_passed": true,
+      "manifest_checks_passed": true,
+      "seed_absent_from_build_log_and_manifest": true
+    }
   },
   "device_writes_performed": false
 }

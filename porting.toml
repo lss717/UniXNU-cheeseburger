@@ -197,4 +197,6 @@ findings = ["The current kernel arguments still bypass root, AMFI and execution 
 completion = ["Every claimed checkpoint points to an image hash, source revision and raw log or photograph."]
 limits = ["Format 2 kernel, payload, package, firmware and boot image exist, but no hardware checkpoint has been verified."]
 next_action = ["Record the first failing format 2 hardware checkpoint without changing unrelated drivers."]
-evidence = []
+evidence = [
+  { kind = "host", reference = "docs/migration/device-candidate-2026-11-15.md", result = "A CSPRNG-generated private platform seed produced a diagnostic boot image; 47 ADT, FD/FV, boot-image and manifest checks passed, and no hardware boot was attempted.", command = "UNIXNU_UNIQUE_CHIP_ID=<private-seed> UNIXNU_TRUST_CACHE=<private> UNIXNU_DATA_RAMDISK=<private> UNIXNU_SKIP_SETUP=1 scripts/package.sh --os 17 --uefi ../edk2-msm8998", revision = "85490ba682ab1e178a35f40fd80f42ea3aac08c9" },
+]

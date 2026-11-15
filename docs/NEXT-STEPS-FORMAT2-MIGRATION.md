@@ -1158,7 +1158,7 @@ device: cheeseburger
 ### 本轮完成条件
 
 - TWRP 基线和恢复路径已记录；
-- 真实 seed 与私有输入已核验，或明确记录无法安全取得的阻塞；
+- 真实 seed 与私有输入已核验；
 - 候选 boot image 使用真实输入构建并拥有唯一 SHA-256；
 - 给出不会混淆 boot/recovery/slot 的精确启动或写入方案；
 - 在实际写设备前保留独立人工确认点。
@@ -1219,19 +1219,25 @@ sda–sdf 的主/备 GPT。它明确不包含 `userdata`、`userdata_ios` 和 `c
 | `/cache/recovery/last_log` | 44,315 | `c2637de9a8ad4b0dea050ac42f782c5257a05fd7a50b9037e7a1f117ce672e08` |
 | `/cache/recovery/last_kmsg` | 137,371 | `29b3b1f9bc001670d707f86137092de3af6e16f6171293d87024b2302eccb601` |
 
-### 当前构建阻塞：真实 platform seed 不存在可由 TWRP 直接读取的权威值
+### 真实 platform seed 已安全生成
 
 `scripts/make-cheeseburger-adt.py` 明确把 `unique-chip-id` 定义为 8 字节
 **软件身份 seed**，用于生成 XNU `IOPlatformUUID`，不是 Apple/Qualcomm 硬件 ID。
-TWRP 中没有对应的标准属性或分区字段；已经执行过的 H403 payload ADT 也完全没有
-`unique-chip-id` 属性。当前仓库、`192.168.10.127` 的构建记录和已有 H403 产物中都
-没有找到曾经用于真实设备的非测试值。
+用户已授权生成一个新的软件身份 seed。
 
-因此本轮不能安全地构造 `UNIXNU_UNIQUE_CHIP_ID`，也不会用测试值
-`0x12345678` 冒充真实值。候选镜像状态为 **not built**。解除阻塞需要用户二选一：
+该值由操作系统 CSPRNG 生成，恰好 8 字节。明文没有进入 Git、本文档、
+`package.manifest.json`、构建日志或聊天输出。
 
-1. 提供此前已用于该设备、可追溯的非测试 64-bit seed；或
-2. 明确授权生成一个新的软件身份 seed，并规定其安全保存位置。
+| 项目 | 值 |
+| --- | --- |
+| 格式 | raw 8-byte binary |
+| SHA-256 指纹 | `1e8a3854f9c16f2ab693c0a31793d80f07a9671efa53b22514d53f2284c2beae` |
+| Windows 主副本 | `E:\WindowsData\Project\ios-backups\op5-20261115-twrp\secrets\unique-chip-id.seed` |
+| 独立恢复副本 | `192.168.10.127:/home/ls/private/op5-platform-seed/unique-chip-id.seed` |
+| Mac 构建副本 | `/Users/lss/private/op5-platform-seed/unique-chip-id.seed` |
+
+Windows 文件/目录 ACL 仅允许当前用户、SYSTEM 和 Administrators；远程及 Mac 副本
+权限为 `600`。
 
 Trust cache 和 Data seed 已与固定构建记录核对：
 
@@ -1241,10 +1247,39 @@ trust cache SHA-256: 7416ca4f8377146626bb284e2133c76bee6cb4e3ee0af5d648b186235a7
 Data seed SHA-256: d474b36616dca3227beb09243276e20818e32b11f55ad0cc2c3f1d5c0a656d41
 ```
 
-两者均匹配 `host-build-2026-11-15.md` 中记录的 21H461 构建输入。由于 platform
-seed 阻塞，本轮没有生成新的候选 boot image，也没有可在确认后执行的候选 SHA-256。
+两者均匹配 `host-build-2026-11-15.md` 中记录的 21H461 构建输入。
 
-### 获得真实 seed 后的非持久启动方案
+### 候选 diagnostic boot image
+
+Windows 仓库外候选目录：
+
+```text
+E:\WindowsData\Project\ios-backups\op5-20261115-candidate
+```
+
+`boot.img` SHA-256：
+
+```text
+935a54dfe1afa622e4bfad6cdd9ed4cd8a04190fa9021d7f2cae7e3e1eb36c06
+```
+
+构建固定输入：
+
+```text
+device:            85490ba682ab1e178a35f40fd80f42ea3aac08c9
+UniXNU downstream: d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e
+UniXNU base:       578ae75c8e7356d4d562bcfc294ab26dfe640a31
+DarwinBoot:        2ba9cad556f1794fb74ac8af164bc34b0e096338
+MSM8998 common:    8227828eb1706b51aea9762bd46006328d91db26
+edk2-msm8998:      da889248ba63e3b76003e016ee8744b34aa91a01
+```
+
+构建通过 47 项 ADT、FD/FV、boot header/load range、payload label/member、
+manifest revision 和 SHA-256 检查。已确认 seed 明文不在构建日志和 manifest 中。
+该镜像尚未上机。完整产物表在
+`docs/migration/device-candidate-2026-11-15.md`。
+
+### 非持久启动方案
 
 设备是 A-only，历史 H380–H403 也使用过 `fastboot boot`，因此首选不写分区的启动：
 
@@ -1252,7 +1287,7 @@ seed 阻塞，本轮没有生成新的候选 boot image，也没有可在确认�
 # 仅在用户再次确认后执行
 adb reboot bootloader
 fastboot devices
-fastboot boot <candidate-diagnostic-boot.img>
+fastboot boot E:\WindowsData\Project\ios-backups\op5-20261115-candidate\boot.img
 ```
 
 该方案不执行 `fastboot flash`，不改变 `boot`、`recovery`、GPT 或槽位。失败时优先
