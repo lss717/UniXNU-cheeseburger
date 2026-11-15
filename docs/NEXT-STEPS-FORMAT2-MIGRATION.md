@@ -2412,6 +2412,21 @@ probe boot     509233B6945FBC76F9FA55E40F40540B0ADE9F1BE6EE7BB49581954CA21F2BF9
 初始化内部。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-vm-commpage-init-probe`。
 
+`_vm_commpage_init` 探针冻结不重启，停点已进入 `_initialize_screen`。下一探针选择
+其中第一个关键平台调用 `_ml_io_map_unmappable` 入口：
+
+```text
+reset VA       0xFFFFFFF0073F6318
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   63B3372A3772DE0335DA53FB2EAACEE2A6D391A80D7C5E7A8B7B9D1DC58AF0D8
+probe payload  20DE4AE7E3FDA8475B15A0E7A963E38538DC093BD526B1ADB47F250883008947
+probe boot     39F7D0D0E2BCE8A6E3025B8F256FAE410717034CE7E8CC00147E871501CBFFBC
+```
+
+立即 reset 表示 `_initialize_screen` 已到 framebuffer 地址映射；不 reset 表示停点仅
+在映射之前。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-map-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
