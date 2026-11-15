@@ -89,6 +89,12 @@ at `patches/unixnu/0001-devicetree-export-msm8998-ufs-profile.patch`; the
 package script applies it and verification confirmed the property survives as
 a little-endian u32 value of 1.
 
+The public `zzz-boot-progress.patch` also carried a cheeseburger/sheng PMGR
+hunk whose source patch was not in the public series. A second compatibility
+patch removes that ownership leak. The device series then applies the PMGR
+source patch followed by a device progress-marker patch. The resulting patch
+order contains 61 unique entries.
+
 The generated format 2 ADT differs structurally from the last saved format 1
 ADT:
 

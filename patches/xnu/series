@@ -1,2 +1,8 @@
 # Board XNU patches, one path per line in application order.
 # Empty is valid while device-specific changes remain in the diagnostic fork.
+
+# The official boot-progress patch must not carry a board-specific PMGR hunk.
+# The compatibility patch in patches/unixnu removes that hunk; this series
+# applies the PMGR integration and its progress markers afterwards.
+arch:../../../patches/xnu/sheng-platform-power.patch
+sheng-platform-power-progress.patch

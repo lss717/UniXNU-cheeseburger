@@ -26,13 +26,13 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
 | --- | --- | --- | --- |
 | 阶段 0：冻结基线 | 已完成 | 保存 format 1 board、迁移前 status、历史 H91 产物哈希和检查点来源 | 本地没有 H91 构建产物，未重新计算其原始哈希 |
 | 阶段 1：MSM8998 common | 已完成最小骨架 | `UniXNU-msm8998-common` 已发布，commit `24fcb916e359f1fc207cc09b24bfc8c2901af827` | platform operations 和 SoC patch 分类仍为空 |
-| 阶段 2：format 2 设备配置 | 已完成主机侧解析 | schema 2、四层 profile、7 个组件、59 个 patch、正确输出目录 | 完整 `fetch` 和 `tree` 尚未成功执行 |
+| 阶段 2：format 2 设备配置 | 已完成主机侧解析 | schema 2、四层 profile、7 个组件、61 个 patch、正确输出目录 | 完整 `fetch` 和 `tree` 尚未成功执行 |
 | 阶段 3：ADT 转 DTS | 已完成主机侧对照 | DTS 编译通过，format 2 ADT 通过 47 项结构检查，旧节点零丢失 | ADT 仍需随 format 2 镜像实机启动验证 |
 | 阶段 4：UFS/root | 未完成 | 已明确记录 probe、runtime 和正式 component 的冲突 | A/B/C/D 单路径矩阵和实机读写/flush/重启测试均未执行 |
-| 阶段 5：patch 所有权 | 部分完成 | 官方 series 已显式解析为 59 个唯一 patch | fork 差异尚未逐个归入 ARM64、SoC、OS、device、component 或诊断 |
+| 阶段 5：patch 所有权 | 部分完成 | 已解析 61 个唯一 patch，PMGR hunk 已移出公共 series | fork 差异尚未逐个归入 ARM64、SoC、OS、device、component 或诊断 |
 | 阶段 6：安全链分离 | 未完成 | diagnostic 参数和绕过已在 README 中明确标记 | release-candidate 参数集和 VerifiedRoot/AMFI/SystemOS 验证尚未完成 |
 | 阶段 7：文档、记录与 CI | 部分完成 | README、porting record、DTS 检查器和 CI 文件已更新 | GitHub workflow 未实际运行，macOS 完整 package 未构建 |
-| kernel/payload/boot image | 未执行 | 已配置 package preflight 和 59 patch 检查 | 当前 Windows 环境没有 Xcode，未生成 format 2 构建产物 |
+| kernel/payload/boot image | 进行中 | macOS 干净 checkout 已完成 status/tree/package preflight，kernel 构建已进入 patch 应用阶段 | kernel/payload/boot image 尚未成功产出 |
 | 实机 bring-up | 未执行 | 保留 format 1 历史证据，未冒充 format 2 结果 | UEFI、DarwinBoot、XNU、UFS、APFS、launchd、dyld 均需重新确认 |
 
 因此当前结论是：**format 2 静态迁移完成，完整迁移完成标准尚未满足。**
@@ -239,7 +239,7 @@ python3 scripts/porting-record.py check --device ../UniXNU-cheeseburger
 
 - `unixnu defconfig cheeseburger_defconfig`：通过。
 - `unixnu status --json`：通过，报告 schema 2、ARM64/MSM8998/iPadOS/device
-  四层 profile、7 个组件和 59 个 patch。
+  四层 profile、7 个组件和 61 个 patch。
 - 输出目录：
   `out/cheeseburger/ipados-17.7.11-21H461/cheeseburger/`。
 - `porting-record.py check`：通过，13 个结构化 area 全部有效。
@@ -363,8 +363,10 @@ status 结果保存在 `docs/migration/after-status.json`，迁移前结果保�
 
 ### 当前状态
 
-官方 resolver 已生成 59 个唯一且有序的 patch。显式 `series` 顺序检查通过，
-但 fork 与官方 commit 的文件级差异清单以及每个 patch 的最终所有权尚未完成。
+官方 resolver 已生成 61 个唯一且有序的 patch。构建时发现公共
+`zzz-boot-progress.patch` 内嵌了未声明依赖的 sheng PMGR hunk；现已通过
+UniXNU 兼容 patch 移除该 hunk，并由设备 series 显式追加 PMGR source 和
+progress 两个 patch。fork 与官方 commit 的其余文件级差异仍需分类。
 
 ## 阶段 6：分离 bring-up 参数与正式安全链
 
@@ -484,7 +486,7 @@ launchd 后续故障归因于用户态。
 schema_version: 2
 profiles: arch + soc + os + device
 components: 7
-patch_order: 59
+patch_order: 61
 output: out/cheeseburger/ipados-17.7.11-21H461/cheeseburger
 porting record: 13 structured areas checked
 ```
@@ -684,7 +686,7 @@ compatible 不应伪装成另一种实现。
 
 ### P2：完成 fork patch 所有权分类
 
-当前 59 个 patch 是官方 profile 和 XnuPrelink 解析结果，不等于旧 fork 的所有改动都已
+当前 61 个 patch 是官方 profile、XnuPrelink 和设备 series 解析结果，不等于旧 fork 的所有改动都已
 迁移。必须对 `lss717/UniXNU` 与官方基线做完整差异清单。
 
 #### 要求

@@ -20,7 +20,7 @@ limits = ["A successful parse is a host-side result and does not qualify a kerne
 next_action = ["Run the official resolver and attach the resulting status JSON to this migration record."]
 evidence = [
   { kind = "source", reference = "docs/migration/README.md", result = "Records the format 1 baseline, source revisions and the static migration scope." },
-  { kind = "source", reference = "docs/migration/after-status.json", result = "Official resolver output reports schema 2, four profiles, seven components and fifty-nine ordered patches." },
+  { kind = "source", reference = "docs/migration/after-status.json", result = "Official resolver output reports schema 2, four profiles, seven components and sixty-one ordered patches." },
 ]
 
 [[area]]
@@ -171,7 +171,7 @@ paths = ["scripts/package.sh", ".github/workflows/**", "patches/**"]
 inputs = ["Pinned official UniXNU revision, selected OS profile, kernelcache and owner trust inputs."]
 configuration = ["The package script resolves the official checkout from board.toml and maps the OS profile to cheeseburger_defconfig."]
 procedure = ["Run release --check before the full package build."]
-findings = ["The prelink tool moved from the fork-local NativePrelink path to the official XnuPrelink component ID."]
+findings = ["The prelink tool moved from the fork-local NativePrelink path to the official XnuPrelink component ID.", "The board applies two reviewed UniXNU compatibility patches and orders the PMGR source/progress changes in its own series."]
 completion = ["Clean-checkout packaging produces kernel, payload and boot image with a manifest of revisions and patch hashes."]
 limits = ["The Windows host cannot run the Xcode-dependent kernel build; the tracked UniXNU converter patch must be applied before payload generation."]
 next_action = ["Run package preflight on macOS after publishing the MSM8998 source."]

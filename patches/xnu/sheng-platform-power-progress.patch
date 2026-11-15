@@ -1,0 +1,12 @@
+diff --git a/bsd/kern/bsd_init.c b/bsd/kern/bsd_init.c
+--- a/bsd/kern/bsd_init.c
++++ b/bsd/kern/bsd_init.c
+@@ -691,6 +691,8 @@
+ #if defined(XNU_SHENG_PMGR) && XNU_SHENG_PMGR
+ 	extern void sheng_pmgr_run(void);
++	boot_progress_stage("original PMGR nub start");
+ 	sheng_pmgr_run();
++	boot_progress_stage("original PMGR nub returned");
+ #endif
+ 
+ 	/*

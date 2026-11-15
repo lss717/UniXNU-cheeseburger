@@ -6,4 +6,5 @@ fork and have not been classified into their final owners.
 
 `unixnu/` contains reviewed compatibility patches applied by
 `scripts/package.sh` to the pinned official UniXNU checkout. The current patch
-exports the MSM8998 UFS probe properties through the common ADT converter.
+exports the MSM8998 UFS probe properties through the common ADT converter and
+removes the board-specific PMGR hunk from the public boot-progress patch.

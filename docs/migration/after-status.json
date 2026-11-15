@@ -609,7 +609,7 @@
       "path": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\kits\\NativePrelink",
       "origin": "local (feeds)",
       "local": true,
-      "revision": "554092f6c30fb278d89be5d7c678c7cb7cb176f1",
+      "revision": "59874d060235e9e0c16f52631585fa537b4932f3",
       "pin": null,
       "scope": "tool",
       "repository": "https://github.com/UniXNU/XnuPrelink.git"
@@ -620,7 +620,7 @@
       "path": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\package",
       "origin": "device",
       "local": false,
-      "revision": "554092f6c30fb278d89be5d7c678c7cb7cb176f1",
+      "revision": "59874d060235e9e0c16f52631585fa537b4932f3",
       "pin": null,
       "scope": null,
       "repository": null
@@ -664,7 +664,7 @@
       "path": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\patches\\unixnu",
       "origin": "device",
       "local": false,
-      "revision": "554092f6c30fb278d89be5d7c678c7cb7cb176f1",
+      "revision": "59874d060235e9e0c16f52631585fa537b4932f3",
       "pin": null,
       "scope": null,
       "repository": null
@@ -675,7 +675,7 @@
       "path": "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\patches\\xnu",
       "origin": "device",
       "local": false,
-      "revision": "554092f6c30fb278d89be5d7c678c7cb7cb176f1",
+      "revision": "59874d060235e9e0c16f52631585fa537b4932f3",
       "pin": "d8b80295118ef25ac3a784134bcf95cd8e88109f",
       "scope": null,
       "repository": null
@@ -850,6 +850,8 @@
     "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\patches\\xnu\\zzyc-owner-skip-launch-constraints.patch",
     "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\patches\\xnu\\zzz-boot-progress.patch",
     "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\kits\\NativePrelink\\patches\\xnu-10063.141.1-security-init.patch",
-    "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\kits\\NativePrelink\\patches\\xnu-10063.141.1-sparse-index.patch"
+    "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\kits\\NativePrelink\\patches\\xnu-10063.141.1-sparse-index.patch",
+    "E:\\WindowsData\\Project\\ios\\references\\UniXNU\\patches\\xnu\\sheng-platform-power.patch",
+    "E:\\WindowsData\\Project\\ios\\UniXNU-cheeseburger\\patches\\xnu\\sheng-platform-power-progress.patch"
   ]
 }
