@@ -2489,6 +2489,22 @@ probe boot     F14D304DBB722E2475BC2DD6FB9AD2A9A28143B4D51BE4F9760747827F217064
 映射返回到该中点之间。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-postmap-mid-probe`。
 
+映射后中点 `0x1F64` 已到达。下一探针选择 `kPEAcquireScreen` 分支主体
+`0xFFFFFFF0073C22B0`：
+
+```text
+reset VA       0xFFFFFFF0073C22B0
+source word    0xF0003BD3  ADRP
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   015B813EA903E97444433BA0F3458CEE489885C67A7F2865AA7A78B3C62A29B0
+probe payload  AABE418C0D8C84D7B246FE3ED9E7ED5CCF0345563731A4F4578BAE5F0208A24B
+probe boot     6CF9EBF4B55D020AFDAB5537F2BBAB9E2B76B219B20C781877EBAC03EC425D93
+```
+
+立即 reset 表示映射后中点、one-time lock/init 和派生参数设置已通过；不 reset
+表示停点在 `0x1F64..0x22B0`。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-acquire-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
