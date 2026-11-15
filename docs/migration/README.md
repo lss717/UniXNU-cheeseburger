@@ -12,7 +12,7 @@ non-persistent hardware dispatch.
 | --- | --- | --- |
 | `UniXNU-cheeseburger` | `0c66d9998a91da526a2de1bad0e58d4f1847c88f` | Starting device revision |
 | Official `UniXNU/UniXNU` reference | `578ae75c8e7356d4d562bcfc294ab26dfe640a31` | Resolver baseline |
-| `lss717/UniXNU:upstream-format2-cheeseburger` | `7d3f04d4e4b32fcbd61fca7651475aecbfc82a5d` | Current downstream build input |
+| `lss717/UniXNU:upstream-format2-cheeseburger` | `7d3f04dacfbffb343db936e24cb9af69877e078a` | Current downstream build input |
 | `lss717/DarwinBoot:upstream-format2-cheeseburger` | `d90c9113836d61af3e90285d873cae9edd528d09` | Current submodule; 128 MiB window support based on official `5243c68e` |
 | `UniXNU-msm8998-common` | `8227828eb1706b51aea9762bd46006328d91db26` | Current shared source pin |
 | `lss717/edk2-msm8998` | `da889248ba63e3b76003e016ee8744b34aa91a01` | Firmware build input |

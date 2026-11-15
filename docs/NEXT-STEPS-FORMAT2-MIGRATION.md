@@ -1437,7 +1437,7 @@ tags     0x18000000
 对应代码改动：
 
 - DarwinBoot `d90c9113836d61af3e90285d873cae9edd528d09` 允许 128 MiB 下限；
-- downstream UniXNU `7d3f04d4e4b32fcbd61fca7651475aecbfc82a5d` 允许 ADT
+- downstream UniXNU `7d3f04dacfbffb343db936e24cb9af69877e078a` 允许 ADT
   生成器接受 128 MiB 窗口；
 - 设备 `board.toml` 固定新 downstream revision 和 `0x08000000`。
 
