@@ -1519,6 +1519,68 @@ window allocation 或 image copy 任一步。旧 `NO WINDOW` 消失只能说明�
 `NO KERNEL WINDOW %r size=0x...`，并 `Stall` 15 秒再返回。当前照片和
 `AllocateWindow` 源码路径已经足以确认本次失败，因此该补丁不是继续修复的前置条件。
 
+### 第三轮完整异常上下文与 buffer-overlap 修复
+
+第三版诊断镜像只做非持久 `fastboot boot`，使用 SHA-256
+`7edcefbdcd80093b8ae1c376646b01fe692a9750489d2f5b66671801f742c1ef`。
+手动选择 IOS 后，完整异常上下文和全部 DarwinBoot 阶段标记均被屏幕记录：
+
+```text
+EXC ELR=0x000000017ADBC378 ESR=0x0000000096000061 FAR=0x00000000A1A10000 SPSR=0x0000000020000005
+EXC LR=0x000000017ADBEAE4 SP=0x000000016FFFCE90 FP=0x000000016FFFDF60
+DARWINBOOT: stage=copy-kernel used=0x3070000
+```
+
+`ESR=0x96000061` 解码为当前 EL 的 Data Abort、写/缓存维护、DFSC
+`0x21`（alignment fault）。运行时镜像基址为 `0x17ADBB000`：
+
+- `ELR - base = 0x1378`，精确落在 `InternalMemSetMem` 的
+  `dc zva, x3`；
+- `LR - base = 0x3AE4`，精确是 `Boot` 调用 `ZeroMem(Address, Used)` 的
+  返回地址。
+
+根因不是 kernel segment 的 `CopyMem`，而是平台内存图重叠：
+`A1A10000 + 0x200000` 是 `InMemorySerialPortLib` 的调试缓冲，并被
+`msm8998Dxe` 映射为 `EFI_MEMORY_UC | EFI_MEMORY_XP`；但 8 GiB RAM 描述仍把
+它列为 `EfiConventionalMemory`。DarwinBoot 因而把这段设备属性内存包含进
+128 MiB window，`DC ZVA` 在 `0xA1A10000` 触发对齐异常。
+
+EDK2 修复提交：
+
+```text
+f3ca800eaf67a0450ee3445560da463cc0eab05c
+fix(memory): reserve in-memory serial buffer
+```
+
+修复把 8 GiB RAM 首段拆为：
+
+```text
+0xA0000000 + 0x01A10000  conventional
+0xA1A10000 + 0x00200000  reserved and uncached
+0xA1C10000 + 0xDE3F0000  conventional
+```
+
+新的 buffer-fix 候选已经通过 47 项 ADT、FD/FV、模块、payload、boot
+header/load range、manifest revision 和 SHA-256 检查：
+
+```text
+boot.img   2f1761df0784061c15e7efb2f4bf3f74baa1144116553619cdcc36c01f0605d7
+payload    e8bf8afb439ea7f89b3dc9a7cae685521dd1eb508155ef68007974fda1d06719
+kernel     e66bd2737a1662039c497355df4a09110c0967d9c55241408f8787aaa14cc743
+FD         2eda3f89b013bde34e9b7ee2902acf88811bce963f1f7817380ba89d236419ee
+manifest   66634342b3d85db152bdeb35910f953ae010ea60fb1c2ad8171d04aeb055722a
+```
+
+候选目录：
+
+```text
+E:\WindowsData\Project\ios-backups\op5-20261115-diag-bufferfix
+```
+
+完整记录和原图见
+`docs/migration/device-run-2026-11-15-03.md`。下一次实机测试只允许使用上面的
+buffer-fix SHA-256，保持非持久启动、手动选择 IOS 和不连续自动重试。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>

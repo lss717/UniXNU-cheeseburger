@@ -15,7 +15,7 @@ non-persistent hardware dispatch.
 | `lss717/UniXNU:upstream-format2-cheeseburger` | `957405662863e484881992c815cfdb7a9dbd295a` | Current diagnostics downstream input |
 | `lss717/DarwinBoot:upstream-format2-cheeseburger` | `2bcbf057640a5e114dd04db3b3eba67cce4f7208` | Current submodule; 128 MiB support plus stage diagnostics |
 | `UniXNU-msm8998-common` | `8227828eb1706b51aea9762bd46006328d91db26` | Current shared source pin |
-| `lss717/edk2-msm8998` | `f74be2e40fdbdee57e6065adbdc0cf23cb3653dd` | Firmware diagnostics input |
+| `lss717/edk2-msm8998` | `f3ca800eaf67a0450ee3445560da463cc0eab05c` | Firmware diagnostics plus serial-buffer reservation |
 
 The format 1 resolver output is saved as `before-status.json`. It reports:
 
