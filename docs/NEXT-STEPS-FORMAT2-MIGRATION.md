@@ -2505,6 +2505,22 @@ probe boot     6CF9EBF4B55D020AFDAB5537F2BBAB9E2B76B219B20C781877EBAC03EC425D93
 表示停点在 `0x1F64..0x22B0`。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-acquire-probe`。
 
+`0x22B0` 探针冻结不重启，停点缩到 `0x1F64..0x22B0`。该区间内唯一函数调用是首次
+`_lck_ticket_init`；下一张把 reset 放在其后的 `0x1FA8`：
+
+```text
+reset VA       0xFFFFFFF0073C1FA8
+source word    0xFD400321  LDR d1, [x25]
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   C4D23706D0CC3D897C42C3A93784F01DB993DB5FB5F7AB9B185D39CD65244ECC
+probe payload  51164236F205FE60B801B3F357CE4C4626FBF37A3EBC5F89D017CD220F6EF03F
+probe boot     5201F4F8DCDBCD40244022395E6937C094C93E45B63DFE24D43A3E44899B2FF6
+```
+
+立即 reset 表示 one-time lock 初始化已返回、派生设置继续；不 reset 表示停在该
+lock 初始化或之前。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-lock-return-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
