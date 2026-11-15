@@ -2048,6 +2048,24 @@ probe boot     A71C632689258B0E30C1FA4A7700499889F56E991BA95AF7FE7AF01A2C30413C
 Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-machine-thread-probe`。
 
+`_machine_set_current_thread` 入口探针立即重启。由于 reset 安装在该函数入口，
+这个结果本身就证明 `_thread_bootstrap` 已返回并到达下一调用；不需要读取一闪而过
+的屏幕文字。
+
+下一探针选择紧随其后的 `_cpu_bootstrap` 入口：
+
+```text
+reset VA       0xFFFFFFF0073E5984
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   F3BB24B5FB0739347FA53D282D878BF0D1AE3F8752E397C92E0A558D076E569C
+probe payload  07A3DB80449E6A434721D7E59E52B0C302F21A8377F7AAEF5207B219CFFDE6AA
+probe boot     D064F3DD8F620A23E9DE0E05B0491737C02E53F091FCC1A014C677D826F5CD3F
+```
+
+立即 reset 表示 `_machine_set_current_thread` 已返回；不 reset 表示仍停在该函数
+内部。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-cpu-bootstrap-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
