@@ -2171,6 +2171,21 @@ probe boot     36F7EE1A8D22FFC3CCCEE3BEB1C98BE8CAC8477A91E78817E256ABB88243A68A
 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-startup-initialize-probe`。
 
+`_kernel_startup_initialize_upto` 入口探针立即重启，证明 `_serial_init` 已返回。
+下一步直接取得 `_arm_init` 顶层末尾的关键边界 `_machine_startup` 入口：
+
+```text
+reset VA       0xFFFFFFF0073F4D08
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   E0615AAFF9CE5A231970BBA1F00990B62090A787106C450F5AA28C8510D376E2
+probe payload  0215806A5BA1B7E89877E6452BFE76E5274178F6CE9E5A7B6F152927FEA62F81
+probe boot     890F68237702C9D252E3363F83723435EE10D707795E11853ADAD9D26D6F6CED
+```
+
+立即 reset 表示 `_kernel_startup_initialize_upto` 及其后续早期初始化调用均已返回；
+不 reset 表示停点位于 startup initialize 到 `_machine_startup` 之间。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-machine-startup-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
