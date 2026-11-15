@@ -2427,6 +2427,22 @@ probe boot     39F7D0D0E2BCE8A6E3025B8F256FAE410717034CE7E8CC00147E871501CBFFBC
 在映射之前。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-map-probe`。
 
+`_ml_io_map_unmappable` 入口探针立即重启，证明 screen 路径已到 framebuffer 映射。
+下一张把 reset 放在该调用返回点：
+
+```text
+reset VA       0xFFFFFFF0073C1DAC
+source word    0xAA0003F5  MOV x21, x0
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   B25DD93F2260C3B6A2F0ECCAE2BCE12744E684B926DA22E363C2E7F20298DEF5
+probe payload  6CFFFC22AC4597BA4411FC9CEE3074EEF7C0F1508671F82010EF9D6C528EE44B
+probe boot     7A132C37B1712B9C4CA7D9560AA8D4BDCBAD18ABB60D4B646F18F6E4C65A5CC8
+```
+
+立即 reset 表示 framebuffer 映射函数已返回；不 reset 表示停在该函数内部。
+Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-map-return-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
