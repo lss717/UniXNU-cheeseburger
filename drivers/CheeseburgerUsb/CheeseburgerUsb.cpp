@@ -768,6 +768,7 @@ struct Ep0Device {
 
 		const uint32_t dcfg = read(kDcfg);
 		write(kDcfg, dcfg & ~(3U | (0x7fU << 3)));
+		write(kDalepena, 0);
 		if (!configureEp0() || !armSetup()) {
 			IOLog("CHEESEBURGER_USB: EP0 configuration failed\n");
 			return false;
