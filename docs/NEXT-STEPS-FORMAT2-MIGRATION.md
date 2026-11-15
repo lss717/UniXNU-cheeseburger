@@ -1686,6 +1686,55 @@ Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-vm-init-probe`。该探针把
 `_arm_vm_init` 入口 `0xFFFFFFF0073EA0F4` 替换为 PSCI reset，不执行函数本身。
 
+### 第六轮 vm-init 探针与 arm-init 二分
+
+`_arm_vm_init` 单点探针 boot
+`1594b9ce5e5f898f4cc769ad64f582eb4b198ff0010e36486d70cd3e996d9ff5`
+已完成一次非持久启动。画面只有绿色顶部横条，随后黑屏；没有新的同步异常，
+也没有观察到目标点 PSCI reset 到 Android。
+
+该候选本来就不绘制蓝/洋红 marker。逐层验证确认 patch 已进入最终产物：
+
+```text
+_arm_vm_init           0xFFFFFFF0073EA0F4
+file offset            0x3E60F4
+source word            0xD10583FF
+patch word             0x1419107F
+branch target          0xFFFFFFF007A2E2F0
+payload kernel SHA-256 32E9DA61249471867C615D94FF936A917FD353640C91598541187ED6ADAD3174
+```
+
+payload 内嵌 kernel 与候选 `kernel.macho` 字节一致，patch 没有丢失。
+
+结合上一轮已经证明 `_start`、`SCTLR_EL1` 前和 post-MMU stage 3，当前保守边界为：
+
+```text
+已到达 common_start+0xE0
+未证明 common_start 返回进入 _arm_init
+未到达 _arm_vm_init
+```
+
+当前源码路径为：
+
+```text
+common_start return target  _arm_init       0xFFFFFFF0079BF074
+_arm_init -> _arm_vm_init   BL at +0x770    0xFFFFFFF0079BF7E4
+```
+
+下一版只把 `_arm_init` 入口替换成 PSCI reset：
+
+```text
+source word       0xD10343FF
+probe kernel      71C3AF4268791D83E8F68BC004BD5092D05E4C08530B568CC82EB8DE9BE06AB4
+probe payload     38B3C2402BAA57FFC62310717ACDDA96AF68F2A1A92CD105F947186841541584
+probe boot        4EB2DDD6C4BA747D13AD1B9758A3500F98D122C60CF1136C361E01EC805BE00C
+```
+
+立即 reset 证明 common_start 已返回 `_arm_init`；不 reset 则继续在
+`_arm_init` 内二分。完整记录见
+`docs/migration/device-run-2026-11-16-03.md`。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-arm-init-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
