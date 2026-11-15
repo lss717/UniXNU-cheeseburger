@@ -14,7 +14,8 @@ device layers. The selected OS identity is iPad7,1 / iPadOS 17.7.11 (21H461).
 | Board DTS and common ADT path | DTS compile and full format 1/format 2 comparison passed |
 | Component and patch resolution | Verified by the official resolver |
 | Kernel and payload | Built on macOS; payload ADT checks passed |
-| Package, firmware and boot image | Blocked at package by missing `lld-link` |
+| Package | Built on macOS with matched LLVM 20 clang/lld |
+| Firmware and boot image | Built on macOS with CLANG38 + LLD; boot-image checks passed |
 | Hardware boot checkpoint | Not re-qualified after the migration |
 | UFS formal root path | Unresolved; A/B/C/D matrix pending |
 | Release security chain | Not complete |
@@ -31,7 +32,7 @@ Use these checkouts side by side:
 UniXNU/                    official 578ae75c
 UniXNU-cheeseburger/       this repository
 UniXNU-msm8998-common/     board-independent MSM8998 support
-edk2-msm8998/              firmware
+edk2-msm8998/              lss717/edk2-msm8998 firmware
 ```
 
 `feeds.toml` pins the MSM8998 common revision. `local.toml` can point the same
@@ -80,7 +81,9 @@ bash scripts/package.sh --check --os 17
 bash scripts/package.sh --os 17 --uefi ../edk2-msm8998
 ```
 
-The firmware remains an edk2-msm8998 build. The device tree selected by
+The packaging entry point builds kernel, payload and package first, then uses
+the pinned `lss717/edk2-msm8998` checkout for the external firmware and boot
+image. The device tree selected by
 `board.toml` is compiled by the common UniXNU payload path:
 
 ```text

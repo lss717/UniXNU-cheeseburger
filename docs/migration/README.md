@@ -130,7 +130,8 @@ the formal root storage implementation.
 2. Compile `dts/cheeseburger.dts` with the pinned MSM8998 include directory.
 3. Generate and compare format 1 and format 2 ADTs node by node.
 4. Run `porting-record.py check`.
-5. Build on macOS, then record the first hardware checkpoint and failure.
+5. Record the first hardware checkpoint and failure; the host-side macOS build
+   is complete.
 
 The MSM8998 common revision
 `24fcb916e359f1fc207cc09b24bfc8c2901af827` was published to
@@ -138,6 +139,8 @@ The MSM8998 common revision
 checkout and CI can resolve the SoC source from `feeds.toml`.
 
 The first successful format 2 macOS build produced a kernel and payload from
-device commit `4ae1deb523022a4c5cf27cb07518829339b7457e`. Commands, input
-hashes, output hashes, payload contents and the remaining `lld-link` package
-blocker are recorded in `host-build-2026-11-15.md`.
+device commit `4ae1deb523022a4c5cf27cb07518829339b7457e`. The final packaging
+run also produced the CLANG38 FD and boot image from
+`lss717/edk2-msm8998` commit
+`da889248ba63e3b76003e016ee8744b34aa91a01`. Commands, inputs and output hashes
+are recorded in `host-build-2026-11-15.md`.

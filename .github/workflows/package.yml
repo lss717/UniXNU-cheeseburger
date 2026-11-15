@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: lss717/edk2-msm8998
-          ref: unixnu-cheeseburger
+          ref: da889248ba63e3b76003e016ee8744b34aa91a01
           path: uefi-msm8998
           submodules: recursive
       - name: tools
@@ -71,6 +71,8 @@ jobs:
           if-no-files-found: error
           path: |
             references/UniXNU/out/cheeseburger/*/*/boot/boot.img
+            references/UniXNU/out/cheeseburger/*/*/boot/boot.json
             references/UniXNU/out/cheeseburger/*/*/payload/payload.img
             references/UniXNU/out/cheeseburger/*/*/kernel/kernel.macho
             references/UniXNU/out/cheeseburger/*/*/package.manifest.json
+            uefi-msm8998/workspace/Build/cheeseburger/RELEASE_CLANG38/FV/MSM8998PKG_UEFI.fd

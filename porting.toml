@@ -165,18 +165,18 @@ evidence = []
 
 [[area]]
 id = "packaging"
-status = "planned"
+status = "implemented"
 components = ["XnuPrelink"]
 paths = ["scripts/package.sh", ".github/workflows/**", "patches/**"]
 inputs = ["Pinned official UniXNU revision, selected OS profile, kernelcache and owner trust inputs."]
 configuration = ["The package script resolves the official checkout from board.toml and maps the OS profile to cheeseburger_defconfig."]
 procedure = ["Run release --check before the full package build."]
-findings = ["The prelink tool moved from the fork-local NativePrelink path to the official XnuPrelink component ID.", "The board applies reviewed UniXNU compatibility patches and orders the PMGR source/progress changes in its own series.", "Device-local probes use a separate builder so they cannot shadow the canonical-aware official build-arm-driver script.", "The official component builder needs a tracked compatibility patch to accept Xcode 26.3 warning options."]
+findings = ["The prelink tool moved from the fork-local NativePrelink path to the official XnuPrelink component ID.", "The board applies reviewed UniXNU compatibility patches and orders the PMGR source/progress changes in its own series.", "Device-local probes use a separate builder so they cannot shadow the canonical-aware official build-arm-driver script.", "The official component builder needs a tracked compatibility patch to accept Xcode 26.3 warning options.", "Release external-firmware mode builds kernel, package and payload before the device script builds lss717/edk2-msm8998 and writes the final boot image and manifest."]
 completion = ["Clean-checkout packaging produces kernel, payload and boot image with a manifest of revisions and patch hashes."]
-limits = ["macOS produced the kernel and payload, but package is blocked because lld-link is unavailable and no firmware or boot image has been built."]
-next_action = ["Provide lld-link, build the EDK II package/firmware, then assemble and record the boot image."]
+limits = ["macOS produced the kernel, payload, UniXNU EFI package, FD and boot image with matched LLVM 20 tools; the image uses a test seed and has no hardware checkpoint."]
+next_action = ["Record the first format 2 hardware checkpoint and its failure from the verified host build."]
 evidence = [
-  { kind = "host", reference = "docs/migration/host-build-2026-11-15.md", result = "Clean macOS checkout built a stable kernel and validated payload from device revision 4ae1deb; package remains blocked by missing lld-link.", command = "/opt/local/bin/python3.12 ./unixnu kernel -D ../../UniXNU-cheeseburger --kernelcache ~/UniXNU/out/ipsw/21H461/kernelcache.decompressed --unique-chip-id 12345678", revision = "4ae1deb523022a4c5cf27cb07518829339b7457e" },
+  { kind = "host", reference = "docs/migration/host-build-2026-11-15.md", result = "macOS built a stable kernel, validated payload, UniXNU EFI package, CLANG38 FD and final boot image; edk2 revision da889248ba63e3b76003e016ee8744b34aa91a01.", command = "UNIXNU_UNIQUE_CHIP_ID=12345678 bash scripts/package.sh --os 17 --uefi ../edk2-msm8998", revision = "4ae1deb523022a4c5cf27cb07518829339b7457e" },
 ]
 
 [[area]]
@@ -189,6 +189,6 @@ configuration = ["AppleKeyStoreState is selected because the current diagnostic 
 procedure = ["Attach status JSON, build logs, image hashes and hardware checkpoints as separate evidence."]
 findings = ["The current kernel arguments still bypass root, AMFI and execution signature checks and enable a debug path."]
 completion = ["Every claimed checkpoint points to an image hash, source revision and raw log or photograph."]
-limits = ["A format 2 kernel and payload exist, but no package, firmware, boot image or hardware checkpoint has been verified."]
-next_action = ["Build the boot image, then record the first failing hardware checkpoint without changing unrelated drivers."]
+limits = ["Format 2 kernel, payload, package, firmware and boot image exist, but no hardware checkpoint has been verified."]
+next_action = ["Record the first failing format 2 hardware checkpoint without changing unrelated drivers."]
 evidence = []

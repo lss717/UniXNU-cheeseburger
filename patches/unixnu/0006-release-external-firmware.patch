@@ -1,0 +1,63 @@
+diff --git a/scripts/unixnu/cli.py b/scripts/unixnu/cli.py
+index 7b497b0..1e18d03 100644
+--- a/scripts/unixnu/cli.py
++++ b/scripts/unixnu/cli.py
+@@ -67,6 +67,7 @@ def parser():
+     i.add_argument('--dtb', metavar='FILE', help='compiled device tree; or UNIXNU_DTB')
+     i.add_argument('--ramdisk', metavar='FILE', help='ramdisk image, or none (default: the payload step output when present, else empty)')
+     i.add_argument('-o', '--output', metavar='FILE', help='output (default: out/<device>/boot/boot.img)')
++    sub.add_parser('manifest', parents=[c], help='write and verify a manifest for existing release outputs')
+     v = sub.add_parser('vendor_boot', parents=[c], help='replace the vendor ramdisk of a stock vendor_boot image')
+     v.add_argument('--stock', metavar='FILE', help='stock vendor_boot image to rebuild from')
+     v.add_argument('--ramdisk', metavar='FILE', help='vendor ramdisk to install, or none for an empty one')
+@@ -83,6 +84,7 @@ def parser():
+     k = sub.add_parser('release', parents=[c], help='dependencies, patches, build steps and boot image of the device in one run, with a manifest')
+     k.add_argument('--no-deps', action='store_true', help='skip fetching sources and the IPSW members')
+     k.add_argument('--check', action='store_true', help='fetch, resolve and list the patch series, then stop before any build step')
++    k.add_argument('--external-firmware', action='store_true', help='build kernel, package and payload; defer firmware and boot image to the device script')
+     return top
+ 
+ 
+@@ -312,8 +314,12 @@ def cmd_release(ctx):
+         log(f'check done: {len(order)} patches, configuration {ctx.config_name}, OS {ctx.work.parent.name}')
+         return
+     log('step build')
+-    args.steps = list(STEPS)
++    external_firmware = getattr(args, 'external_firmware', False)
++    args.steps = [step for step in STEPS if not (external_firmware and step == 'firmware')]
+     cmd_build(ctx)
++    if external_firmware:
++        log('step pack deferred: external firmware')
++        return
+     log('step pack')
+     args.fd = args.ramdisk = args.output = None
+     # The boot image's device tree is built by a firmware preflight script; [bootimg] dtb names it relative to the build tree.
+@@ -327,6 +333,19 @@ def cmd_release(ctx):
+     log(f'manifest {manifest}')
+ 
+ 
++def cmd_manifest(ctx):
++    """Write and verify the release manifest after the device script packed external firmware."""
++    ctx.refuse_example()
++    modules = feeds.resolve(ctx)
++    if ctx.soc:
++        modules[('soc', ctx.soc.name)] = ctx.soc
++    order = patches.plan(ctx, modules) if ctx.schema_version == 2 else []
++    files = pipeline.outputs(ctx)
++    manifest = pipeline.write_manifest(ctx, modules, order, files)
++    pipeline.verify(ctx, files, manifest)
++    log(f'manifest {manifest}')
++
++
+ def cmd_clean(ctx):
+     for name in ('tree', 'logs', 'kernel', 'package', 'boot', 'edk2-conf'):
+         shutil.rmtree(ctx.work / name, ignore_errors=True)
+@@ -348,7 +367,7 @@ def main(argv=None):
+     try:
+         ctx = Context(args)
+         {'defconfig': cmd_defconfig, 'fetch': cmd_fetch, 'tree': lambda c: prepare(c), 'build': cmd_build,
+-         'bootimg': cmd_bootimg, 'vendor_boot': cmd_vendor_boot, 'ipsw': cmd_ipsw, 'status': cmd_status,
++         'manifest': cmd_manifest, 'bootimg': cmd_bootimg, 'vendor_boot': cmd_vendor_boot, 'ipsw': cmd_ipsw, 'status': cmd_status,
+          'clean': cmd_clean, 'release': cmd_release}[args.command](ctx)
+     except Error as error:
+         sys.exit(f'unixnu: {error}')

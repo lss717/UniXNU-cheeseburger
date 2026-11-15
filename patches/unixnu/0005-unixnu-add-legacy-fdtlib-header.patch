@@ -1,0 +1,49 @@
+diff --git a/package/UniXNUPkg/Include/Library/FdtLib.h b/package/UniXNUPkg/Include/Library/FdtLib.h
+new file mode 100644
+--- /dev/null
++++ b/package/UniXNUPkg/Include/Library/FdtLib.h
+@@ -0,0 +1,38 @@
++/** @file
++  Compatibility names for EDK2 installations that predate MdePkg FdtLib.
++
++  SPDX-License-Identifier: BSD-2-Clause-Patent
++**/
++
++#pragma once
++
++#include <Uefi.h>
++#include <libfdt.h>
++
++typedef struct {
++  UINT32    Magic;
++  UINT32    TotalSize;
++  UINT32    OffsetDtStruct;
++  UINT32    OffsetDtStrings;
++  UINT32    OffsetMemRsvmap;
++  UINT32    Version;
++  UINT32    LastCompVersion;
++  UINT32    BootCpuidPhys;
++  UINT32    SizeDtStrings;
++  UINT32    SizeDtStruct;
++} FDT_HEADER;
++
++#define Fdt32ToCpu                  fdt32_to_cpu
++#define Fdt64ToCpu                  fdt64_to_cpu
++#define FdtCheckHeader              fdt_check_header
++#define FdtOpenInto                 fdt_open_into
++#define FdtPack                     fdt_pack
++#define FdtPathOffset               fdt_path_offset
++#define FdtSubnodeOffsetNameLen     fdt_subnode_offset_namelen
++#define FdtAddSubnode               fdt_add_subnode
++#define FdtGetProp                  fdt_getprop
++#define FdtSetProp                  fdt_setprop
++#define FdtDelProp                  fdt_delprop
++#define FdtDelNode                  fdt_del_node
++#define FdtOverlayApply             fdt_overlay_apply
++#define FdtStrerror                 fdt_strerror
++#define FdtGetProp                  fdt_getprop
++#define FdtSetProp                  fdt_setprop
++#define FdtDelProp                  fdt_delprop
++#define FdtDelNode                  fdt_del_node
++#define FdtOverlayApply             fdt_overlay_apply
++#define FdtStrerror                 fdt_strerror

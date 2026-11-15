@@ -312,19 +312,33 @@ def find_edk2(explicit):
     return None
 
 
+def find_fv_dir(edk2):
+    if not edk2:
+        return ""
+    build = os.path.join(edk2, "workspace", "Build", "cheeseburger")
+    for toolchain in ("CLANG38", "CLANGPDB", "GCC5"):
+        path = os.path.join(build, "RELEASE_" + toolchain, "FV")
+        if os.path.isfile(os.path.join(path, "MSM8998PKG_UEFI.fd")):
+            return path
+    return os.path.join(build, "RELEASE_CLANG38", "FV")
+
+
 def main():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     boot_dir = os.path.join(root, "out", "cheeseburger", "boot")
     edk2 = find_edk2(None)
-    build = os.path.join(edk2, "workspace", "Build", "cheeseburger",
-                         "RELEASE_GCC5", "FV") if edk2 else ""
+    build = find_fv_dir(edk2)
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--fd", default=os.path.join(build, "MSM8998PKG_UEFI.fd") if build else None)
     parser.add_argument("--boot", default=os.path.join(boot_dir, "boot.img"))
     parser.add_argument("--payload", default=os.path.join(boot_dir, "payload.img"))
-    parser.add_argument("--fvmap", default=os.path.join(build, "FVMAIN.Fv.txt") if build else None,
+    parser.add_argument("--fvmap",
                         help="uncompressed FVMAIN.Fv.txt/Fv from the build, to check modules")
     args = parser.parse_args()
+    if not args.fvmap:
+        candidate = os.path.join(os.path.dirname(os.path.abspath(args.fd)), "FVMAIN.Fv.txt")
+        if os.path.isfile(candidate):
+            args.fvmap = candidate
 
     report = Report()
     for path in (args.fd, args.boot, args.payload):

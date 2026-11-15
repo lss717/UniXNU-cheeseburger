@@ -26,16 +26,16 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
 | --- | --- | --- | --- |
 | 阶段 0：冻结基线 | 已完成 | 保存 format 1 board、迁移前 status、历史 H91 产物哈希和检查点来源 | 本地没有 H91 构建产物，未重新计算其原始哈希 |
 | 阶段 1：MSM8998 common | 已完成最小骨架 | `UniXNU-msm8998-common` 已发布，commit `24fcb916e359f1fc207cc09b24bfc8c2901af827` | platform operations 和 SoC patch 分类仍为空 |
-| 阶段 2：format 2 设备配置 | 已完成主机侧解析 | schema 2、四层 profile、7 个组件、61 个 patch、正确输出目录 | 完整 `fetch` 和 `tree` 尚未成功执行 |
+| 阶段 2：format 2 设备配置 | 已完成主机侧构建 | schema 2、四层 profile、7 个组件、61 个 patch、完整 `fetch/tree/release` 已通过 | 仍需实机确认 profile 和组件行为 |
 | 阶段 3：ADT 转 DTS | 已完成主机侧对照 | DTS 编译通过，format 2 ADT 通过 47 项结构检查，旧节点零丢失 | ADT 仍需随 format 2 镜像实机启动验证 |
 | 阶段 4：UFS/root | 未完成 | 已明确记录 probe、runtime 和正式 component 的冲突 | A/B/C/D 单路径矩阵和实机读写/flush/重启测试均未执行 |
 | 阶段 5：patch 所有权 | 部分完成 | 已解析 61 个唯一 patch，PMGR hunk 已移出公共 series | fork 差异尚未逐个归入 ARM64、SoC、OS、device、component 或诊断 |
 | 阶段 6：安全链分离 | 未完成 | diagnostic 参数和绕过已在 README 中明确标记 | release-candidate 参数集和 VerifiedRoot/AMFI/SystemOS 验证尚未完成 |
-| 阶段 7：文档、记录与 CI | 部分完成 | README、porting record、DTS 检查器和 CI 文件已更新 | GitHub workflow 未实际运行，macOS 完整 package 未构建 |
-| kernel/payload/boot image | 进行中 | macOS 干净 checkout 已产出 kernel、hardware.dtb 和 payload；payload ADT 47 项检查通过 | package 被缺少的 `lld-link` 阻塞，firmware/boot image 尚未产出 |
+| 阶段 7：文档、记录与 CI | 部分完成 | README、porting record、DTS 检查器和 CI 文件已更新；macOS 完整 package 已通过 | GitHub workflow 尚未在 Actions 上实际运行 |
+| kernel/payload/boot image | 主机侧完成 | macOS 已产出 kernel、hardware.dtb、payload、UniXNU EFI package、FD 和 boot image；全部结构检查通过 | 尚未进行实机启动确认 |
 | 实机 bring-up | 未执行 | 保留 format 1 历史证据，未冒充 format 2 结果 | UEFI、DarwinBoot、XNU、UFS、APFS、launchd、dyld 均需重新确认 |
 
-因此当前结论是：**format 2 静态迁移完成，完整迁移完成标准尚未满足。**
+因此当前结论是：**format 2 主机侧构建链完成，实机 bring-up、UFS 和安全链仍未完成。**
 
 ### 主机构建记录
 
@@ -76,8 +76,11 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
 | --- | ---: | --- |
 | `kernel.macho` | 52,043,776 | `2e03369c22a8ee47595e4b6ef159691a8af69faedae32c7a482896f48fa92c47` |
 | `hardware.dtb` | 3,507 | `d8c0ec4ac6f6e4b5f5c3f0daf4192bb971166fe5454e77e8fcaa3dabb94534d1` |
-| `payload.img` | 79,691,776 | `e8c2d1aface25116c0e922633221400ce87d10128bb2c40551a78a4e8e3e91c2` |
+| `payload.img` | 79,691,776 | `e3172be11b8793c6a78ad31ab33f0cd21c15dfd15155689cc85680a1e7934420` |
 | payload 内 `kernel.macho.adt` | 16,408 | `1da397ee4f4e74b752f46bb491540e2db8e9a2eb37b175c5444f7177313a2f1c` |
+| `MSM8998PKG_UEFI.fd` | 6,291,456 | `7ed7dd32709183b62745b8a895c42f13e8b68ea188ff67c29155123f12949eb7` |
+| `boot.img` | 81,274,880 | `5f2321ea0bcb4e5593fa120567b0a90426f8d80cf0522e0a5ae590171271a5c2` |
+| `package.manifest.json` | 9,135 | `1c3961933e1063c99ef9d4cb99b84e4529840182b65cd6d5eb68fa026ce65f5a` |
 
 同一源码的两次 kernel 构建哈希一致。payload/ADT 因包含随机 seed 而会变化。
 构建使用测试 platform seed `0x12345678`，产物未用于实机。
@@ -85,8 +88,12 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
 完整命令、输入哈希和 payload 内容见
 `docs/migration/host-build-2026-11-15.md`。
 
-`unixnu package` 当前停在 `lld-link not found on PATH`。MacPorts LLVM 20
-提供其余 LLVM 工具，但没有 `lld-link`；因此 firmware 和 boot image 尚未生成。
+最终 `scripts/package.sh --os 17 --uefi ../edk2-msm8998` 已完整通过。
+UniXNU release 使用外部 firmware 模式构建 kernel/package/payload，随后由
+`lss717/edk2-msm8998` commit
+`da889248ba63e3b76003e016ee8744b34aa91a01` 的 CLANG38 + LLD 流程生成 FD，
+再由设备脚本写入 format 2 payload 并运行 FD、FV、boot header 和 payload
+检查。该结果仍使用测试 seed，不能作为可安装或实机验证版本。
 
 ## 审计基线（迁移前）
 
