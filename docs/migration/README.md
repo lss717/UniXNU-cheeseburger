@@ -136,3 +136,8 @@ The MSM8998 common revision
 `24fcb916e359f1fc207cc09b24bfc8c2901af827` was published to
 `https://github.com/lss717/UniXNU-msm8998-common` on 2026-11-15. A clean
 checkout and CI can resolve the SoC source from `feeds.toml`.
+
+The first successful format 2 macOS build produced a kernel and payload from
+device commit `4ae1deb523022a4c5cf27cb07518829339b7457e`. Commands, input
+hashes, output hashes, payload contents and the remaining `lld-link` package
+blocker are recorded in `host-build-2026-11-15.md`.

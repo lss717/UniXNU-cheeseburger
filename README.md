@@ -11,9 +11,10 @@ device layers. The selected OS identity is iPad7,1 / iPadOS 17.7.11 (21H461).
 | --- | --- |
 | Format 2 configuration and source roles | Migrated and host-parseable |
 | MSM8998 common DTSI | Host DTS compile passed |
-| Board DTS and common ADT path | Added; node-level comparison pending |
+| Board DTS and common ADT path | DTS compile and full format 1/format 2 comparison passed |
 | Component and patch resolution | Verified by the official resolver |
-| Kernel, payload and boot image | Not rebuilt in this Windows workspace |
+| Kernel and payload | Built on macOS; payload ADT checks passed |
+| Package, firmware and boot image | Blocked at package by missing `lld-link` |
 | Hardware boot checkpoint | Not re-qualified after the migration |
 | UFS formal root path | Unresolved; A/B/C/D matrix pending |
 | Release security chain | Not complete |
@@ -125,3 +126,5 @@ Private IPSW members, trust caches, Data seeds and firmware binaries stay under
 source and known hashes. `local.toml.example` documents local source overrides.
 
 Detailed migration evidence and open work are in `docs/migration/README.md`.
+The first macOS build command, input hashes and output hashes are recorded in
+`docs/migration/host-build-2026-11-15.md`.

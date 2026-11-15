@@ -173,9 +173,11 @@ configuration = ["The package script resolves the official checkout from board.t
 procedure = ["Run release --check before the full package build."]
 findings = ["The prelink tool moved from the fork-local NativePrelink path to the official XnuPrelink component ID.", "The board applies reviewed UniXNU compatibility patches and orders the PMGR source/progress changes in its own series.", "Device-local probes use a separate builder so they cannot shadow the canonical-aware official build-arm-driver script.", "The official component builder needs a tracked compatibility patch to accept Xcode 26.3 warning options."]
 completion = ["Clean-checkout packaging produces kernel, payload and boot image with a manifest of revisions and patch hashes."]
-limits = ["The Windows host cannot run the Xcode-dependent kernel build; the tracked UniXNU converter patch must be applied before payload generation."]
-next_action = ["Run package preflight on macOS after publishing the MSM8998 source."]
-evidence = []
+limits = ["macOS produced the kernel and payload, but package is blocked because lld-link is unavailable and no firmware or boot image has been built."]
+next_action = ["Provide lld-link, build the EDK II package/firmware, then assemble and record the boot image."]
+evidence = [
+  { kind = "host", reference = "docs/migration/host-build-2026-11-15.md", result = "Clean macOS checkout built a stable kernel and validated payload from device revision 4ae1deb; package remains blocked by missing lld-link.", command = "/opt/local/bin/python3.12 ./unixnu kernel -D ../../UniXNU-cheeseburger --kernelcache ~/UniXNU/out/ipsw/21H461/kernelcache.decompressed --unique-chip-id 12345678", revision = "4ae1deb523022a4c5cf27cb07518829339b7457e" },
+]
 
 [[area]]
 id = "diagnostics"
@@ -187,6 +189,6 @@ configuration = ["AppleKeyStoreState is selected because the current diagnostic 
 procedure = ["Attach status JSON, build logs, image hashes and hardware checkpoints as separate evidence."]
 findings = ["The current kernel arguments still bypass root, AMFI and execution signature checks and enable a debug path."]
 completion = ["Every claimed checkpoint points to an image hash, source revision and raw log or photograph."]
-limits = ["No format 2 kernel or boot image has been produced in this workspace."]
-next_action = ["Build on macOS and record the first failing checkpoint without changing unrelated drivers."]
+limits = ["A format 2 kernel and payload exist, but no package, firmware, boot image or hardware checkpoint has been verified."]
+next_action = ["Build the boot image, then record the first failing hardware checkpoint without changing unrelated drivers."]
 evidence = []

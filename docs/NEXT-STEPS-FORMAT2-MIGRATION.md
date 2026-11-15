@@ -32,7 +32,7 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
 | 阶段 5：patch 所有权 | 部分完成 | 已解析 61 个唯一 patch，PMGR hunk 已移出公共 series | fork 差异尚未逐个归入 ARM64、SoC、OS、device、component 或诊断 |
 | 阶段 6：安全链分离 | 未完成 | diagnostic 参数和绕过已在 README 中明确标记 | release-candidate 参数集和 VerifiedRoot/AMFI/SystemOS 验证尚未完成 |
 | 阶段 7：文档、记录与 CI | 部分完成 | README、porting record、DTS 检查器和 CI 文件已更新 | GitHub workflow 未实际运行，macOS 完整 package 未构建 |
-| kernel/payload/boot image | 进行中 | macOS 干净 checkout 已完成 status/tree/package preflight，kernel 构建已进入 patch 应用阶段 | kernel/payload/boot image 尚未成功产出 |
+| kernel/payload/boot image | 进行中 | macOS 干净 checkout 已产出 kernel、hardware.dtb 和 payload；payload ADT 47 项检查通过 | package 被缺少的 `lld-link` 阻塞，firmware/boot image 尚未产出 |
 | 实机 bring-up | 未执行 | 保留 format 1 历史证据，未冒充 format 2 结果 | UEFI、DarwinBoot、XNU、UFS、APFS、launchd、dyld 均需重新确认 |
 
 因此当前结论是：**format 2 静态迁移完成，完整迁移完成标准尚未满足。**
@@ -64,6 +64,29 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
 - `NativeRamBlock` 的 IOBlockStorageDevice 继承槽通过现有 190-slot
   binding 表绑定；`ml_static_mfree_prepare` 在 iPadOS 17 profile 下由 stub
   返回 false，保留种子映射。
+
+### 主机构建产物（2026-11-15）
+
+使用设备提交 `4ae1deb523022a4c5cf27cb07518829339b7457e`、官方 UniXNU
+`578ae75c8e7356d4d562bcfc294ab26dfe640a31` 和 MSM8998 common
+`24fcb916e359f1fc207cc09b24bfc8c2901af827` 在 macOS 15.8.2 / Xcode 26.3
+完成：
+
+| 产物 | 大小 | SHA-256 |
+| --- | ---: | --- |
+| `kernel.macho` | 52,043,776 | `2e03369c22a8ee47595e4b6ef159691a8af69faedae32c7a482896f48fa92c47` |
+| `hardware.dtb` | 3,507 | `d8c0ec4ac6f6e4b5f5c3f0daf4192bb971166fe5454e77e8fcaa3dabb94534d1` |
+| `payload.img` | 79,691,776 | `e8c2d1aface25116c0e922633221400ce87d10128bb2c40551a78a4e8e3e91c2` |
+| payload 内 `kernel.macho.adt` | 16,408 | `1da397ee4f4e74b752f46bb491540e2db8e9a2eb37b175c5444f7177313a2f1c` |
+
+同一源码的两次 kernel 构建哈希一致。payload/ADT 因包含随机 seed 而会变化。
+构建使用测试 platform seed `0x12345678`，产物未用于实机。
+
+完整命令、输入哈希和 payload 内容见
+`docs/migration/host-build-2026-11-15.md`。
+
+`unixnu package` 当前停在 `lld-link not found on PATH`。MacPorts LLVM 20
+提供其余 LLVM 工具，但没有 `lld-link`；因此 firmware 和 boot image 尚未生成。
 
 ## 审计基线（迁移前）
 
