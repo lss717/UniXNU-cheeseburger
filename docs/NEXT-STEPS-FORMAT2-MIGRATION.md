@@ -2309,6 +2309,21 @@ probe boot     235421588A13CE106F519409B4089B6EF90DF0756F5E8DF0AEF17A63F749AB19
 返回；不 reset 表示停点位于 `_PE_init_iokit` 之前。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-pe-init-iokit-probe`。
 
+`_PE_init_iokit` 入口探针立即重启，证明主线程前半段已完成。下一探针直接取得 BSD
+启动边界 `_bsd_init` 入口：
+
+```text
+reset VA       0xFFFFFFF0076AE424
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   DBD195F75177F647E296E1D2DB53E3D741E2D77C6D7612D56CF95DF6752BD641
+probe payload  694B79F0C927A36E9E1A4A9B2D662F3F44D1B9F6910CD00822B4397CA155C2A5
+probe boot     14CC576743A7BA3D0CC8B7E9E81C9575191FF0773C7A86E61DD60C716D2E9775
+```
+
+立即 reset 表示 IOKit、screen、commpage、MAC/VNGUARD、OSKext 和 lockdown 阶段均已
+返回；不 reset 表示停点位于 `_bsd_init` 之前。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-bsd-init-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
