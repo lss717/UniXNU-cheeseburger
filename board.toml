@@ -163,7 +163,7 @@ include_dirs = ["soc:dts"]
 unixnu = "../references/UniXNU"
 unixnu_repository = "https://github.com/lss717/UniXNU"
 unixnu_upstream_base = "578ae75c8e7356d4d562bcfc294ab26dfe640a31"
-unixnu_downstream_revision = "7d3f04dacfbffb343db936e24cb9af69877e078a"
+unixnu_downstream_revision = "957405662863e484881992c815cfdb7a9dbd295a"
 
 [package.defconfig]
 "ipados-17.7.11-21H461" = "cheeseburger_defconfig"

@@ -28,7 +28,7 @@ id = "firmware"
 status = "implemented"
 components = ["DarwinBoot"]
 paths = ["proprietary-files.txt", ".github/workflows/package.yml"]
-inputs = ["DarwinBoot is pinned to downstream revision d90c9113836d61af3e90285d873cae9edd528d09; firmware comes from lss717/edk2-msm8998 da889248ba63e3b76003e016ee8744b34aa91a01."]
+inputs = ["DarwinBoot is pinned to diagnostics revision 2bcbf057640a5e114dd04db3b3eba67cce4f7208; firmware comes from lss717/edk2-msm8998 f74be2e40fdbdee57e6065adbdc0cf23cb3653dd."]
 configuration = ["The payload keeps loader=firmware and the existing 76 MiB OP5ESP volume."]
 procedure = ["Build the firmware with edk2-msm8998, then package it with the format 2 payload and boot image steps."]
 findings = ["The downstream UniXNU branch pins a DarwinBoot build-compatibility commit based directly on official 5243c68e.", "CLANG38 plus LLVM 20 built the FD and the device script assembled the payload into a checked boot image.", "Repeated FD builds differ only in the embedded __TIME__ string."]
@@ -173,7 +173,7 @@ id = "packaging"
 status = "implemented"
 components = ["XnuPrelink"]
 paths = ["scripts/package.sh", ".github/workflows/**", "patches/**"]
-inputs = ["Pinned downstream UniXNU commit 7d3f04dacfbffb343db936e24cb9af69877e078a, official base 578ae75c8e7356d4d562bcfc294ab26dfe640a31, selected OS profile, private trust inputs and edk2-msm8998."]
+inputs = ["Pinned diagnostics downstream UniXNU commit 957405662863e484881992c815cfdb7a9dbd295a, official base 578ae75c8e7356d4d562bcfc294ab26dfe640a31, selected OS profile, private trust inputs and edk2-msm8998."]
 configuration = ["board.toml fixes the downstream commit; the package script verifies HEAD, clean status and merge-base and runs only the unpinned output paths."]
 procedure = ["Run release --check before the full package build."]
 findings = ["The prelink tool moved from the fork-local NativePrelink path to the official XnuPrelink component ID.", "Eight reviewed downstream commits carry the UniXNU and DarwinBoot compatibility changes; package builds do not execute git apply or create a patched worktree.", "Device-local probes use a separate builder so they cannot shadow the canonical-aware official build-arm-driver script.", "Release external-firmware mode builds kernel, package and payload before the device script builds lss717/edk2-msm8998 and writes the final boot image and manifest.", "The manifest records downstream commit, official base, merge-base, source-tree digest, component revisions and the edk2 revision.", "The package script extracts the payload ADT and runs the full 47-check validation.", "DTB builds are byte-identical; kernel and FD rebuilds are byte-identical after enumerated identity, debug and build-time fields are normalized."]

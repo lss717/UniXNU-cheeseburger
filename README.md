@@ -48,9 +48,9 @@ GitHub workflow can resolve it without a local override.
 
 The format 2 build uses the fixed
 `lss717/UniXNU:upstream-format2-cheeseburger` commit
-`7d3f04dacfbffb343db936e24cb9af69877e078a`. The branch is based directly on
+`957405662863e484881992c815cfdb7a9dbd295a`. The branch is based directly on
 official `578ae75c8e7356d4d562bcfc294ab26dfe640a31`; its DarwinBoot submodule
-is pinned to `d90c9113836d61af3e90285d873cae9edd528d09`. The package script
+is pinned to `2bcbf057640a5e114dd04db3b3eba67cce4f7208`. The package script
 verifies the commit, clean worktree and merge base, but never applies patches at
 build time.
 
