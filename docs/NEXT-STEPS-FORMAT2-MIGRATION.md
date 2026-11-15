@@ -2390,6 +2390,28 @@ probe boot     789C07ECEEDD77E192120A9248A859D018C8963C0A76F62CDB2C1DD06261779F
 初始化。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-mac-policy-initmach-probe`。
 
+`_mac_policy_initmach` 探针冻结不重启，范围缩到：
+
+```text
+_initialize_screen
+_vm_commpage_init
+_vm_commpage_text_init
+```
+
+下一探针选择 `_vm_commpage_init` 入口：
+
+```text
+reset VA       0xFFFFFFF0073A22CC
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   4C60C657F1190AC269920A72BD787075E722DB2DE1B301537740665A2BFB8C4F
+probe payload  57F2BA64D24058DB5EAEB6F94B7F5D49C85B8C6B760F4CC44693BCA0B1BDB276
+probe boot     509233B6945FBC76F9FA55E40F40540B0ADE9F1BE6EE7BB49581954CA21F2BF9
+```
+
+立即 reset 表示 `_initialize_screen` 已返回；不 reset 表示停点就在 screen
+初始化内部。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-vm-commpage-init-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
