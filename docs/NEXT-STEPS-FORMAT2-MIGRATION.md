@@ -2458,6 +2458,21 @@ probe boot     E56313323EC0B39FCD1DFF5C51561F421CCC27046C82C9703BC97F393C940CE0
 表示停在这些步骤中。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-console-probe`。
 
+`_gc_enable` 探针冻结不重启，停点缩到“映射返回后到 console 状态切换前”。下一探针
+选择 `_vc_progress_set` 入口：
+
+```text
+reset VA       0xFFFFFFF0073C1858
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   6214AC5B66D1ED9D45A17B625BEF327279B94F88BB3D98DAD02189A7955CB64E
+probe payload  701BA80133F102691AA6A4BD8402F5CD47E7FCE5552CBF17FBDA0B9BFD28839E
+probe boot     6AB677D1046C2120619FC8BF9C6029AF204E85920D08F3CBA4777CD0CE9FDAC7
+```
+
+立即 reset 表示映射后的 vinfo 记账已进入 progress transition；不 reset 表示停点
+更早。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-vc-progress-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
