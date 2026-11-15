@@ -1912,6 +1912,37 @@ payload 内嵌内核逐字节检查。完整记录见
 `docs/migration/device-run-2026-11-16-07.md`。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-topology-first-property-call-probe`。
 
+`0x57E4` 实机结果仍为黑屏不重启，故第一个 direct property 调用也未到达，停点
+进一步缩小到：
+
+```text
+0xFFFFFFF0073F5704 .. 0xFFFFFFF0073F57E4
+```
+
+反汇编确认已知正点 `0x5704` 后的第一个分叉为：
+
+```text
+0xFFFFFFF0073F5728  B.EQ 0xFFFFFFF0073F5920
+0xFFFFFFF0073F572C  ADRP x8, ...
+```
+
+下一探针选择 `0x572C` 的 fall-through：
+
+```text
+entry       0xFFFFFFF0073F572C
+file offset 0x3F172C
+source      0xB0FFEC68  ADRP
+patch       0x1418E2F1
+kernel      64EE1C17351A754117F98AD5DD5BD5A415BD956713FEACD281B3C32D5694FC7D
+payload     16A3151E4B385A6C647DE87D3046619C53EA28ADEE9016172CAE82BBC49C777B
+boot        A75721DBFA8A489C8D8425DDA2590416720CC5F3B190B4D5D6CB3149838473A9
+```
+
+立即 reset 表示 `w8 == 2` 的 `0x5728` 分支没有走；不 reset 表示已走
+`0x5920` 冷分支，或停在该分叉之前。候选已通过 47/47 ADT、FD/FV、boot header、
+manifest 和 payload 内嵌内核逐字节检查。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-topology-type2-branch-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
