@@ -2324,6 +2324,55 @@ probe boot     14CC576743A7BA3D0CC8B7E9E81C9575191FF0773C7A86E61DD60C716D2E9775
 返回；不 reset 表示停点位于 `_bsd_init` 之前。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-bsd-init-probe`。
 
+### 第十三轮 主内核线程与 BSD 边界
+
+`_load_context` 与 `_kernel_bootstrap_thread` 入口探针均立即重启，证明上下文切换
+成功，主内核线程已开始。随后 `_PE_init_iokit` 入口也立即重启，说明 idle、调度、
+clock/device service、KDP、bootprofile 等主线程前半段已返回。
+
+`_bsd_init` 入口探针没有触发 reset。画面冻结在最后一张 UniXNU菜单图像，
+日志已到 `DARWINBOOT: inputs validated; exiting boot services`；这不是 UEFI Shell，
+而是 XNU 尚未建立新 console。停点因此位于：
+
+```text
+_PE_init_iokit  returned/reached
+_bsd_init       not reached
+```
+
+该区间的候选调用顺序见：
+
+```text
+_initialize_screen
+_vm_commpage_init
+_vm_commpage_text_init
+_mac_policy_initmach
+_vnguard_policy_init
+_dtrace_early_init
+_sdt_early_init
+_OSKextRemoveKextBootstrap
+_mbuf_tag_init
+_machine_lockdown
+_PE_lockdown_iokit
+_vm_set_restrictions
+_kperf_init_early
+_bsd_init
+```
+
+下一探针取后段中点 `_OSKextRemoveKextBootstrap`：
+
+```text
+reset VA       0xFFFFFFF00785E058
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   351F07C18B65944E17D79EB430B8AF725EF63D163BED8DADE5DE1BC115A0E17A
+probe payload  59437FDFCE7EE2299E13F6967049494353952AE55ED6FD3D42C97AB7B1563B3A
+probe boot     0DB6CBB1193003FD93E015AAFD684FE6E21DB5E0EA297686A445D4948C3A2A10
+```
+
+立即 reset 表示 IOKit、screen、commpage、MAC/VNGUARD 和 dtrace 阶段均已返回；
+不 reset 表示停点更早。完整记录见
+`docs/migration/device-run-2026-11-16-09.md`。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-oskext-remove-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
