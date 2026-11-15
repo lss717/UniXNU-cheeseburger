@@ -1876,6 +1876,42 @@ boot        36B30577ADBFFF5E941822BD17037D8CE6BCF9F27F5720759D4FF28F576FD37C
 `docs/migration/device-run-2026-11-16-06.md`。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-boot-cpu-probe`。
 
+### 第十轮 CPU-topology property 返回点负结果
+
+`_ml_get_boot_cpu_number` 入口探针的结果为黑屏且不重启，因此
+`_ml_parse_cpu_topology` 尚未返回。随后在 topology 的最终 property 路径做两次
+单点探针：
+
+| 探针 VA | 原指令 | probe boot | 结果 |
+| --- | --- | --- | --- |
+| `0xFFFFFFF0073F5830` | `0x7100041F` | `93cb960b...5ed5cc2` | 黑屏不重启 |
+| `0xFFFFFFF0073F580C` | `0xF90016C8` | `8ec189e6...c7d9082` | 黑屏不重启 |
+
+第二个最终 direct property 返回点和第一个最终 direct property 返回点都没有
+到达，故停点已严格缩小到：
+
+```text
+0xFFFFFFF0073F5704 .. 0xFFFFFFF0073F580C
+```
+
+下一单点选择第一个 direct property 调用本身：
+
+```text
+entry       0xFFFFFFF0073F57E4
+file offset 0x3F17E4
+source      0x9415331E  BL
+patch       0x1418E2C3
+kernel      27CE5260512BFDC2B4D4EB61E33560FA51580336D8D4A67D5D51B313C208F241
+payload     191DDD364089811A8CD841A7947A49B4EAED483C78F22A3017197496A5A01931
+boot        EB126091BEF37E3F51299A1D55B93813CA8D5AE281E1A3C455A15FFF454E4819
+```
+
+立即 reset 表示已到达第一个 direct property 调用；不 reset 则继续缩小
+`0x5704..0x57E4`。候选已通过 47/47 ADT、FD/FV、boot header、manifest 和
+payload 内嵌内核逐字节检查。完整记录见
+`docs/migration/device-run-2026-11-16-07.md`。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-topology-first-property-call-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>

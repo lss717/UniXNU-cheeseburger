@@ -415,6 +415,8 @@ def main():
                         help='control image: reset at the pre-MMU site without writing SCTLR')
     parser.add_argument('--reset-at', metavar='SYMBOL',
                         help='reset at the first instruction of SYMBOL (does not execute the function)')
+    parser.add_argument('--reset-va', type=lambda value: int(value, 0), metavar='VA',
+                        help='single-point reset at an exact instruction VA (no stage bars)')
     parser.add_argument('--occurrence', type=int, default=1, help='which call to SYMBOL (1 = first)')
     parser.add_argument('--in', dest='function', default='_arm_init', help='function that makes the call (default _arm_init)')
     args = parser.parse_args()
@@ -422,8 +424,10 @@ def main():
         raise SystemExit('--reset-before requires --reset-after')
     if args.reset_before_mmu and (args.reset_after or args.no_reset):
         raise SystemExit('--reset-before-mmu cannot be combined with --reset-after or --no-reset')
-    if args.reset_at and (args.reset_after or args.reset_before or args.reset_before_mmu or args.no_reset):
-        raise SystemExit('--reset-at cannot be combined with --reset-after/--reset-before/--reset-before-mmu/--no-reset')
+    if args.reset_at and (args.reset_va or args.reset_after or args.reset_before or args.reset_before_mmu or args.no_reset):
+        raise SystemExit('--reset-at cannot be combined with --reset-va/--reset-after/--reset-before/--reset-before-mmu/--no-reset')
+    if args.reset_va and (args.reset_after or args.reset_before or args.reset_before_mmu or args.no_reset):
+        raise SystemExit('--reset-va cannot be combined with --reset-after/--reset-before/--reset-before-mmu/--no-reset')
     data = bytearray(args.kernel.read_bytes())
     load_segments(data)
     kernel_names = rebase(args.kernel, data)
@@ -468,7 +472,14 @@ def main():
 
     # (site, cave stage, symbols the cave is linked with)
     stage1 = (ENTRY_VA, 1, {'target': START_FIRST_CPU})
-    if args.reset_at:
+    if args.reset_va:
+        try:
+            file_offset(args.reset_va)
+        except SystemExit:
+            raise SystemExit(f'{args.reset_va:#x} is not in a file-backed segment')
+        sites = [(args.reset_va, 5, {})]
+        description = f'single-point reset at exact VA {args.reset_va:#x}'
+    elif args.reset_at:
         target = symbol_address(args.kernel, args.reset_at)
         sites = [(target, 5, {})]
         description = f'reset at {args.reset_at} entry ({target:#x}); the function is not executed'
@@ -523,7 +534,7 @@ def main():
         struct.pack_into('<I', data, file_offset(common), branch(common, common_entry))
         description += f', panic screen ({len(code):#x} bytes at {entry:#x}; common funnel at {common:#x})'
     args.kernel.write_bytes(data)
-    if args.reset_at:
+    if args.reset_va or args.reset_at:
         bars = 'no stage bars'
     elif args.reset_before_mmu:
         bars = 'stage 1 blue bar'
