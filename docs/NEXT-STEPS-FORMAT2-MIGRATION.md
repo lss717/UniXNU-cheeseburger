@@ -1986,6 +1986,37 @@ FD          4F298C30C600CE85497F6A720979936643BFBD1681C377514750A408266A7725
 检查。完整记录见 `docs/migration/device-run-2026-11-16-08.md`。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-msm8998-cluster2`。
 
+### 第十二轮 two-cluster 实机结果与 topology 返回探针
+
+two-cluster 修复镜像 boot
+`4AED1AF3FA506B8C843D00431D9FAF10213CB235E5398D72CE0548E4622748A2`
+在手动选择 IOS 后没有重启，也没有黑屏，而是冻结在最后的 UniXNU framebuffer
+画面：
+
+```text
+DARWINBOOT: inputs validated; exiting boot services
+Booting OnePlus 5 IOS in 1 s
+```
+
+这证明旧的单-cluster 断言路径已被改变，但尚未证明
+`_ml_parse_cpu_topology` 已返回。照片和完整记录见
+`docs/migration/device-run-2026-11-16-08.md`。
+
+下一探针在新的 fixed kernel 上把 `_ml_get_boot_cpu_number` 入口替换为 PSCI
+reset：
+
+```text
+reset VA        0xFFFFFFF0073F5C28
+source kernel   A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel    7B601E61BBEA68B6B68326F8EF9A04095FCD61C0547E53EDA42D4BB321D72E19
+probe payload   A1A787D15FCE9AAA9BE08A5C2B544FF25B274675347338DABDE3F5A84C38A8D9
+probe boot      06ECA08198842EA14EDACE3957910DB8F4BE36130988CA227996995EB279A0B4
+```
+
+立即 reset 表示 `_ml_parse_cpu_topology` 已返回；不 reset 表示仍停在 CPU
+topology 解析内部。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-boot-cpu-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
