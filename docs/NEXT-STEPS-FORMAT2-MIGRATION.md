@@ -2263,6 +2263,21 @@ probe boot     0F731CC2BFBD8447A7BDC53C5CBDB774F377A6E95EDDB477E7C15FAAD255A1CD
 返回；不 reset 表示停点位于 `_exception_init` 之前。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-exception-init-probe`。
 
+`_exception_init` 入口探针立即重启，证明该函数之前的后段初始化链已返回。下一探针
+直接选择 `_kernel_bootstrap` 的最终交接点 `_load_context` 入口：
+
+```text
+reset VA       0xFFFFFFF0072BB364
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   856797FB94B79DC7A8A5C323A4DE662F67728EB8D94AF1E5C34BA4AD1225F3D9
+probe payload  B793DDADB95AE0BAD68236D342F8404A80EC3E9BE02E77E4AE51BDDA5F39E59C
+probe boot     10C7ED81A2689CB6CE2086A04AD0AD23BAE747E5ADFDD3844D885191772E527C
+```
+
+立即 reset 表示异常初始化、内核线程创建和线程命名均已返回；不 reset 表示停点位于
+`_load_context` 之前。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-load-context-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
