@@ -162,13 +162,13 @@ git switch --create upstream-format2-cheeseburger \
 
 | 产物 | 大小 | SHA-256 |
 | --- | ---: | --- |
-| `kernel.macho` | 52,043,776 | `0990f2bc765e4c2d3f1538fef732ad65e43787a50962e13df28bf184f779b845` |
+| `kernel.macho` | 52,043,776 | `147eb7f4c9345c06f762f64f5c1a7d67eb1506f32c687287571669a3521d3cd1` |
 | `hardware.dtb` | 3,507 | `3809aa23a82a409735b32af07a9cbe9118257a8b0ed03062994ac5b2931f755b` |
-| `payload.img` | 79,691,776 | `b87667315125b83a0701905254dc000d88293cdf736eedc7537444582cc11fca` |
-| payload 内 `kernel.macho.adt` | 16,408 | `35cd4d0f58174cc63469aa3df7fa2b8517888da95a237e3b31729002a83c6a4d` |
-| `MSM8998PKG_UEFI.fd` | 6,291,456 | `8153faec5b3a6df507525734caab7780ca0e973b3feb1888d406c9c21690e885` |
-| `boot.img` | 81,274,880 | `ce31464850db77f9d95db223a72e4bcea20074ced9be4128df5ae009d72e1b61` |
-| `package.manifest.json` | 9,551 | `d9c43d95a549e43245887c298662ef78479db390b87c2b6782ab808db198c26c` |
+| `payload.img` | 79,691,776 | `cc7cff7cf9a12033219d14c7b18abc0f8700b07ec2ac4a12afc860d00d6cb228` |
+| payload 内 `kernel.macho.adt` | 16,408 | `4a03da03e495e78f19f848be8ca66aeb0a8d07402bbcef1fc2cb056abf0acd40` |
+| `MSM8998PKG_UEFI.fd` | 6,291,456 | `a68b961bf8e213f06560f7c6de024a06dfd513dbc85042ef099385f86f2bde36` |
+| `boot.img` | 81,274,880 | `5e5ee46039f4ad47a4d7b4a636fd4dc47b071490a90510f81712e66ca5386b09` |
+| `package.manifest.json` | 9,552 | `c90726503b115327d4139a40579d4d8665b64d3c473f1b5349882d66917c30e5` |
 
 DTB 在全部干净构建中逐字节相同。kernel 的原始差异只落在 Mach-O UUID、960 个
 `N_OSO` 调试时间戳、派生 `_PrelinkKCID` 和 kernel build date；FD 只差

@@ -14,9 +14,10 @@ Date: 2026-11-15
 | edk2-msm8998 | `da889248ba63e3b76003e016ee8744b34aa91a01` |
 
 All runs used test platform seed `0x12345678`; these artifacts are not suitable
-for installation. Each run used the fixed downstream UniXNU commit, deleted the
-previous output root first, and ran `scripts/package.sh` with the same trust
-cache and Data seed. The UniXNU checkout was clean before and after every run.
+for installation. Each run used the fixed downstream UniXNU commit and the same
+trust cache and Data seed. The final two runs also used device commit
+`10c7d82582b0d75bb31a2098012a738f270b6ab1` from a clean clone. The UniXNU and
+device checkouts were clean before and after both final runs.
 
 ## Raw results
 
@@ -60,3 +61,31 @@ FD normalized bytes=0 ranges=0
 This is not a claim that raw image bytes are identical. The exact image that is
 executed must retain its own SHA-256, and the diagnostic build remains unsuitable
 for hardware installation because it uses the test platform seed.
+
+## Final clean-commit validation
+
+Two additional builds used clean device commit
+`10c7d82582b0d75bb31a2098012a738f270b6ab1`:
+
+| Run | Kernel SHA-256 | FD SHA-256 |
+| --- | --- | --- |
+| A | `147eb7f4c9345c06f762f64f5c1a7d67eb1506f32c687287571669a3521d3cd1` | `a68b961bf8e213f06560f7c6de024a06dfd513dbc85042ef099385f86f2bde36` |
+| B | `0e9827283217ca8e89999911c51e0605baa52ad1a8acace7d96146b9d582b5c6` | `361a0395b0548bbd8cd8eaf401661102f0c0540b6342a4284f5cf6c8cc92c594` |
+
+The DTB remained byte-identical at
+`3809aa23a82a409735b32af07a9cbe9118257a8b0ed03062994ac5b2931f755b`.
+The two kernel files differed in 44 bytes across 6 ranges; the FD differed in
+4 bytes inside the embedded `HH:MM:SS` build time. After the same enumerated
+normalization, both comparisons again reported:
+
+```text
+kernel normalized bytes=0 ranges=0
+FD normalized bytes=0 ranges=0
+```
+
+The final run's boot image and payload hashes are
+`c5d78fac2d0d03d1a72880c3ff2f188ece077a43ecc63c65ce3b572d1564bb10`
+and
+`a983534d60d8cb038a5de05617e9d767416aa0233e46e24677cc13c861a1eaac`.
+Their differences from run A are expected because the kernel identity fields and
+the randomized Data handoff are embedded in those containers.
