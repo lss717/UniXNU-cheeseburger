@@ -2033,6 +2033,21 @@ probe boot     E22C09C0FE8CE73FBCE3FCF930874D3F2B2D24ACA348084F949E87BE8D3959BC
 topology 返回到 `_thread_bootstrap` 之间。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-thread-bootstrap-probe`。
 
+`_thread_bootstrap` 入口探针立即重启，证明 two-cluster 修复后该函数已到达。
+新 kernel 的下一条调用是 `_machine_set_current_thread`，下一探针选择其入口：
+
+```text
+reset VA       0xFFFFFFF0073F3730
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   1F75078F41829E4953ACC108DEB1FFF5882E742BCC6CF48651E2D1DFB175A881
+probe payload  F723514ABD17D4DBC52C39771E12F821098A2DE32DB8739DDE97FE1A36FF0832
+probe boot     A71C632689258B0E30C1FA4A7700499889F56E991BA95AF7FE7AF01A2C30413C
+```
+
+立即 reset 表示 `_thread_bootstrap` 已返回；不 reset 表示仍停在该函数内部。
+Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-machine-thread-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
