@@ -2096,6 +2096,21 @@ probe boot     940B67893214314ECCDAE4D9CA8435728A024F6E12F886A7CB94757FA9F73686
 Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-kdebug-string-probe`。
 
+`_kernel_debug_string_early` 入口探针立即重启，证明 `_rtclock_early_init` 已返回。
+下一探针选择紧随其后的 `_kernel_startup_bootstrap` 入口：
+
+```text
+reset VA       0xFFFFFFF00798ED24
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   1209A8F880D66A80D1AB35914A9C913FCB028812AB89F780D1027782445B4E79
+probe payload  EAE008DE36241397830B9820C3B35D10AAF082D771839B4B96321066EEE67739
+probe boot     3FA4238BC8C11AF534BBDD1D90A8EAAAA69F358E9BDB3B5F2D11B906FD7F3C56
+```
+
+立即 reset 表示 early debug-string 调用已返回；不 reset 表示仍停在该路径。
+Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-kernel-startup-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
