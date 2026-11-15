@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "collected_date": "2026-11-15",
+  "device": {
+    "codename": "cheeseburger",
+    "product": "omni_cheeseburger",
+    "model": "ONEPLUS A5000",
+    "state": "recovery",
+    "twrp_version": "3.4.0_9-10-mauronofrio",
+    "kernel": "Linux 4.4.153-blu_spark-CUSTOM #168 SMP PREEMPT Mon May 27 16:35:01 WEST 2019 aarch64",
+    "android_base": "OnePlus/OnePlus5/OnePlus5:9/PKQ1.180716.001/1902221944:user/release-keys",
+    "serial_number_recorded": false
+  },
+  "slots": {
+    "a_b_device": false,
+    "slot_suffix": "",
+    "slot": "",
+    "slot_named_partitions_present": false
+  },
+  "critical_partitions": {
+    "boot": {
+      "block": "/dev/block/sde19",
+      "bytes": 67108864,
+      "sha256": "86d734d97b29bedda17659d3c7499fd8dfc24c5bb579f6c3c32318e689ba1e55"
+    },
+    "recovery": {
+      "block": "/dev/block/sde22",
+      "bytes": 67108864,
+      "sha256": "75d09b68be17d2da6072b932796d498bd24e6428f2adf26a63c146a23258ee03"
+    },
+    "system": {
+      "block": "/dev/block/sde21",
+      "bytes": 3221225472,
+      "filesystem": "ext4",
+      "sha256": "c2ded1557ff51faf7ee06ba8e231be947f6e4665208992a8970a2a0ec9c389fe"
+    },
+    "vendor": {
+      "block": "/dev/block/sdf6",
+      "bytes": 1073741824,
+      "sha256": "f2e4e93fe68e08ddef5238719e43411bf89fb2ec60246bb4a86eac1862a24e7a"
+    },
+    "persist": {
+      "block": "/dev/block/sda2",
+      "bytes": 33554432,
+      "sha256": "fe5955e73d00d9119d8c037744afcf557c91ff278c762da005df7850399e6448"
+    },
+    "userdata": {
+      "block": "/dev/block/sda13",
+      "bytes": 68719476736,
+      "filesystem": "ext4",
+      "mounted_at": ["/data", "/sdcard"]
+    },
+    "userdata_ios": {
+      "block": "/dev/block/sda14",
+      "bytes": 52840607744,
+      "mounted": false,
+      "filesystem_autodetected": false
+    },
+    "cache": {
+      "block": "/dev/block/sda3",
+      "bytes": 268435456,
+      "filesystem": "ext4",
+      "mounted_at": "/cache"
+    },
+    "firmware": {
+      "block": "/dev/block/sde10",
+      "bytes": 115343360,
+      "filesystem": "vfat",
+      "mounted_read_only_at": "/firmware"
+    }
+  },
+  "mounts": {
+    "cache": "rw",
+    "data": "rw",
+    "sdcard": "rw",
+    "firmware": "ro",
+    "userdata_ios": "not mounted"
+  },
+  "logs": {
+    "/tmp/recovery.log": {
+      "bytes": 26504,
+      "sha256": "e1aba5f0cedaf0c0bbf761b641db06062ce5c87c0d154eb88680a309464ed8c7"
+    },
+    "/cache/recovery/last_log": {
+      "bytes": 44315,
+      "sha256": "c2637de9a8ad4b0dea050ac42f782c5257a05fd7a50b9037e7a1f117ce672e08"
+    },
+    "/cache/recovery/last_kmsg": {
+      "bytes": 137371,
+      "sha256": "29b3b1f9bc001670d707f86137092de3af6e16f6171293d87024b2302eccb601"
+    },
+    "/sdcard/TWRP/.twrps": {
+      "bytes": 1041,
+      "sha256": "148ba059e58eba9d99cf8aa206eddc0721c54ca5e9f372f79a65df9c782dbaf2"
+    }
+  },
+  "backups": {
+    "twrp_on_device": {
+      "path": "/sdcard/TWRP/BACKUPS",
+      "present": false
+    },
+    "current_state_host_snapshot": {
+      "path": "E:/WindowsData/Project/ios-backups/op5-20261115-twrp",
+      "read_only_files": true,
+      "files": {
+        "boot-current.img": {
+          "bytes": 67108864,
+          "sha256": "86d734d97b29bedda17659d3c7499fd8dfc24c5bb579f6c3c32318e689ba1e55"
+        },
+        "recovery-current.img": {
+          "bytes": 67108864,
+          "sha256": "75d09b68be17d2da6072b932796d498bd24e6428f2adf26a63c146a23258ee03"
+        }
+      }
+    },
+    "full_20261024": {
+      "host": "192.168.10.127",
+      "path": "/home/ls/UniXNU/.cache/firmware/backups/20261024-125857",
+      "size_bytes_approx": 5046586572,
+      "sha256_manifest_entries": 84,
+      "sha256_manifest_verified": true,
+      "excludes": ["userdata", "userdata_ios", "cache"],
+      "critical_sha256": {
+        "boot": "b3f8c0b470c9c9b93a4a8e18ffcdacd104df66eb5e0cdc94fde40b4759325453",
+        "recovery": "f6625f1350d8b6655a49cf89edcd93d2a8884886f5fb0863ecaeee66cb4bd2a7",
+        "system": "acb4a6217aa4390eb6e2da2f514e93588b6dee83ab918e871d01924b3b4eb892",
+        "vendor": "dbe1e60b7de6de93e20fc287a40dfa313a1861151af60a6708a8f1e30f4a3660",
+        "persist": "69c67d371854280e6846dc69818cf9c84364a9cae93b8f70ca6f17461872a8ca"
+      },
+      "matches_current_state": false
+    }
+  },
+  "build_inputs": {
+    "os_profile": "ipados-17.7.11-21H461",
+    "trust_cache": {
+      "sha256": "7416ca4f8377146626bb284e2133c76bee6cb4e3ee0af5d648b186235a7323a7",
+      "matches_recorded_profile_input": true
+    },
+    "data_seed": {
+      "sha256": "d474b36616dca3227beb09243276e20818e32b11f55ad0cc2c3f1d5c0a656d41",
+      "matches_recorded_profile_input": true
+    }
+  },
+  "platform_seed": {
+    "status": "blocked",
+    "reason": "UNIXNU_UNIQUE_CHIP_ID is a synthetic 64-bit software identity seed, not an Apple or Qualcomm hardware ID. TWRP exposes no canonical value, and the executed H403 ADT omitted this property. No previously qualified non-test value was found."
+  },
+  "candidate_image": {
+    "status": "not_built",
+    "reason": "A real platform seed has not been supplied or safely established."
+  },
+  "device_writes_performed": false
+}

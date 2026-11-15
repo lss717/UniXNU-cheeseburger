@@ -1112,6 +1112,154 @@ debug-enabled=1
 6. 在 GitHub Actions 上实际运行固定 downstream commit 的 package workflow；
 7. 更新 porting record 的实机 evidence 和最终发布声明。
 
+## 2026-11-15 TWRP 实机验证入口
+
+当前 OnePlus 5 已通过 ADB 连接，主机识别结果为：
+
+```text
+state: recovery
+product: omni_cheeseburger
+model: ONEPLUS_A5000
+device: cheeseburger
+```
+
+这表示 format 2 工作可以进入实机准备阶段，但不改变上文的验收边界：测试 seed
+`0x12345678` 生成的产物仍然禁止上机，主机侧构建成功也不能代替启动证据。
+
+### 本轮执行边界
+
+1. 第一轮只允许只读采集：设备属性、当前槽位、分区表、boot 分区大小、挂载状态、
+   TWRP/内核版本和可用日志路径。
+2. 在任何写入前，必须确认设备代号为 `cheeseburger`，记录当前 active slot，并保存
+   当前 boot 镜像或确认存在可恢复的已知良好备份。
+3. 必须取得真实 `UNIXNU_UNIQUE_CHIP_ID`，并确认 trust cache、Data ramdisk/seed 与该
+   设备和目标系统版本匹配；不得把测试 seed 替换成猜测值。
+4. 使用真实输入重新构建后，记录 boot image SHA-256、所有固定 source revision、构建
+   参数和 manifest；实机日志只能绑定到这一唯一镜像。
+5. 首次启动优先采用可恢复、非持久化的启动方式；如果设备/bootloader 不支持，则在
+   明确恢复路径和精确目标分区后再单独决定是否写入。
+6. 未经单独确认，不得执行 `fastboot flash`、`adb shell dd`、分区擦除、格式化、修改
+   GPT、切换槽位或覆盖 recovery/boot 等关键分区。
+7. 首轮只验证最早检查点：BootShim、UEFI 串口/屏幕、DarwinBoot。只有前一检查点有
+   明确证据后，才继续 XNU、BSD/IOKit 和 UFS 路径测试。
+
+### 立即执行顺序
+
+1. 采集并保存 TWRP 只读基线，脱敏记录设备标识，不把私有 seed 写入仓库或日志。
+2. 核对本机是否已有该设备的 stock/current boot 备份及恢复工具。
+3. 定位真实 platform seed 的可靠来源；若 TWRP 不能安全提供，则记录阻塞，不猜测。
+4. 核对 trust cache 和 Data ramdisk 的来源、系统版本和哈希。
+5. 在 macOS 构建机使用固定 downstream revision 生成新的 diagnostic boot image，并运行
+   47 项 ADT、manifest、镜像结构和 SHA-256 检查。
+6. 输出“候选镜像信息 + 恢复步骤 + 首次启动命令”供人工确认；在得到确认前不写设备。
+7. 首次启动后按 BootShim -> UEFI -> DarwinBoot -> XNU 的顺序保存原始日志，并将最后
+   成功点及失败签名更新回本文档和 porting evidence。
+
+### 本轮完成条件
+
+- TWRP 基线和恢复路径已记录；
+- 真实 seed 与私有输入已核验，或明确记录无法安全取得的阻塞；
+- 候选 boot image 使用真实输入构建并拥有唯一 SHA-256；
+- 给出不会混淆 boot/recovery/slot 的精确启动或写入方案；
+- 在实际写设备前保留独立人工确认点。
+
+### 2026-11-15 只读基线结果
+
+机器可读记录保存在
+`docs/migration/twrp-baseline-2026-11-15.json`。本轮没有写入设备，没有执行
+`fastboot flash`、`adb shell dd` 写入、erase、format、GPT 修改或槽位切换。
+
+| 项目 | 实测结果 |
+| --- | --- |
+| 设备 | `cheeseburger` / `omni_cheeseburger` / ONEPLUS A5000 |
+| 状态 | TWRP recovery |
+| TWRP | `3.4.0_9-10-mauronofrio` |
+| Recovery kernel | Linux `4.4.153-blu_spark-CUSTOM #168` |
+| A/B slot | 无；slot property 为空，分区表中没有 `_a`/`_b` |
+| `boot` | `/dev/block/sde19`，64 MiB，SHA-256 `86d734d97b29bedda17659d3c7499fd8dfc24c5bb579f6c3c32318e689ba1e55` |
+| `recovery` | `/dev/block/sde22`，64 MiB，SHA-256 `75d09b68be17d2da6072b932796d498bd24e6428f2adf26a63c146a23258ee03` |
+| `system` | `/dev/block/sde21`，3 GiB，ext4 |
+| `userdata` | `/dev/block/sda13`，64 GiB，ext4，当前挂载于 `/data` 和 `/sdcard` |
+| `userdata_ios` | `/dev/block/sda14`，49.212 GiB，当前未挂载，`blkid` 未识别文件系统 |
+| `cache` | `/dev/block/sda3`，256 MiB，ext4，挂载于 `/cache` |
+| `firmware` | `/dev/block/sde10`，110 MiB，vfat，只读挂载于 `/firmware` |
+
+TWRP 的 `/sdcard/TWRP/BACKUPS` 为空。为避免后续误操作，已经通过只读读取把当前
+`boot` 和 `recovery` 保存到仓库外的
+`E:\WindowsData\Project\ios-backups\op5-20261115-twrp`，两个文件均为 64 MiB、
+只读属性，主机 SHA-256 与设备侧计算结果一致。
+
+用户指出的 `192.168.10.127` 上存在完整备份：
+
+```text
+/home/ls/UniXNU/.cache/firmware/backups/20261024-125857
+```
+
+该备份的 `SHA256SUMS` 共 84 项，已全部校验成功；包含全部命名系统分区以及
+sda–sdf 的主/备 GPT。它明确不包含 `userdata`、`userdata_ios` 和 `cache`。
+
+该备份不是当前状态的快照：
+
+| 分区 | 2026-10-24 备份 | 当前设备 |
+| --- | --- | --- |
+| `boot` | `b3f8c0b4...9325453` | `86d734d9...ba1e55` |
+| `recovery` | `f6625f13...bd2a7` | `75d09b68...58ee03` |
+| `system` | `acb4a621...3b892` | `c2ded155...c389fe` |
+| `vendor` | `dbe1e60b...e360` | `f2e4e93f...e24e7a` |
+| `persist` | `69c67d37...a8ca` | `fe5955e7...9e6448` |
+
+因此它可作为“恢复 2026-10-24 Android 系统基线”的完整回滚包，但不能当作当前
+`userdata`/`userdata_ios` 的备份，也不能在未确认的情况下用它覆盖当前系统。
+
+可用日志与只读哈希：
+
+| 路径 | 大小 | SHA-256 |
+| --- | ---: | --- |
+| `/tmp/recovery.log` | 26,504 | `e1aba5f0cedaf0c0bbf761b641db06062ce5c87c0d154eb88680a309464ed8c7` |
+| `/cache/recovery/last_log` | 44,315 | `c2637de9a8ad4b0dea050ac42f782c5257a05fd7a50b9037e7a1f117ce672e08` |
+| `/cache/recovery/last_kmsg` | 137,371 | `29b3b1f9bc001670d707f86137092de3af6e16f6171293d87024b2302eccb601` |
+
+### 当前构建阻塞：真实 platform seed 不存在可由 TWRP 直接读取的权威值
+
+`scripts/make-cheeseburger-adt.py` 明确把 `unique-chip-id` 定义为 8 字节
+**软件身份 seed**，用于生成 XNU `IOPlatformUUID`，不是 Apple/Qualcomm 硬件 ID。
+TWRP 中没有对应的标准属性或分区字段；已经执行过的 H403 payload ADT 也完全没有
+`unique-chip-id` 属性。当前仓库、`192.168.10.127` 的构建记录和已有 H403 产物中都
+没有找到曾经用于真实设备的非测试值。
+
+因此本轮不能安全地构造 `UNIXNU_UNIQUE_CHIP_ID`，也不会用测试值
+`0x12345678` 冒充真实值。候选镜像状态为 **not built**。解除阻塞需要用户二选一：
+
+1. 提供此前已用于该设备、可追溯的非测试 64-bit seed；或
+2. 明确授权生成一个新的软件身份 seed，并规定其安全保存位置。
+
+Trust cache 和 Data seed 已与固定构建记录核对：
+
+```text
+OS profile: ipados-17.7.11-21H461
+trust cache SHA-256: 7416ca4f8377146626bb284e2133c76bee6cb4e3ee0af5d648b186235a7323a7
+Data seed SHA-256: d474b36616dca3227beb09243276e20818e32b11f55ad0cc2c3f1d5c0a656d41
+```
+
+两者均匹配 `host-build-2026-11-15.md` 中记录的 21H461 构建输入。由于 platform
+seed 阻塞，本轮没有生成新的候选 boot image，也没有可在确认后执行的候选 SHA-256。
+
+### 获得真实 seed 后的非持久启动方案
+
+设备是 A-only，历史 H380–H403 也使用过 `fastboot boot`，因此首选不写分区的启动：
+
+```sh
+# 仅在用户再次确认后执行
+adb reboot bootloader
+fastboot devices
+fastboot boot <candidate-diagnostic-boot.img>
+```
+
+该方案不执行 `fastboot flash`，不改变 `boot`、`recovery`、GPT 或槽位。失败时优先
+重启回 Android/TWRP；若 bootloader 状态异常，再基于已校验的当前状态备份或
+2026-10-24 整机备份制定单独恢复操作。任何 raw 分区写回仍必须再次确认目标分区和
+SHA-256。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
