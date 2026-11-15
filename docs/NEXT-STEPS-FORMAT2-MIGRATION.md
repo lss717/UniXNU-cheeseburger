@@ -2248,6 +2248,21 @@ probe boot     CC1E5F634795FB941F96893C124BA9A48B63A6EF00CA69D64026E2EA9593E191
 不 reset 表示停点位于 `_task_init` 之前。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-task-init-probe`。
 
+`_task_init` 入口探针立即重启，证明该函数之前的初始化链已返回。下一探针取后段中界
+`_exception_init` 入口：
+
+```text
+reset VA       0xFFFFFFF00727C0A8
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   56DEA4B205C345E5825A885713373182FF80D88EEA624A92A4A776F0C26CB86F
+probe payload  788CC3E6463C6CB1CB011F532809937764086B7B060F442543E3D37F2BC23204
+probe boot     0F731CC2BFBD8447A7BDC53C5CBDB774F377A6E95EDDB477E7C15FAAD255A1CD
+```
+
+立即 reset 表示 task、thread、workqueue、turnstile 和 host-statistics 初始化均已
+返回；不 reset 表示停点位于 `_exception_init` 之前。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-exception-init-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
