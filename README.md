@@ -16,13 +16,17 @@ device layers. The selected OS identity is iPad7,1 / iPadOS 17.7.11 (21H461).
 | Kernel and payload | Built on macOS; payload ADT checks passed |
 | Package | Built on macOS with matched LLVM 20 clang/lld |
 | Firmware and boot image | Built on macOS with CLANG38 + LLD; boot-image checks passed |
-| Hardware boot checkpoint | Not re-qualified after the migration |
+| Hardware boot checkpoint | Graphical UEFI and IOS dispatch reached; DarwinBoot 4 GiB window allocation failed |
 | UFS formal root path | Unresolved; A/B/C/D matrix pending |
 | Release security chain | Not complete |
 
 The format 1 source and resolver output are preserved under
 `docs/migration/`. Historical device results remain format 1 evidence and are
 not presented as format 2 results.
+
+The device keeps Android `/data` in the 64 GiB `userdata` partition and the iOS
+SHNGROOT target in the separate 49.212 GiB `userdata_ios` partition. Never flash
+the Android `userdata` partition with an iOS image.
 
 ## Repositories
 
@@ -44,9 +48,9 @@ GitHub workflow can resolve it without a local override.
 
 The format 2 build uses the fixed
 `lss717/UniXNU:upstream-format2-cheeseburger` commit
-`d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e`. The branch is based directly on
+`7d3f04d4e4b32fcbd61fca7651475aecbfc82a5d`. The branch is based directly on
 official `578ae75c8e7356d4d562bcfc294ab26dfe640a31`; its DarwinBoot submodule
-is pinned to `2ba9cad556f1794fb74ac8af164bc34b0e096338`. The package script
+is pinned to `d90c9113836d61af3e90285d873cae9edd528d09`. The package script
 verifies the commit, clean worktree and merge base, but never applies patches at
 build time.
 

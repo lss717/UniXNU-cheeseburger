@@ -365,7 +365,7 @@ public:
   char *getVendorString () override { return const_cast<char *> ("Native"); }
   char *getProductString () override { return label; }
   char *getRevisionString () override { return const_cast<char *> ("1.0"); }
-  char *getAdditionalDeviceInfoString () override { return const_cast<char *> ("UFS LUN 0 userdata window, read-only"); }
+  char *getAdditionalDeviceInfoString () override { return const_cast<char *> ("UFS LUN 0 userdata_ios window, read-only"); }
   IOReturn reportBlockSize (UInt64 *value) override { *value = 512; return kIOReturnSuccess; }
   IOReturn reportEjectability (bool *value) override { *value = false; return kIOReturnSuccess; }
   IOReturn reportMaxValidBlock (UInt64 *value) override { *value = bytes / 512 - 1; return kIOReturnSuccess; }
@@ -816,7 +816,7 @@ bool NativeUfs::prepareRootWindows ()
 
   if (layout->manifestStatus != 0) {
     rootDiagnosticFailure ("root manifest rejected");
-    IOLog ("NativeUfs: no valid root manifest in userdata (status %u, magic %08x %08x)\n",
+    IOLog ("NativeUfs: no valid root manifest in userdata_ios (status %u, magic %08x %08x)\n",
            layout->manifestStatus, layout->magic0, layout->magic1);
     IOFree (layout, sizeof (RootLayout));
     return false;

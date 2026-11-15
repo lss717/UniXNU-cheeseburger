@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: lss717/UniXNU
-          ref: d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e
+          ref: 7d3f04d4e4b32fcbd61fca7651475aecbfc82a5d
           path: references/UniXNU
           submodules: recursive
           fetch-depth: 0

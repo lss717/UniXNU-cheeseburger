@@ -36,10 +36,13 @@ chip_id = 0x8011
 board_id = 12
 fetch = ["KernelCache", "DeviceTree", "StaticTrustCache", "Cryptex1,SystemTrustCache"]
 
-# Measured on the phone on 2026-10-22 with CheeseburgerInfo.efi:
-# LUN0 has 29,763,584 blocks of 4096 bytes; userdata is 29,677,755 blocks.
+# The phone has two distinct data partitions. "userdata" is the 64 GiB
+# Android ext4 /data volume. "userdata_ios" is the 49.212 GiB iOS SHNGROOT
+# target. The official build schema names this table [userdata], but these
+# geometry values describe userdata_ios so the generated image is never
+# written over Android /data.
 [userdata]
-first_lba = 0x14f40
+first_lba = 0x1014f40
 last_lba = 0x1c627fa
 lba_bytes = 4096
 
@@ -148,7 +151,7 @@ kernel_args = [
 # sidecar placeholders. Only board-owned payload inputs remain here.
 chip_id = "0x8011"
 unique_chip_id = "required"
-owned_memory_size = "0x100000000"
+owned_memory_size = "0x08000000"
 packed_data_ramdisk = true
 root_match_volume_uuid = "04769D26-2CA0-4825-B443-E2E5F88300F2"
 
@@ -160,7 +163,7 @@ include_dirs = ["soc:dts"]
 unixnu = "../references/UniXNU"
 unixnu_repository = "https://github.com/lss717/UniXNU"
 unixnu_upstream_base = "578ae75c8e7356d4d562bcfc294ab26dfe640a31"
-unixnu_downstream_revision = "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e"
+unixnu_downstream_revision = "7d3f04d4e4b32fcbd61fca7651475aecbfc82a5d"
 
 [package.defconfig]
 "ipados-17.7.11-21H461" = "cheeseburger_defconfig"

@@ -1184,6 +1184,20 @@ device: cheeseburger
 | `cache` | `/dev/block/sda3`，256 MiB，ext4，挂载于 `/cache` |
 | `firmware` | `/dev/block/sde10`，110 MiB，vfat，只读挂载于 `/firmware` |
 
+这台手机的数据区已经拆成两个独立分区，不能继续把旧的 113 GiB 单一
+`userdata` 几何当作当前事实：
+
+| 分区 | GPT/LBA | 角色 |
+| --- | --- | --- |
+| `userdata` | `0x014F40..0x1014F3F` | Android ext4 `/data`，64 GiB |
+| `userdata_ios` | `0x1014F40..0x1C627FA` | iOS SHNGROOT/Data 目标，49.212 GiB |
+
+`scripts/NativeUfsProbe` 和修复后的 `scripts/RootLayout.h` 必须按 GPT 名称选择
+`userdata_ios`，绝对窗口地址以它的 first LBA 为基准。官方 build schema 仍把
+分区几何表命名为 `[userdata]`；`board.toml` 在此表中填写的是
+`userdata_ios` 的 `first_lba = 0x1014F40`，避免生成的 iOS 镜像覆盖 Android
+的 64 GiB `/data`。任何 `fastboot flash userdata` 都不是本项目的 iOS 安装命令。
+
 TWRP 的 `/sdcard/TWRP/BACKUPS` 为空。为避免后续误操作，已经通过只读读取把当前
 `boot` 和 `recovery` 保存到仓库外的
 `E:\WindowsData\Project\ios-backups\op5-20261115-twrp`，两个文件均为 64 MiB、
@@ -1276,8 +1290,9 @@ edk2-msm8998:      da889248ba63e3b76003e016ee8744b34aa91a01
 
 构建通过 47 项 ADT、FD/FV、boot header/load range、payload label/member、
 manifest revision 和 SHA-256 检查。已确认 seed 明文不在构建日志和 manifest 中。
-该镜像尚未上机。完整产物表在
-`docs/migration/device-candidate-2026-11-15.md`。
+该镜像已进行一次非持久实机启动。候选产物表在
+`docs/migration/device-candidate-2026-11-15.md`，实机结果在
+`docs/migration/device-run-2026-11-15-01.md`。
 
 ### 非持久启动方案
 
@@ -1294,6 +1309,150 @@ fastboot boot E:\WindowsData\Project\ios-backups\op5-20261115-candidate\boot.img
 重启回 Android/TWRP；若 bootloader 状态异常，再基于已校验的当前状态备份或
 2026-10-24 整机备份制定单独恢复操作。任何 raw 分区写回仍必须再次确认目标分区和
 SHA-256。
+
+### 2026-11-15 首次非持久实机启动结果
+
+实机启动严格绑定到 boot SHA-256：
+
+```text
+935a54dfe1afa622e4bfad6cdd9ed4cd8a04190fa9021d7f2cae7e3e1eb36c06
+```
+
+执行路径：
+
+```text
+adb reboot bootloader
+fastboot product: msm8998
+fastboot boot: Sending OKAY; Booting OKAY
+```
+
+现场先显示完整图形 UEFI 菜单。用户手动选择 `OnePlus 5 IOS` 后，DarwinBoot
+短暂运行并很快返回同一个菜单；超过 30 秒主机没有 ADB/Fastboot 枚举。该轮没有
+flash、dd、erase、format、GPT 或槽位操作。
+
+| 检查点 | 状态 |
+| --- | --- |
+| BootShim / FD / UEFI | 已到达 |
+| UniXNU EFI application 和图形菜单 | 已到达 |
+| `OnePlus 5 IOS` 启动项派发 | 已到达 |
+| DarwinBoot window allocation | 失败，`EFI_OUT_OF_RESOURCES` |
+| DarwinBoot kernel handoff | 未到达 |
+| XNU | 未到达 |
+
+静态上，候选 `unixnu.toml` 为 `timeout = 3`、`default = "xnu"`，菜单项为
+`OnePlus 5 IOS`、`Restart`、`Power off`。候选 ADT 请求 4 GiB DarwinBoot
+window（`0x100000000`），但没有 `darwinboot-memory-excluded`，因此当前
+DarwinBoot 会走要求单段连续空间的 `AllocateWindow` 路径。
+
+照片中实际出现：
+
+```text
+NO WINDOW 100000000 BIG RUN FCCD0000 @ 1800000
+FREE ...
+```
+
+该字符串由 DarwinBoot `AllocateWindow` 在连续窗口分配失败后直接写 framebuffer：
+
+```text
+NO WINDOW %lx BIG RUN %lx @ %lx
+```
+
+数值换算为：
+
+| 项目 | 值 |
+| --- | --- |
+| 请求 | `0x100000000` = 4 GiB |
+| 最大连续 run | `0xFCCD0000` = 3.950012 GiB |
+| run 起始 | `0x01800000` |
+| run 结束（不含） | `0xFE4D0000` |
+| 相对 4 GiB 缺口 | `0x03330000` = 51.188 MiB |
+
+因此不是布局重叠，也不是 XNU panic：当前 UEFI memory map 没有任何单个
+`EfiConventionalMemory` run 能满足 4 GiB 请求。`AllocateWindow` 返回
+`EFI_OUT_OF_RESOURCES`，DarwinBoot 返回 UniXNU loader protocol，
+`UniXNUBootEntry` 再把状态传回 `Main.c`，菜单因此以无倒计时状态重绘。
+状态没有被吞掉；菜单还应有一条较小的 `'OnePlus 5 IOS' returned:
+Out of Resources` 提示，但当前照片说明没有记录到它。
+
+boot image 的加载范围本身没有重叠：
+
+```text
+kernel   0x10000000 + 0x181B63
+ramdisk  0x12000000 + 0x04C00000
+tags     0x18000000
+```
+
+这些范围本身不能解释 51.188 MiB 的缺口，决定性证据仍是 UEFI 最长连续 run。
+
+历史 H380–H403 均通过非持久 `fastboot boot` 进入 XNU/IOKit；H403 日志持续到
+约 687 秒，包含 UFS alive、GIC/timer 和用户态容器活动。这说明当前设备与 ABL
+本身能够通过 BootShim、UEFI 和 DarwinBoot，但那些轮次没有保存 UEFI 屏幕文字，
+不能直接解释本次 format 2 的最终画面。
+
+需要优先匹配的最后一行：
+
+| 最后一行 | 最小解释 |
+| --- | --- |
+| `Booting OnePlus 5 IOS in N s` 且不再变化 | 停在 UniXNU 菜单倒计时/定时器路径 |
+| `Select an entry` 位于仍存活的菜单底部 | 启动项已返回，菜单关闭倒计时并等待下一次输入 |
+| `'OnePlus 5 IOS' returned: Out of Resources` | 菜单仍存活，DarwinBoot 已返回并报告资源不足 |
+| `NO WINDOW 100000000 BIG RUN ...` | 4 GiB 连续窗口分配失败，已确认根因 |
+| `DARWINBOOT: unsupported inputs or exception level` | loader 收到不支持的请求或异常级 |
+| `DARWINBOOT: ramdisk layout rejected` | Data RAMDisk 布局校验失败 |
+| `DARWINBOOT: boot args rejected at ...` | command line 字符或长度校验失败 |
+| `DARWINBOOT: boot refused: ...` | DarwinBoot 已知失败并返回固件 |
+| `DARWINBOOT: inputs validated; exiting boot services` | DarwinBoot 已到 EBS 前，XNU 仍未证明 |
+| `DARWINBOOT: hand-off to the kernel` | loader 已完成 handoff，XNU 入口仍需色带/日志证明 |
+| `Shell>` 或 `UEFI Shell` | UniXNU application 未启动 |
+| OnePlus logo / 黑屏 | 停在 UEFI 之前 |
+
+完整证据和恢复按键方案见
+`docs/migration/device-run-2026-11-15-01.md`。该方案只描述操作，本轮没有执行
+恢复按键。
+
+### 第二版窗口修复：128 MiB
+
+历史 H236br–H236bu 已经在同型号、同固件上做过单次 `AllocatePages` 尺寸实验：
+
+- 256 MiB 在多个地址、两种内存类型和两种分配方式下全部返回
+  `EFI_OUT_OF_RESOURCES`；
+- 128 MiB 固定分配成功。
+
+因此不能只把 4 GiB 改成“略小于 `0xFCCD0000`”的 3.75 GiB；那仍会超过该
+固件的单次分配上限。第二版选择 `owned_memory_size = 0x08000000`（128 MiB）：
+
+| 项目 | 数值 |
+| --- | ---: |
+| 窗口 | 134,217,728 B（128 MiB） |
+| kernel | 52,043,776 B |
+| packed Data seed | 4,370,688 B |
+| trust cache | 61,356 B |
+| ADT | 16,408 B |
+| 已知文件合计 | 56,492,228 B（53.875 MiB） |
+| 扣除文件后的余量 | 77,725,500 B（74.125 MiB） |
+
+余量用于 16 KiB 对齐、boot args、Mach-O 段空洞、sidecar 头部和 XNU 早期页表，
+同时仍低于已经实测成功的 128 MiB 分配上限。
+
+对应代码改动：
+
+- DarwinBoot `d90c9113836d61af3e90285d873cae9edd528d09` 允许 128 MiB 下限；
+- downstream UniXNU `7d3f04d4e4b32fcbd61fca7651475aecbfc82a5d` 允许 ADT
+  生成器接受 128 MiB 窗口；
+- 设备 `board.toml` 固定新 downstream revision 和 `0x08000000`。
+
+第二版将使用同一组固定输入重建 ADT、payload、FD 和 boot image，并重新执行
+47 项 ADT、FD/FV、boot header、payload、manifest 和 SHA-256 检查。第一版
+boot image 和失败证据保持不变。
+
+暂不启用 `darwinboot-memory-excluded`。当前 iPadOS 17.7.11 profile 没有
+`window-memory-excluded-ranges.patch`，直接发布 excluded 属性会声明一个
+目标内核尚未证明支持的能力。
+
+若必须在改窗口前再次截取明确 EFI_STATUS，最小诊断补丁位于 DarwinBoot 子模块：
+在 allocation error 后用 `DiagDraw` 显示
+`NO KERNEL WINDOW %r size=0x...`，并 `Stall` 15 秒再返回。当前照片和
+`AllocateWindow` 源码路径已经足以确认本次失败，因此该补丁不是继续修复的前置条件。
 
 ## 官方参考
 

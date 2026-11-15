@@ -3,8 +3,8 @@
 Date: 2026-11-15
 
 This directory records the static migration from the fork-specific format 1
-device file to the official format 2 profile architecture. It does not record a
-new hardware boot.
+device file to the official format 2 profile architecture and the first
+non-persistent hardware dispatch.
 
 ## Baseline revisions
 
@@ -12,8 +12,8 @@ new hardware boot.
 | --- | --- | --- |
 | `UniXNU-cheeseburger` | `0c66d9998a91da526a2de1bad0e58d4f1847c88f` | Starting device revision |
 | Official `UniXNU/UniXNU` reference | `578ae75c8e7356d4d562bcfc294ab26dfe640a31` | Resolver baseline |
-| `lss717/UniXNU:upstream-format2-cheeseburger` | `d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e` | Formal downstream build input |
-| `lss717/DarwinBoot:upstream-format2-cheeseburger` | `2ba9cad556f1794fb74ac8af164bc34b0e096338` | Pinned submodule from official `5243c68e` |
+| `lss717/UniXNU:upstream-format2-cheeseburger` | `7d3f04d4e4b32fcbd61fca7651475aecbfc82a5d` | Current downstream build input |
+| `lss717/DarwinBoot:upstream-format2-cheeseburger` | `d90c9113836d61af3e90285d873cae9edd528d09` | Current submodule; 128 MiB window support based on official `5243c68e` |
 | `UniXNU-msm8998-common` | `8227828eb1706b51aea9762bd46006328d91db26` | Current shared source pin |
 | `lss717/edk2-msm8998` | `da889248ba63e3b76003e016ee8744b34aa91a01` | Firmware build input |
 
@@ -63,6 +63,17 @@ Existing checkpoints from the UniXNU plan and status record:
 
 These remain historical format 1 results. They are not evidence for the new
 format 2 image.
+
+The first format 2 hardware dispatch has separate evidence in
+`device-run-2026-11-15-01.md`:
+
+| Checkpoint | Format 2 result |
+| --- | --- |
+| BootShim / FD / UEFI | Reached |
+| UniXNU graphical menu | Reached |
+| `OnePlus 5 IOS` dispatch | Reached |
+| DarwinBoot `AllocateWindow` | Failed `EFI_OUT_OF_RESOURCES`; longest run `0xFCCD0000` for a 4 GiB request |
+| DarwinBoot handoff / XNU | Not reached |
 
 ## Migration changes
 
@@ -130,7 +141,8 @@ the formal root storage implementation.
 3. The format 1/format 2 ADT comparison is recorded in the two ADT diff files.
 4. `porting-record.py check` reports 13 structured areas checked.
 5. The host-side macOS kernel, payload, EFI package, FD, boot image and ADT
-   checks are complete. The first hardware checkpoint remains pending.
+   checks are complete. The first hardware dispatch reached the menu and
+   DarwinBoot, then stopped at the 4 GiB contiguous-window allocation.
 
 The MSM8998 common revision
 `8227828eb1706b51aea9762bd46006328d91db26` is pinned by `feeds.toml` and

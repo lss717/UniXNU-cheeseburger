@@ -4,13 +4,13 @@
 // ---- LUN 0 GPT and the root-image manifest -------------------------------------------------
 struct RootWindow {
   char name[32];
-  uint64_t offset;   // bytes from the start of the userdata partition
+  uint64_t offset;   // bytes from the start of the userdata_ios partition
   uint64_t size;     // bytes
   uint8_t sha256[32];
 };
 
 struct RootLayout {
-  uint64_t userdataFirst, userdataLast;   // 4096-byte LBAs on LUN 0
+  uint64_t userdataFirst, userdataLast;   // userdata_ios LBAs on LUN 0
   uint64_t imageBytes;                    // size of the flashed root image from the manifest (0 when none)
   uint64_t gptEntriesLba;                 // GPT facts recorded for the persistent store's before/after comparison
   uint32_t gptHeaderCrc, gptEntriesCrc, gptEntryCount;
@@ -54,8 +54,10 @@ static bool rootEntryUsed (const uint8_t *entry)
   return used != 0;
 }
 
-// Find the partition named "userdata" in LUN 0's primary GPT (4096-byte sectors), then read the
-// manifest at its first block. Read-only. Returns false only if the GPT itself is unusable.
+// Find userdata_ios in LUN 0's primary GPT (4096-byte sectors), then read the
+// manifest at its first block. The Android partition named userdata is a
+// separate ext4 /data volume and must never be selected here. Read-only.
+// Returns false only if the GPT itself is unusable.
 static bool findRootLayout (RootLayout *layout, const char **why)
 {
   gRootDiagnostic.stage = "GPT header";
@@ -103,7 +105,7 @@ static bool findRootLayout (RootLayout *layout, const char **why)
     *why = "GPT entries CRC";
     return false;
   }
-  static const char wanted[] = "userdata";
+  static const char wanted[] = "userdata_ios";
   bool found = false;
   for (uint32_t index = 0; index < count; index++) {
     const uint8_t *entry = gScratch + index * 128;
@@ -129,7 +131,7 @@ static bool findRootLayout (RootLayout *layout, const char **why)
     }
     if (match) {
       if (found) {
-        *why = "duplicate userdata partition";
+        *why = "duplicate userdata_ios partition";
         return false;
       }
       layout->userdataFirst = le64 (entry + 32);
@@ -138,15 +140,15 @@ static bool findRootLayout (RootLayout *layout, const char **why)
     }
   }
   if (!found || layout->userdataLast < layout->userdataFirst) {
-    *why = "no userdata partition";
+    *why = "no userdata_ios partition";
     return false;
   }
   gRootDiagnostic.first = layout->userdataFirst;
   gRootDiagnostic.last = layout->userdataLast;
   gRootDiagnostic.stage = "root manifest";
-  // First block of the partition: manifest if the root image was flashed, ext4 otherwise.
+  // First block: SHNGROOT normally; no manifest means the iOS partition is unformatted.
   if (hostRead4k (0, layout->userdataFirst, 1, gScratch) != kIOReturnSuccess) {
-    *why = "userdata first block read";
+    *why = "userdata_ios first block read";
     return false;
   }
   layout->magic0 = le32 (gScratch);

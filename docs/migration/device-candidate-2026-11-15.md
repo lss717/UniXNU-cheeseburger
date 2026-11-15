@@ -58,7 +58,10 @@ All 47 ADT checks passed. FD/FV, boot header/load ranges, payload label, payload
 members, manifest revisions and SHA-256 checks passed. The seed was explicitly
 checked to be absent from the build log and manifest.
 
-The candidate has not been booted on hardware.
+The candidate was subsequently booted non-persistently on hardware. It reached
+the graphical UniXNU menu and dispatched `OnePlus 5 IOS`; DarwinBoot then failed
+its 4 GiB contiguous window allocation and returned to the menu. The full result
+is in `docs/migration/device-run-2026-11-15-01.md`.
 
 ## Recovery state
 
@@ -78,10 +81,9 @@ The verified 2026-10-24 full Android system backup remains at:
 It contains all named system partitions and sda-sdf GPTs, but does not contain
 `userdata`, `userdata_ios`, or `cache`.
 
-## Proposed first boot
+## First boot command
 
-Execution still requires a new user confirmation. The preferred non-persistent
-path is:
+The executed non-persistent path was:
 
 ```sh
 adb reboot bootloader

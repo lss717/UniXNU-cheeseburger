@@ -28,13 +28,13 @@ id = "firmware"
 status = "implemented"
 components = ["DarwinBoot"]
 paths = ["proprietary-files.txt", ".github/workflows/package.yml"]
-inputs = ["DarwinBoot is pinned to downstream revision 2ba9cad556f1794fb74ac8af164bc34b0e096338; firmware comes from lss717/edk2-msm8998 da889248ba63e3b76003e016ee8744b34aa91a01."]
+inputs = ["DarwinBoot is pinned to downstream revision d90c9113836d61af3e90285d873cae9edd528d09; firmware comes from lss717/edk2-msm8998 da889248ba63e3b76003e016ee8744b34aa91a01."]
 configuration = ["The payload keeps loader=firmware and the existing 76 MiB OP5ESP volume."]
 procedure = ["Build the firmware with edk2-msm8998, then package it with the format 2 payload and boot image steps."]
 findings = ["The downstream UniXNU branch pins a DarwinBoot build-compatibility commit based directly on official 5243c68e.", "CLANG38 plus LLVM 20 built the FD and the device script assembled the payload into a checked boot image.", "Repeated FD builds differ only in the embedded __TIME__ string."]
 completion = ["FD, payload and boot image build from pinned inputs; repeated builds are code-equivalent after enumerated build-time fields are normalized."]
-limits = ["The firmware has not been booted on the target phone; the host build uses test platform seed 0x12345678."]
-next_action = ["Bind a real-seed boot image hash to the first UEFI/DarwinBoot hardware checkpoint."]
+limits = ["A real-seed candidate reached the graphical UEFI menu and dispatched the IOS entry; DarwinBoot then failed its 4 GiB contiguous window request with EFI_OUT_OF_RESOURCES and returned to the menu."]
+next_action = ["Lower the DarwinBoot window below the measured 0xFCCD0000 longest run, rebuild the pinned inputs, and record a new image hash before retesting."]
 evidence = [
   { kind = "host", reference = "docs/migration/reproducibility-2026-11-15.md", result = "Three clean FD builds passed structure checks; raw differences were limited to __TIME__ and normalized to zero bytes.", command = "scripts/package.sh --os 17 --uefi ../edk2-msm8998", revision = "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e" },
 ]
@@ -64,10 +64,10 @@ paths = ["dts/**"]
 inputs = ["8 GiB installed RAM at 0x80000000, a 4 GiB DarwinBoot window and the measured framebuffer, ramoops, IPA and ZAP reservations."]
 configuration = ["cheeseburger.dts declares one contiguous 8 GiB memory node and board-owned reserved-memory ranges."]
 procedure = ["Compare generated ADT memory properties with the format 1 ADT before booting."]
-findings = ["The common generator derives one arm-io window from exported hardware registers; the new UFS range lowers that window below the old 0x17000000 base."]
+findings = ["The common generator derives one arm-io window from exported hardware registers; the new UFS range lowers that window below the old 0x17000000 base.", "The first hardware dispatch requested 0x100000000 bytes, while DarwinBoot found a 0xFCCD0000-byte longest run at 0x01800000 and returned EFI_OUT_OF_RESOURCES.", "Historical H236br-H236bu measurements showed 256 MiB AllocatePages calls fail while 128 MiB succeeds. The candidate's known payload files total 56,492,228 bytes, leaving 77,725,500 bytes inside a 128 MiB window before alignment and early VM reserve."]
 completion = ["Memory map, arm-io translation and all reserved ranges match the bootloader inventory."]
-limits = ["The generated format 2 ADT has not been compared byte-for-byte with the format 1 ADT."]
-next_action = ["Generate both ADTs and classify every node and property difference."]
+limits = ["The generated format 2 ADT has not been compared byte-for-byte with the format 1 ADT.", "The current 4 GiB request cannot be satisfied by the measured UEFI memory map."]
+next_action = ["Build the second candidate with owned_memory_size 0x08000000 and verify the generated ADT before retesting."]
 evidence = []
 
 [[area]]
@@ -75,10 +75,10 @@ id = "storage"
 status = "planned"
 components = ["RamBlock"]
 paths = ["configs/**", "drivers/**", "scripts/*ufs*", "scripts/*storage*", "dts/**"]
-inputs = ["UFS HC 0x1da4000, PHY 0x1da7000, SPI 265 and 4096-byte logical blocks."]
-configuration = ["The common DTSI exports ufshc and ufsphy; the board keeps the current probe and runtime archive entries."]
+inputs = ["UFS HC 0x1da4000, PHY 0x1da7000, SPI 265, 4096-byte logical blocks, a 64 GiB Android ext4 userdata partition and a separate 49.212 GiB userdata_ios SHNGROOT target."]
+configuration = ["The common DTSI exports ufshc and ufsphy; the board keeps the current probe and runtime archive entries.", "RootLayout selects userdata_ios by GPT name; board.toml uses the schema's [userdata] table for userdata_ios geometry only."]
 procedure = ["Run the four single-path UFS matrix configurations defined by the migration plan."]
-findings = ["The diagnostic command line disables native-ufs-probe while its defconfig enables the probe.", "The signed-policy UFS runtime archive is removed from the initial format 2 baseline because CONFIG_XNU_NATIVE_UFS is not selected; this build is a negative control pending the UFS matrix.", "The PMGR stub explicitly returns native_ufs_store_mode 0, keeping NativeRamBlock volatile rather than implying persistent UFS.", "NativeRamBlock uses the existing 190-slot IOStorageFamily binding table and an explicit ml_static_mfree_prepare fallback."]
+findings = ["The diagnostic command line disables native-ufs-probe while its defconfig enables the probe.", "The signed-policy UFS runtime archive is removed from the initial format 2 baseline because CONFIG_XNU_NATIVE_UFS is not selected; this build is a negative control pending the UFS matrix.", "The PMGR stub explicitly returns native_ufs_store_mode 0, keeping NativeRamBlock volatile rather than implying persistent UFS.", "NativeRamBlock uses the existing 190-slot IOStorageFamily binding table and an explicit ml_static_mfree_prepare fallback.", "The phone no longer has one combined userdata range: sda13 is the Android 64 GiB ext4 /data volume and sda14 is userdata_ios at LBA 0x1014F40..0x1C627FA."]
 completion = ["Exactly one formal root storage path is selected and verified for read, write, flush, recovery and restart persistence."]
 limits = ["The provider of the current root block device has not been isolated with the format 2 build."]
 next_action = ["Run the A/B/C/D UFS matrix before attributing userland failures to storage."]
@@ -173,13 +173,13 @@ id = "packaging"
 status = "implemented"
 components = ["XnuPrelink"]
 paths = ["scripts/package.sh", ".github/workflows/**", "patches/**"]
-inputs = ["Pinned downstream UniXNU commit d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e, official base 578ae75c8e7356d4d562bcfc294ab26dfe640a31, selected OS profile, private trust inputs and edk2-msm8998."]
+inputs = ["Pinned downstream UniXNU commit 7d3f04d4e4b32fcbd61fca7651475aecbfc82a5d, official base 578ae75c8e7356d4d562bcfc294ab26dfe640a31, selected OS profile, private trust inputs and edk2-msm8998."]
 configuration = ["board.toml fixes the downstream commit; the package script verifies HEAD, clean status and merge-base and runs only the unpinned output paths."]
 procedure = ["Run release --check before the full package build."]
 findings = ["The prelink tool moved from the fork-local NativePrelink path to the official XnuPrelink component ID.", "Eight reviewed downstream commits carry the UniXNU and DarwinBoot compatibility changes; package builds do not execute git apply or create a patched worktree.", "Device-local probes use a separate builder so they cannot shadow the canonical-aware official build-arm-driver script.", "Release external-firmware mode builds kernel, package and payload before the device script builds lss717/edk2-msm8998 and writes the final boot image and manifest.", "The manifest records downstream commit, official base, merge-base, source-tree digest, component revisions and the edk2 revision.", "The package script extracts the payload ADT and runs the full 47-check validation.", "DTB builds are byte-identical; kernel and FD rebuilds are byte-identical after enumerated identity, debug and build-time fields are normalized."]
 completion = ["Clean fixed-commit packaging produces kernel, payload and boot image, leaves the UniXNU checkout clean, and records all source revisions in the manifest."]
-limits = ["macOS produced the kernel, payload, UniXNU EFI package, FD and boot image with matched LLVM 20 tools; the image uses a test seed and has no hardware checkpoint. Published-feed resolution is clean, but the real device seed and private CI artifact URLs are still required."]
-next_action = ["Record the first format 2 hardware checkpoint and its failure from the verified host build."]
+limits = ["Reproducibility runs use test seed 0x12345678. A separate real-seed diagnostic candidate reached the UniXNU menu and DarwinBoot allocation path, but failed before kernel handoff."]
+next_action = ["Build a smaller-window candidate from the same pinned inputs and bind it to a new boot image hash."]
 evidence = [
   { kind = "host", reference = "docs/migration/reproducibility-2026-11-15.md", result = "Three clean downstream builds passed 47 ADT checks; normalized kernel and FD comparisons had zero byte differences.", command = "UNIXNU_UNIQUE_CHIP_ID=12345678 bash scripts/package.sh --os 17 --uefi ../edk2-msm8998", revision = "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e" },
   { kind = "host", reference = "docs/migration/clean-status.json", result = "Fresh downstream worktree without local.toml resolved 23 modules and 61 patches with zero local overrides; MSM8998 is pinned to 8227828e.", command = "unixnu fetch && unixnu status --json && unixnu tree", revision = "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e" },
@@ -195,8 +195,9 @@ configuration = ["AppleKeyStoreState is selected because the current diagnostic 
 procedure = ["Attach status JSON, build logs, image hashes and hardware checkpoints as separate evidence."]
 findings = ["The current kernel arguments still bypass root, AMFI and execution signature checks and enable a debug path."]
 completion = ["Every claimed checkpoint points to an image hash, source revision and raw log or photograph."]
-limits = ["Format 2 kernel, payload, package, firmware and boot image exist, but no hardware checkpoint has been verified."]
-next_action = ["Record the first failing format 2 hardware checkpoint without changing unrelated drivers."]
+limits = ["The real-seed candidate reached the UniXNU menu, dispatched IOS and entered DarwinBoot. The 4 GiB allocation failed; handoff and XNU remain unverified."]
+next_action = ["Change only the DarwinBoot window size, rebuild, and capture the next handoff checkpoint."]
 evidence = [
-  { kind = "host", reference = "docs/migration/device-candidate-2026-11-15.md", result = "A CSPRNG-generated private platform seed produced a diagnostic boot image; 47 ADT, FD/FV, boot-image and manifest checks passed, and no hardware boot was attempted.", command = "UNIXNU_UNIQUE_CHIP_ID=<private-seed> UNIXNU_TRUST_CACHE=<private> UNIXNU_DATA_RAMDISK=<private> UNIXNU_SKIP_SETUP=1 scripts/package.sh --os 17 --uefi ../edk2-msm8998", revision = "85490ba682ab1e178a35f40fd80f42ea3aac08c9" },
+  { kind = "host", reference = "docs/migration/device-candidate-2026-11-15.md", result = "A CSPRNG-generated private platform seed produced a diagnostic boot image; 47 ADT, FD/FV, boot-image and manifest checks passed before device dispatch.", command = "UNIXNU_UNIQUE_CHIP_ID=<private-seed> UNIXNU_TRUST_CACHE=<private> UNIXNU_DATA_RAMDISK=<private> UNIXNU_SKIP_SETUP=1 scripts/package.sh --os 17 --uefi ../edk2-msm8998", revision = "85490ba682ab1e178a35f40fd80f42ea3aac08c9" },
+  { kind = "device", reference = "docs/migration/device-run-2026-11-15-01.md", result = "Non-persistent fastboot boot of SHA-256 935a54dfe1afa622e4bfad6cdd9ed4cd8a04190fa9021d7f2cae7e3e1eb36c06 reached the UniXNU menu; IOS dispatch entered DarwinBoot, whose 4 GiB AllocateWindow failed with longest run 0xFCCD0000 at 0x01800000. No handoff or XNU evidence exists.", command = "fastboot boot op5-20261115-candidate/boot.img", revision = "85490ba682ab1e178a35f40fd80f42ea3aac08c9" },
 ]
