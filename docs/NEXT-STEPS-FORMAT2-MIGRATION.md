@@ -2562,6 +2562,21 @@ probe boot     97FFFA1DE4596B2B33AB522B49D590AA23F00DD4C10D2E55DA71F9A125ED8E77
 更早。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-init-iokit-probe`。
 
+`_InitIOKit` 入口探针立即重启，证明 `_PE_init_iokit` 的 console/progress/DT 设置
+已返回。下一探针选择紧随其后的 `_ConfigureIOKit` 入口：
+
+```text
+reset VA       0xFFFFFFF007788BBF4
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   74EA295AA504E56E67081494E42E5155217E3A40D9CF73B66838D76ABF5497FA
+probe payload  5091EB51FC8F46B70E56E4ADF0279B5FA08C6F25D4F9CEACB4074052E136E18C
+probe boot     9CA4234E28C7D384BF5D399EEC35D40E47B525AC6459F7AB7FFBD53761F02203
+```
+
+立即 reset 表示 `_InitIOKit` 已返回、进入 Configure；不 reset 表示仍停在
+`_InitIOKit` 内部。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-configure-iokit-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
