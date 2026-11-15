@@ -2111,6 +2111,21 @@ probe boot     3FA4238BC8C11AF534BBDD1D90A8EAAAA69F358E9BDB3B5F2D11B906FD7F3C56
 Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-kernel-startup-probe`。
 
+`_kernel_startup_bootstrap` 入口探针立即重启。为减少手动恢复次数，下一张直接取
+更大的边界 `_arm_vm_init` 入口：
+
+```text
+reset VA       0xFFFFFFF0073EA174
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   97AC2CBF90A91364EF8A36A933A4295FB047B802DBF25E4E27E14E18A1EA9486
+probe payload  171FBA20E2BA763B7FB47BC09085EB2CDA538301C3DA49D6F13947D79C92D816
+probe boot     59AAEE74B5B5DE4DEA4E74C7F1C4F4DA539CEFD95FC71D2468F978EA74987ED8
+```
+
+立即 reset 表示此前整段 `_arm_init` bootstrap 调用均已返回；不 reset 表示停点位于
+`_kernel_startup_bootstrap` 到 `_arm_vm_init` 之间。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-arm-vm-entry-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
