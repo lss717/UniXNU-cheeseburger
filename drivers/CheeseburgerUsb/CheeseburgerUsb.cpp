@@ -441,10 +441,8 @@ struct Ep0Device {
 		if (!command(0, kDepcmdTypeStartConfig, 0, 0, 0)) {
 			return false;
 		}
-		const uint32_t endpoint0Out =
-		    (0U << 1) | (64U << 3) | (2U << 30);
-		const uint32_t endpoint0In =
-		    (0U << 1) | (64U << 3) | (2U << 30);
+		const uint32_t endpoint0Out = (0U << 1) | (64U << 3);
+		const uint32_t endpoint0In = (0U << 1) | (64U << 3);
 		const uint32_t outParams = (1U << 8) | (1U << 10) | (0U << 25);
 		const uint32_t inParams = (1U << 8) | (1U << 10) | (1U << 25);
 		if (!command(0, kDepcmdTypeSetEpConfig, endpoint0Out, outParams, 0) ||
