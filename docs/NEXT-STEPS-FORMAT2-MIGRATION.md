@@ -2141,6 +2141,21 @@ probe boot     8B3EF6DECDA47EE4286F32E77DBC94FAEE8C8BC9B058635C1EE42552536BBC6A
 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-pe-debug-inherit-probe`。
 
+`_PE_consistent_debug_inherit` 入口探针立即重启，证明 `_arm_vm_init` 已返回。
+下一探针选择紧随其后的 `_serial_init` 入口：
+
+```text
+reset VA       0xFFFFFFF007945B5C
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   D3B4D6D51606ED3D6CB51434277852FB5471B6D8AE59C9B422994DFA3EB6AABD
+probe payload  189133AD04CD19737702961792F6437EC0037567E067E8A607D5D373FAEF0366
+probe boot     F38AC26743B390606D8E176D46D6AAD2B59E83042195E7F2CA6B88D88E94BA98
+```
+
+立即 reset 表示 `_PE_consistent_debug_inherit` 已返回；不 reset 表示仍停在该函数
+内部。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-serial-init-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
