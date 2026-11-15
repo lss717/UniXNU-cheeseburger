@@ -2017,6 +2017,22 @@ probe boot      06ECA08198842EA14EDACE3957910DB8F4BE36130988CA227996995EB279A0B4
 topology 解析内部。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-boot-cpu-probe`。
 
+`_ml_get_boot_cpu_number` 入口探针立即重启，证明 two-cluster 修复后
+`_ml_parse_cpu_topology` 已完整返回。下一探针在同一 fixed kernel 上把
+`_thread_bootstrap` 入口替换为 PSCI reset：
+
+```text
+reset VA       0xFFFFFFF007991190
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   49B02747A521B800619CA14E9A48BC22885EFEB20309BBF63314DDCC16471CD5
+probe payload  947AC054E4136C5900A61163BDBA6373774688DC51DAFF114C230B88BE84A750
+probe boot     E22C09C0FE8CE73FBCE3FCF930874D3F2B2D24ACA348084F949E87BE8D3959BC
+```
+
+立即 reset 表示 `_arm_init` 已到达 `_thread_bootstrap`；不 reset 表示仍停在
+topology 返回到 `_thread_bootstrap` 之间。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-thread-bootstrap-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
