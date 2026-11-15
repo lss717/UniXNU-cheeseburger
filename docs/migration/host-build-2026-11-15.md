@@ -7,6 +7,7 @@ Date: 2026-11-15
 | Item | Revision |
 | --- | --- |
 | Device repository | `4ae1deb523022a4c5cf27cb07518829339b7457e` |
+| Final packaging revision | `e93cd11fd0915e9311fcdead3a3a67def891e9ee` |
 | Official UniXNU | `578ae75c8e7356d4d562bcfc294ab26dfe640a31` |
 | MSM8998 common | `24fcb916e359f1fc207cc09b24bfc8c2901af827` |
 | lss717/edk2-msm8998 | `da889248ba63e3b76003e016ee8744b34aa91a01` |
