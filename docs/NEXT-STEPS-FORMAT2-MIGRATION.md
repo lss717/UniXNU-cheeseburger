@@ -2443,6 +2443,21 @@ probe boot     7A132C37B1712B9C4CA7D9560AA8D4BDCBAD18ABB60D4B646F18F6E4C65A5CC8
 Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-map-return-probe`。
 
+映射返回探针立即重启，物理 framebuffer 映射已成功返回。下一张在
+`initialize_screen` 的 console 状态切换点 `_gc_enable` 入口下探针：
+
+```text
+reset VA       0xFFFFFFF0073C3934
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   AFD0E632CFF741A1A4951C075D6461435865892393487A99EF40924F567FBE07
+probe payload  CB528692BAED97F405D5F74A6F34BEDCFDCB42CD08F6336A1206A8607D808045
+probe boot     E56313323EC0B39FCD1DFF5C51561F421CCC27046C82C9703BC97F393C940CE0
+```
+
+立即 reset 表示 vinfo 更新、映射记账、锁和 `vc_progress_set` 已返回；不 reset
+表示停在这些步骤中。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-console-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
