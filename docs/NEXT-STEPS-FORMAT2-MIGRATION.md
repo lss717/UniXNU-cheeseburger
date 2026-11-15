@@ -17,6 +17,90 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
 本计划首先追求可解析、可追踪和可复现，不在迁移过程中同时重写驱动或改变已验证
 的硬件常量。
 
+## 架构决策：以官方为基线维护 cheeseburger 下游分支
+
+官方 `UniXNU/UniXNU` 提供 format 2 框架、公共 profiles、component catalog、ADT、
+payload 和 package 流程，但官方仓库本身不包含完整的 OnePlus 5 / MSM8998
+cheeseburger 适配。项目不再把“原封不动使用官方 UniXNU”作为完成条件。
+
+正式方案是在 `lss717/UniXNU` 中建立一个**从官方指定 commit 直接创建**的新分支，
+承载 cheeseburger 当前需要、但尚未合入官方的 UniXNU 层扩展。建议分支名：
+
+```text
+upstream-format2-cheeseburger
+```
+
+依赖关系调整为：
+
+```text
+UniXNU/UniXNU 官方固定 commit
+└── lss717/UniXNU: upstream-format2-cheeseburger
+    ├── format 2 通用兼容提交
+    ├── MSM8998 device-tree converter 扩展
+    ├── external firmware release 支持
+    ├── toolchain/EDK II 兼容修复
+    └── 其他明确归属的 cheeseburger 下游提交
+         ↓ 固定 40 字符 commit
+UniXNU-msm8998-common + UniXNU-cheeseburger
+```
+
+现有 `lss717/UniXNU` 的旧 `main` 继续作为 format 1 历史实现、实机证据和迁移参考，
+不得直接合并到新分支。新分支必须从官方基线创建，再逐个移植经过审查的提交。
+
+### 分支建立要求
+
+```sh
+git remote add upstream https://github.com/UniXNU/UniXNU.git
+git fetch upstream
+git switch --create upstream-format2-cheeseburger \
+  578ae75c8e7356d4d562bcfc294ab26dfe640a31
+```
+
+如果 remote 已存在，先确认其 URL，不重复添加。分支创建后记录：
+
+- upstream URL 与基线 commit；
+- `git merge-base`；
+- 新分支第一个和最终验证 commit；
+- 相对 upstream 的提交列表和 diffstat；
+- 每个提交的 owner、适用范围和上游化状态。
+
+### 设备仓库的使用规则
+
+- `UniXNU-cheeseburger` 的 `[package].unixnu` 指向新分支的 checkout 布局；
+- GitHub Actions checkout `lss717/UniXNU`，但 `ref` 必须是经过验证的完整 commit，
+  不能直接写分支名；
+- `scripts/package.sh` 不再运行时修改 UniXNU checkout；
+- 当前 `patches/unixnu/*.patch` 在迁入新分支并验证后从 package 应用路径移除；
+- `package.manifest.json` 记录 downstream commit、官方基线和 merge-base；
+- 上游是否接受这些提交不是设备适配完成的前提，但每个下游提交必须可追溯、可审查、
+  可重复构建。
+
+### 当前 6 个兼容补丁的迁移顺序
+
+将当前 `patches/unixnu/` 中的补丁转换为新分支上的独立提交，每个提交只解决一个
+问题：
+
+1. 导出 MSM8998 UFS/PHY profile 属性；
+2. 从公共 boot-progress 中移除 sheng/cheeseburger PMGR ownership leak；
+3. 兼容 Xcode 26.3 unknown warning option；
+4. 导出 UniXNULib 所需 EmbeddedPkg GUID；
+5. 提供 edk2-msm8998 所需 legacy `FdtLib.h` 兼容层；
+6. 支持 external firmware release 与设备侧 boot-image assembly。
+
+提交顺序必须与依赖顺序一致。禁止把 6 个补丁 squash 成无法独立审查的大提交。
+
+### 新分支验收条件
+
+- 分支 ancestry 能证明直接源自官方固定 commit；
+- 相对官方基线只有明确列出的下游提交；
+- checkout 后无需 `git apply` 即可完成 cheeseburger package；
+- package 前后新分支 checkout 的 `git status --short` 均为空；
+- 两次干净构建的 kernel 在枚举身份/调试/时间字段之外逐字节一致，其他随机化
+  产物的差异得到解释；
+- manifest 同时记录官方基线、downstream commit、MSM8998 common、device 和 edk2 commit；
+- CI 与本地构建固定同一个 downstream commit；
+- 旧 format 1 `main` 不再是 format 2 正式构建依赖。
+
 ## 执行状态（2026-11-15）
 
 本轮已经完成 format 2 的静态迁移和主机侧解析验证，但没有把静态解析结果等同于
@@ -25,17 +109,19 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
 | 阶段 | 状态 | 本轮结果 | 尚未完成 |
 | --- | --- | --- | --- |
 | 阶段 0：冻结基线 | 已完成 | 保存 format 1 board、迁移前 status、历史 H91 产物哈希和检查点来源 | 本地没有 H91 构建产物，未重新计算其原始哈希 |
-| 阶段 1：MSM8998 common | 已完成最小骨架 | `UniXNU-msm8998-common` 已发布，commit `24fcb916e359f1fc207cc09b24bfc8c2901af827` | platform operations 和 SoC patch 分类仍为空 |
+| 阶段 1：MSM8998 common | 已完成最小骨架 | `UniXNU-msm8998-common` 已发布，当前固定 commit `8227828eb1706b51aea9762bd46006328d91db26` | platform operations 和 SoC patch 分类仍为空 |
 | 阶段 2：format 2 设备配置 | 已完成主机侧构建 | schema 2、四层 profile、7 个组件、61 个 patch、完整 `fetch/tree/release` 已通过 | 仍需实机确认 profile 和组件行为 |
 | 阶段 3：ADT 转 DTS | 已完成主机侧对照 | DTS 编译通过，format 2 ADT 通过 47 项结构检查，旧节点零丢失 | ADT 仍需随 format 2 镜像实机启动验证 |
 | 阶段 4：UFS/root | 未完成 | 已明确记录 probe、runtime 和正式 component 的冲突 | A/B/C/D 单路径矩阵和实机读写/flush/重启测试均未执行 |
-| 阶段 5：patch 所有权 | 部分完成 | 已解析 61 个唯一 patch，PMGR hunk 已移出公共 series | fork 差异尚未逐个归入 ARM64、SoC、OS、device、component 或诊断 |
+| 阶段 5：patch 所有权 | 部分完成 | 已解析 61 个唯一 patch；6 个兼容改动已转成独立下游提交，PMGR hunk 已移出公共 series | 旧 format 1 fork 的其余差异尚未逐个归类 |
 | 阶段 6：安全链分离 | 未完成 | diagnostic 参数和绕过已在 README 中明确标记 | release-candidate 参数集和 VerifiedRoot/AMFI/SystemOS 验证尚未完成 |
-| 阶段 7：文档、记录与 CI | 部分完成 | README、porting record、DTS 检查器和 CI 文件已更新；macOS 完整 package 已通过 | GitHub workflow 尚未在 Actions 上实际运行 |
+| 阶段 7：文档、记录与 CI | 部分完成 | downstream commit、DarwinBoot 子模块、CI 和 manifest 已固定；macOS 完整 package 已通过 | GitHub workflow 尚未在 Actions 上实际运行 |
+| downstream UniXNU | 已完成主机侧验收 | 分支从官方 `578ae75c...` 直接创建，当前固定 `d7fafc5d...`；package 不再执行 `git apply`，构建前后 checkout 均为 clean | 需要真实 seed 和实机验证 |
 | kernel/payload/boot image | 主机侧完成 | macOS 已产出 kernel、hardware.dtb、payload、UniXNU EFI package、FD 和 boot image；全部结构检查通过 | 尚未进行实机启动确认 |
 | 实机 bring-up | 未执行 | 保留 format 1 历史证据，未冒充 format 2 结果 | UEFI、DarwinBoot、XNU、UFS、APFS、launchd、dyld 均需重新确认 |
 
-因此当前结论是：**format 2 主机侧构建链完成，实机 bring-up、UFS 和安全链仍未完成。**
+因此当前结论是：**format 2 正式 downstream 主机侧构建链完成，实机 bring-up、UFS
+和安全链仍未完成。**
 
 ### 主机构建记录
 
@@ -67,28 +153,34 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
 
 ### 主机构建产物（2026-11-15）
 
-使用设备提交 `4ae1deb523022a4c5cf27cb07518829339b7457e`、官方 UniXNU
-`578ae75c8e7356d4d562bcfc294ab26dfe640a31` 和 MSM8998 common
-`24fcb916e359f1fc207cc09b24bfc8c2901af827` 在 macOS 15.8.2 / Xcode 26.3
-完成：
+使用官方 UniXNU 基线 `578ae75c8e7356d4d562bcfc294ab26dfe640a31`、downstream
+`d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e`、DarwinBoot
+`2ba9cad556f1794fb74ac8af164bc34b0e096338`、MSM8998 common
+`8227828eb1706b51aea9762bd46006328d91db26` 和 edk2
+`da889248ba63e3b76003e016ee8744b34aa91a01` 在 macOS 15.8.2 / Xcode 26.3
+完成。第三次干净构建的代表产物为：
 
 | 产物 | 大小 | SHA-256 |
 | --- | ---: | --- |
-| `kernel.macho` | 52,043,776 | `2e03369c22a8ee47595e4b6ef159691a8af69faedae32c7a482896f48fa92c47` |
-| `hardware.dtb` | 3,507 | `d8c0ec4ac6f6e4b5f5c3f0daf4192bb971166fe5454e77e8fcaa3dabb94534d1` |
-| `payload.img` | 79,691,776 | `e3172be11b8793c6a78ad31ab33f0cd21c15dfd15155689cc85680a1e7934420` |
-| payload 内 `kernel.macho.adt` | 16,408 | `1da397ee4f4e74b752f46bb491540e2db8e9a2eb37b175c5444f7177313a2f1c` |
-| `MSM8998PKG_UEFI.fd` | 6,291,456 | `7ed7dd32709183b62745b8a895c42f13e8b68ea188ff67c29155123f12949eb7` |
-| `boot.img` | 81,274,880 | `5f2321ea0bcb4e5593fa120567b0a90426f8d80cf0522e0a5ae590171271a5c2` |
-| `package.manifest.json` | 9,135 | `1c3961933e1063c99ef9d4cb99b84e4529840182b65cd6d5eb68fa026ce65f5a` |
+| `kernel.macho` | 52,043,776 | `0990f2bc765e4c2d3f1538fef732ad65e43787a50962e13df28bf184f779b845` |
+| `hardware.dtb` | 3,507 | `3809aa23a82a409735b32af07a9cbe9118257a8b0ed03062994ac5b2931f755b` |
+| `payload.img` | 79,691,776 | `b87667315125b83a0701905254dc000d88293cdf736eedc7537444582cc11fca` |
+| payload 内 `kernel.macho.adt` | 16,408 | `35cd4d0f58174cc63469aa3df7fa2b8517888da95a237e3b31729002a83c6a4d` |
+| `MSM8998PKG_UEFI.fd` | 6,291,456 | `8153faec5b3a6df507525734caab7780ca0e973b3feb1888d406c9c21690e885` |
+| `boot.img` | 81,274,880 | `ce31464850db77f9d95db223a72e4bcea20074ced9be4128df5ae009d72e1b61` |
+| `package.manifest.json` | 9,551 | `d9c43d95a549e43245887c298662ef78479db390b87c2b6782ab808db198c26c` |
 
-同一源码的两次 kernel 构建哈希一致。payload/ADT 因包含随机 seed 而会变化。
+DTB 在全部干净构建中逐字节相同。kernel 的原始差异只落在 Mach-O UUID、960 个
+`N_OSO` 调试时间戳、派生 `_PrelinkKCID` 和 kernel build date；FD 只差
+`__TIME__` 字符串。枚举字段归一化后，两次独立 kernel 和 FD 重建均为 0 字节差异。
+详细范围和三次原始哈希见 `docs/migration/reproducibility-2026-11-15.md`。
 构建使用测试 platform seed `0x12345678`，产物未用于实机。
 
 完整命令、输入哈希和 payload 内容见
 `docs/migration/host-build-2026-11-15.md`。
 
-最终 `scripts/package.sh --os 17 --uefi ../edk2-msm8998` 已完整通过。
+最终 `scripts/package.sh --os 17 --uefi ../edk2-msm8998` 已完整通过，
+并自动执行 payload ADT 的 47 项检查。
 UniXNU release 使用外部 firmware 模式构建 kernel/package/payload，随后由
 `lss717/edk2-msm8998` commit
 `da889248ba63e3b76003e016ee8744b34aa91a01` 的 CLANG38 + LLD 流程生成 FD，
@@ -125,7 +217,7 @@ output: out/cheeseburger
 迁移完成后，最新 MSM8998 common source 已发布到：
 
 - <https://github.com/lss717/UniXNU-msm8998-common>
-- commit `24fcb916e359f1fc207cc09b24bfc8c2901af827`
+- commit `8227828eb1706b51aea9762bd46006328d91db26`
 
 ## 执行原则
 
@@ -480,7 +572,8 @@ launchd_unsecure_cache=1
 
 - `porting-record` workflow 通过。
 - README、board、porting record 和 CI 使用相同 device、SoC、OS profile 与 defconfig。
-- 从干净 checkout 加私有本地输入即可生成相同 kernel 和 payload。
+- 从干净 checkout 加私有本地输入即可生成代码等价的 kernel；payload 除明确记录
+  的随机 handoff 数据外保持一致。
 
 ### 本轮执行结果
 
@@ -510,11 +603,11 @@ launchd 后续故障归因于用户态。
 
 ## 下一步唯一入口
 
-1. 在 macOS 干净 checkout 中完成 `unixnu fetch` 和 `unixnu tree`。
-2. 运行 `scripts/package.sh --check --os 17`，确认 workflow 等价命令通过。
-3. 构建 kernel、payload 和 boot image，保存 revision、参数、哈希和日志。
-4. 按 UFS A/B/C/D 矩阵逐项上机，不同时改变其他驱动或安全参数。
-5. 完成 patch 所有权分类后再恢复安全链。
+1. 使用真实设备 seed 和匹配的私有输入在 macOS 干净 checkout 中构建 boot image。
+2. 把该 boot image 的 SHA-256 作为唯一标识，按 bring-up 检查点执行实机测试。
+3. 按 UFS A/B/C/D 矩阵逐项上机，不同时改变其他驱动或安全参数。
+4. 完成旧 format 1 fork 剩余差异的 owner 分类。
+5. 建立独立 release-candidate 配置后再恢复安全链。
 
 ## 最终完成标准
 
@@ -530,8 +623,9 @@ launchd 后续故障归因于用户态。
 - porting record、CI、README 与实际配置一致；
 - 重新确认 UEFI、DarwinBoot、XNU、UFS、APFS、launchd 和 dyld 各检查点。
 
-截至 2026-11-15，前四项中的静态配置、SoC/DTS、resolver 和记录检查已经完成；
-构建复现、UFS 单路径、安全链以及全部实机检查点仍未完成。
+截至 2026-11-15，静态配置、SoC/DTS、resolver、正式 downstream 和记录检查已经
+完成；主机侧归一化构建复现已完成。UFS 单路径、真实 seed 构建、安全链以及全部
+实机检查点仍未完成。
 
 ## 2026-11-15 适配审查后的下一步计划
 
@@ -577,8 +671,7 @@ porting record: 13 structured areas checked
 
 ### P1：完成无本地 override 的干净解析
 
-当前本地主机检查使用了被忽略的 `local.toml`，其中 MSM8998 和 XnuPrelink 指向本地
-目录。该结果不能替代远程 source pin 的干净解析。
+当前检查在不包含 `local.toml` 的临时 downstream worktree 和全新输出目录中执行。
 
 #### 要求
 
@@ -586,8 +679,8 @@ porting record: 13 structured areas checked
 `--local-module`：
 
 ```sh
-git clone https://github.com/UniXNU/UniXNU.git references/UniXNU
-git -C references/UniXNU checkout 578ae75c8e7356d4d562bcfc294ab26dfe640a31
+git clone https://github.com/lss717/UniXNU.git references/UniXNU
+git -C references/UniXNU checkout d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e
 git clone <published-cheeseburger-repository> device
 
 python3 references/UniXNU/unixnu defconfig cheeseburger_defconfig -D device
@@ -602,7 +695,7 @@ python3 references/UniXNU/scripts/porting-record.py check --device device
 
 - `fetch` 和 `tree` 完成，无 local source。
 - `status` 中 MSM8998 revision 为
-  `24fcb916e359f1fc207cc09b24bfc8c2901af827`。
+  `8227828eb1706b51aea9762bd46006328d91db26`。
 - 所有 catalog component 的 repository 和 revision 与记录一致。
 - `modules` 中不存在 `origin = "local (feeds)"` 或其他未声明本地路径。
 - 保存 `clean-status.json` 并在 porting record 中添加 host evidence。
@@ -677,32 +770,32 @@ bash scripts/package.sh --os 17 --uefi ../uefi-msm8998
 - 每个检查点必须绑定本次 format 2 boot image 的 SHA-256。
 - 失败时记录最后成功点，不通过同时增加多个补丁掩盖故障来源。
 
-### P2：停止原地修改官方 UniXNU checkout
+### P2 已完成：将运行时兼容补丁迁入正式 UniXNU 下游分支
 
-当前 `scripts/package.sh` 会直接对 `[package].unixnu` 指向的 checkout 执行
-`git apply`，构建结束后不恢复。这会让固定 commit 的工作树变脏，并使后续构建依赖
-隐式状态。
+运行时兼容补丁现已迁入正式架构
+`lss717/UniXNU: upstream-format2-cheeseburger`。
 
 #### 要求
 
-按以下优先顺序处理 device-tree converter 补丁：
+1. 从官方 `578ae75c8e7356d4d562bcfc294ab26dfe640a31` 创建新分支；
+2. 将 6 个 `patches/unixnu` 补丁转换为 6 个可审查提交；
+3. 对每个提交运行对应 host test，并记录是否适合提交上游；
+4. 更新设备仓库的 CI 和 package checkout，使其固定新分支上的完整 commit；
+5. 删除 `scripts/package.sh` 中遍历 `patches/unixnu/*.patch` 并执行 `git apply` 的逻辑；
+6. 验证不带 `patches/unixnu` 运行时应用也能生成相同 kernel、payload、FD 和 boot image；
+7. 在迁移确认前保留 patch 文件作为审计材料，确认后再决定删除或移入历史目录。
 
-1. 首选：将通用属性导出能力提交并合入官方 UniXNU；
-2. 次选：由官方 format 2 配置提供可声明的 converter extension；
-3. 临时方案：在独立临时 worktree 中应用补丁，构建结束后删除该 worktree；
-4. 禁止继续在共享的 `references/UniXNU` checkout 上永久应用补丁。
+#### 验收结果
 
-临时方案必须将
-`patches/unixnu/0001-devicetree-export-msm8998-ufs-profile.patch` 的 SHA-256、应用前
-commit、应用结果和最终 diff 写入 package manifest。
+- `git merge-base d7fafc5d... 578ae75c...` 返回官方基线；
+- `git log 578ae75c..d7fafc5d` 只包含已登记的 8 个下游提交；
+- `scripts/package.sh` 不创建 worktree、不执行 `git apply`；
+- 连续构建前后 downstream checkout 均为 clean；
+- manifest 记录 downstream、upstream base、merge-base、tree digest 和 edk2；
+- workflow 固定完整 commit，不使用可移动分支名；
+- 旧 `lss717/UniXNU main` 不参与 format 2 构建。
 
-#### 验收条件
-
-- package 命令结束后，输入 UniXNU checkout 的 `git status --short` 为空。
-- 第二次构建不依赖第一次构建留下的已应用补丁。
-- converter 补丁的来源和哈希能从产物 manifest 中追溯。
-
-### P2：修正 MSM8998 CPU hardware compatible
+### P2 已完成主机侧：修正 MSM8998 CPU hardware compatible
 
 `UniXNU-msm8998-common/dts/msm8998.dtsi` 当前把四个效率核描述为
 `arm,cortex-a53`，四个性能核描述为 `arm,cortex-a73`。Linux MSM8998 DTS 对八个 CPU
@@ -716,11 +809,12 @@ compatible 不应伪装成另一种实现。
 - 检查 ArmCpu 是否依赖 compatible；如果不依赖，也要保证导出的 ADT 不产生匹配回归。
 - 在 `porting.toml` CPU area 中记录输入文件、内核版本和对应行。
 
-#### 验收条件
+#### 验收结果
 
-- common DTS test wrapper 和 cheeseburger DTS 均通过 `dtc`。
-- format 2 ADT 的八个 CPU reg、cluster type 和 timebase 不变。
-- 单核启动通过后再逐步启用第二核和两个 cluster。
+- 八个 CPU 的 compatible 已统一为 `qcom,kryo280`；
+- MPIDR `0..3, 0x100..0x103`、P/E cluster tag 和 19.2 MHz timebase 保持不变；
+- board DTS 通过 `dtc`，47 项 ADT 检查包含 CPU compatible、P/E 和 timebase；
+- 实机单核、双簇启动仍未执行，不能把主机检查当作 CPU 运行证据。
 
 ### P2：完成 format 1/format 2 ADT 全量差异报告
 
@@ -827,6 +921,196 @@ SystemOS policy 和 dyld cache 签名路径。
 
 > UniXNU-cheeseburger 已完成 format 2 静态迁移；构建复现、UFS 单路径、fork patch
 > 归属、安全链和 format 2 实机验证仍在进行。
+
+## 2026-11-15 完成情况复核
+
+### 复核结论
+
+本轮迁移已经越过“仅能解析”的阶段，完成了 format 2 主机侧 kernel、payload、
+UniXNU EFI、MSM8998 firmware volume 和 Android boot image 的实际构建。构建输入、
+产物大小和 SHA-256 已记录在 `docs/migration/host-build-2026-11-15.md`。
+
+但是，按照本文件定义的完整完成标准，当前仍不能声明“完整适配完成”。准确状态是：
+
+> UniXNU-cheeseburger 已完成 format 2 主机构建迁移、正式 UniXNU downstream
+> 固定和 boot image 打包；正式 UFS、format 2 实机启动及 release-candidate
+> 安全链仍待完成。
+
+### 已通过项目
+
+| 项目 | 结果 | 证据 |
+| --- | --- | --- |
+| format 2 schema | 通过 | 官方 resolver 报告 `schema_version = 2` |
+| 四层 profile | 通过 | ARM64、MSM8998、iPadOS 17.7.11、device 均解析 |
+| canonical components | 通过 | 7 个组件被解析 |
+| patch order | 通过 | 61 个显式、有序 patch |
+| porting record 结构 | 通过 | 13 个 structured area checked |
+| MSM8998 source pin | 通过 | `8227828eb1706b51aea9762bd46006328d91db26` |
+| edk2-msm8998 source pin | 通过 | `da889248ba63e3b76003e016ee8744b34aa91a01` |
+| downstream UniXNU pin | 通过 | `d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e`，merge-base 为官方基线 |
+| kernel build | 通过归一化复现 | 三次干净构建均通过；枚举 UUID/debug/KCID/build-date 后逐字节一致 |
+| payload build | 通过 | payload 与提取 ADT 有记录哈希 |
+| UniXNU EFI package | 通过 | `UniXNU.efi`、`UniXNUDxe.efi`、`UniXNURamDiskDxe.efi` 已生成 |
+| MSM8998 FD | 通过归一化复现 | `MSM8998PKG_UEFI.fd` 已生成；差异仅为 `__TIME__` |
+| boot image | 通过主机检查 | header、地址范围、长度和 `OP5ESP` label 检查通过 |
+| ADT 结构迁移 | 通过主机检查 | format 1/2 全量比较无关键节点丢失 |
+| 仓库工作区 | 通过 | package 前后 downstream checkout 均为 clean；common/submodule pin 已固定 |
+
+主机构建记录中的测试 seed 为 `0x12345678`。相关产物不能作为目标手机的安装镜像或
+实机适配证据。
+
+### P1 已完成：package 直接使用固定 downstream commit
+
+`scripts/package.sh` 现在直接运行
+`lss717/UniXNU: upstream-format2-cheeseburger` 的固定 checkout。脚本在构建前
+校验 HEAD、clean 状态和官方 merge-base，不创建 worktree，也不执行 `git apply`。
+DarwinBoot 的两处 EDK II 兼容改动已作为独立 downstream 子模块提交
+`2ba9cad556f1794fb74ac8af164bc34b0e096338` 固定，而不是留在子模块工作区。
+
+正式 downstream 分支当前为：
+
+```text
+repository: https://github.com/lss717/UniXNU
+branch: upstream-format2-cheeseburger
+upstream base: 578ae75c8e7356d4d562bcfc294ab26dfe640a31
+downstream commit: d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e
+merge-base: 578ae75c8e7356d4d562bcfc294ab26dfe640a31
+source tree: 2f1ea33e2b842c2529fe0698955473b2178df918
+```
+
+8 个独立提交依次覆盖 UFS profile 导出、PMGR boot-progress 清理、Xcode warning
+兼容、EmbeddedPkg GUID、legacy FdtLib、external firmware release、DarwinBoot
+子模块固定和 prelink staging path。`package.manifest.json` 记录 downstream
+commit、upstream base、merge-base、source-tree digest、MSM8998 common 和 edk2
+revision，不再记录运行时 patch hash。
+
+三次干净构建都产出 kernel、payload、FD 和 boot image，并自动通过 47 项 ADT
+检查。DTB 原始哈希逐字节相同；kernel 和 FD 的时间/身份字段已逐项定位，归一化后
+两次独立重建均为 0 字节差异。原始产物不能上机，因为仍使用测试 seed。
+
+### P1 已完成：无 local override 的 clean status
+
+已在不包含 `local.toml` 的全新 UniXNU worktree 和全新输出目录中完成
+`fetch`、`status --json`、`tree` 和 porting record check。结果保存为：
+
+- `docs/migration/clean-status.json`；
+- `docs/migration/clean-fetch.log`；
+- `docs/migration/clean-tree.log`；
+- `docs/migration/clean-record.log`。
+
+clean status 包含 23 个 modules、61 个 patches，所有 module 的 `local` 均为
+`false`，不存在 `origin = "local (feeds)"`。
+
+### P1 未完成：正式 UFS 路径未验证
+
+当前 archive plan 已删除 `build-native-ufs-runtime.py`，这是有效改进。当前实际结构是：
+
+- `RamBlock` 被构建并通过 `bind-native-ufs-storage.py` 绑定存储接口；
+- `NativeUfsProbe` 被编译；
+- kernel arguments 设置 `native-ufs-probe=0`；
+- `CONFIG_XNU_NATIVE_UFS` 仍未启用；
+- 没有 format 2 实机 UFS read/write/flush/reboot evidence。
+
+因此当前构建成功不能证明真实 UFS root 已适配。必须继续执行 A/B/C/D 单路径矩阵，
+并从日志中唯一确认 root block device 的 provider。
+
+文档漂移已修正：`README.md` 和 `docs/migration/README.md` 现在都明确说明
+`build-native-ufs-runtime.py` 不在 archive plan，当前只有 RamBlock 绑定和
+`NativeUfsProbe` 负向控制。
+
+`scripts/package.sh` 目前已接入 `UNIXNU_TRUST_CACHE`、`UNIXNU_DATA_RAMDISK`、
+`UNIXNU_GPU_ADDON` 和 `UNIXNU_SKIP_SETUP`，并在打包后自动提取 payload ADT。
+带 trust cache 和 Data seed 的构建已再次通过全部 47 项 ADT 检查。
+
+### P1 未完成：format 2 实机启动尚未复核
+
+`docs/migration/host-build-2026-11-15.md` 明确列出以下项目未验证：
+
+- hardware boot；
+- storage；
+- display、input、GPU；
+- release security path。
+
+必须使用真实设备 platform seed 重新构建，并将实机日志绑定到唯一 boot image
+SHA-256。依次验证 BootShim、UEFI、UniXNU、DarwinBoot、XNU、BSD/IOKit、正式 UFS、
+APFS、launchd 和 dyld。测试 seed 产物不能用于这一验收。
+
+### P2 已完成主机侧：CPU compatible 已改为 Kryo 280
+
+MSM8998 common 已修正 MPIDR、P/E cluster mapping 和 hardware compatible：
+
+```text
+0..3             Cortex-A73 / P
+0x100..0x103     Cortex-A53 / E
+```
+
+八个 CPU 现在统一使用 Linux MSM8998 DTS 的 `qcom,kryo280`，同时保留
+`unixnu,cluster-type`。ArmCpu 源码读取 cluster tag，不依赖 CPU compatible；
+47 项 ADT 检查已锁定 compatible、MPIDR、P/E 和 timebase。
+
+当前完成范围和剩余边界是：
+
+- 主机侧 DTS/ADT 已完成；
+- `cpus=1` 仍是当前诊断启动参数；
+- 单核、双核和双 cluster 的实机启动与 IPI/timer 验证尚未执行。
+
+因此 `porting.toml` 的 CPU area 升级为 `implemented`，但 completion 证据仍明确
+限定为 host-side，不能解释为 CPU 已在 format 2 实机运行。
+
+### P2 未完成：release-candidate 安全链
+
+当前配置仍包含：
+
+```text
+native-skip-root-auth=1
+amfi_get_out_of_my_way=1
+amfi_allow_any_signature=1
+cs_enforcement_disable=1
+native-skip-exec-signature=1
+launchd_unsecure_cache=1
+debug-enabled=1
+```
+
+`boot-manifest-hash` 仍为全零，`CONFIG_XNU_VERIFIED_ROOT_PROBE` 仍未启用。因此当前
+产物只能标记为 diagnostic build，不能称为 release candidate。
+
+### P2 缺证据：fork patch 所有权
+
+当前 resolver 能产生 61 个显式 patch，且 PMGR patch 顺序已经修复。但尚未看到旧
+`lss717/UniXNU` 与官方基线的完整文件级差异分类报告。必须继续证明：
+
+- 旧 fork 中没有未迁移但运行时仍依赖的修改；
+- 每个保留 patch 只有一个 owner；
+- diagnostic patch 不进入 release-candidate；
+- 6 个 UniXNU compatibility patches 已进入 downstream 提交；其余旧 fork 差异的
+  长期 owner 仍待分类。
+
+### 当前完成度
+
+| 范围 | 状态 |
+| --- | --- |
+| format 2 静态配置 | 完成 |
+| macOS kernel/payload 构建 | 完成 |
+| UniXNU EFI package | 完成 |
+| MSM8998 FD 与 boot image 打包 | 完成主机验证 |
+| ADT 迁移 | 完成主机结构验证 |
+| 固定 UniXNU/MSM8998/edk2 revision | 完成 |
+| 无 local override 的 clean fetch/tree | 完成 |
+| package 不污染输入 checkout | 完成 |
+| 正式 UFS root | 未完成 |
+| format 2 实机启动 | 未完成 |
+| release-candidate 安全链 | 未完成 |
+| fork patch 全量归属 | 缺证据 |
+
+### 后续优先顺序
+
+1. 使用真实设备 seed 和匹配的私有输入生成可上机 format 2 boot image；
+2. 执行 UFS A/B/C/D 矩阵并选择唯一正式存储路径；
+3. 将实机日志绑定 boot image SHA-256，重验完整启动检查点；
+4. 完成旧 format 1 fork 剩余差异的 owner 结论；
+5. 建立独立 release-candidate 配置并恢复安全链；
+6. 在 GitHub Actions 上实际运行固定 downstream commit 的 package workflow；
+7. 更新 porting record 的实机 evidence 和最终发布声明。
 
 ## 官方参考
 

@@ -1,20 +1,28 @@
 #!/usr/bin/env bash
 # Device packaging entry point. Board-specific values live in board.toml.
 set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1
 DEVICE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+ROOT=
 TOOL_BIN=
-cleanup(){ [ -z "$TOOL_BIN" ] || rm -rf "$TOOL_BIN"; }
+ADT_TMP=
+cleanup(){
+        [ -z "$TOOL_BIN" ] || rm -rf "$TOOL_BIN"
+        [ -z "$ADT_TMP" ] || rm -f "$ADT_TMP"
+}
 trap cleanup EXIT
+trap 'exit 130' INT TERM
 PYTHON=${PYTHON:-$(command -v python3 || command -v python || true)}
 [ -n "$PYTHON" ] || { echo "python3 or python is required" >&2; exit 1; }
-UNIXNU=$("$PYTHON" - "$DEVICE/board.toml" <<'PY'
+read -r UNIXNU UPSTREAM_BASE DOWNSTREAM_REV <<< "$("$PYTHON" - "$DEVICE/board.toml" <<'PY'
 import sys, tomllib
 package = tomllib.load(open(sys.argv[1], 'rb')).get('package', {})
-if 'unixnu' not in package:
-    sys.exit('board.toml needs [package] unixnu = "<UniXNU checkout>"')
-print(package['unixnu'])
+for key in ('unixnu', 'unixnu_upstream_base', 'unixnu_downstream_revision'):
+    if key not in package:
+        sys.exit(f'board.toml needs [package] {key}')
+print(package['unixnu'], package['unixnu_upstream_base'], package['unixnu_downstream_revision'])
 PY
-)
+)"
 case "$UNIXNU" in /*) ROOT=$UNIXNU ;; *) ROOT=$(cd "$DEVICE/$UNIXNU" && pwd) ;; esac
 
 UEFI=${EDK2_MSM8998:-}
@@ -43,17 +51,27 @@ while [ $# -gt 0 ]; do
         esac
 done
 
-# Apply reviewed compatibility patches to the pinned UniXNU checkout. A reverse
-# check skips a patch that is already present, so --check and a full package
-# run are idempotent.
-for patch in "$DEVICE"/patches/unixnu/*.patch; do
-        [ -e "$patch" ] || continue
-        if git -C "$ROOT" apply --reverse --check "$patch" >/dev/null 2>&1; then
-                continue
-        fi
-        git -C "$ROOT" apply --check "$patch"
-        git -C "$ROOT" apply "$patch"
-done
+[ -z "${UNIXNU_TRUST_CACHE:-}" ] || ARGS+=(--trust-cache "$UNIXNU_TRUST_CACHE")
+[ -z "${UNIXNU_DATA_RAMDISK:-}" ] || ARGS+=(--data-ramdisk "$UNIXNU_DATA_RAMDISK")
+[ -z "${UNIXNU_GPU_ADDON:-}" ] || ARGS+=(--gpu-addon "$UNIXNU_GPU_ADDON")
+[ "${UNIXNU_SKIP_SETUP:-0}" != 1 ] || ARGS+=(--skip-setup)
+
+# The downstream checkout is an immutable build input. Refuse to build from a
+# moving branch, an unexpected commit or a dirty worktree.
+UNIXNU_REVISION=$(git -C "$ROOT" rev-parse HEAD)
+[ "$UNIXNU_REVISION" = "$DOWNSTREAM_REV" ] || {
+        echo "UniXNU checkout is $UNIXNU_REVISION, expected $DOWNSTREAM_REV" >&2
+        exit 1
+}
+[ -z "$(git -C "$ROOT" status --short)" ] || {
+        echo "UniXNU checkout is dirty: $ROOT" >&2
+        exit 1
+}
+MERGE_BASE=$(git -C "$ROOT" merge-base HEAD "$UPSTREAM_BASE")
+[ "$MERGE_BASE" = "$UPSTREAM_BASE" ] || {
+        echo "UniXNU merge-base is $MERGE_BASE, expected $UPSTREAM_BASE" >&2
+        exit 1
+}
 
 if [ -z "${CLANG_BIN:-}" ] && [ -z "${CLANG38_BIN:-}" ]; then
         if command -v brew >/dev/null 2>&1; then
@@ -77,7 +95,7 @@ fi
 if ! "$CHECK" && [ -n "$UEFI" ]; then
         ARGS+=(--external-firmware)
 fi
-"$PYTHON" "$ROOT/unixnu" release -D "$DEVICE" "${ARGS[@]}"
+"$PYTHON" "$ROOT/unixnu" release -D "$DEVICE" --out "$ROOT/out" "${ARGS[@]}"
 if "$CHECK" || [ -z "$UEFI" ]; then
         exit 0
 fi
@@ -109,6 +127,17 @@ UNIXNU_TREE="$OUTPUT/tree" bash "$UEFI/build.sh" \
         --boot "$OUTPUT/boot/boot.img" \
         --payload "$OUTPUT/payload/payload.img"
 
+ADT_TMP=$(mktemp "${TMPDIR:-/tmp}/cheeseburger-adt.XXXXXX")
+mcopy -o -i "$OUTPUT/payload/payload.img" ::/EFI/UniXNU/Payloads/kernel.macho.adt "$ADT_TMP"
+"$PYTHON" "$DEVICE/scripts/check-format2-adt.py" --adt "$ADT_TMP"
+
 "$PYTHON" "$ROOT/unixnu" manifest \
         -D "$DEVICE" \
+        --out "$ROOT/out" \
         --target "${EDK2_TARGET:-RELEASE}"
+
+"$PYTHON" "$DEVICE/scripts/update-package-manifest.py" \
+        "$OUTPUT/package.manifest.json" \
+        "$ROOT" \
+        "$UPSTREAM_BASE" \
+        "$UEFI"

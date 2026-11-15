@@ -29,9 +29,9 @@ not presented as format 2 results.
 Use these checkouts side by side:
 
 ```text
-UniXNU/                    official 578ae75c
+UniXNU/                    lss717/UniXNU d7fafc5 (upstream base 578ae75c)
 UniXNU-cheeseburger/       this repository
-UniXNU-msm8998-common/     board-independent MSM8998 support
+UniXNU-msm8998-common/     board-independent MSM8998 support at 8227828e
 edk2-msm8998/              lss717/edk2-msm8998 firmware
 ```
 
@@ -40,11 +40,15 @@ source at a local checkout while it is being developed.
 
 The common pin is published at
 `https://github.com/lss717/UniXNU-msm8998-common`, so a clean checkout and the
-GitHub workflow can resolve it without the local override.
+GitHub workflow can resolve it without a local override.
 
-The device carries one reviewed UniXNU compatibility patch for exporting the
-MSM8998 UFS profile properties through the common ADT converter. The package
-script applies it idempotently to the pinned official checkout.
+The format 2 build uses the fixed
+`lss717/UniXNU:upstream-format2-cheeseburger` commit
+`d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e`. The branch is based directly on
+official `578ae75c8e7356d4d562bcfc294ab26dfe640a31`; its DarwinBoot submodule
+is pinned to `2ba9cad556f1794fb74ac8af164bc34b0e096338`. The package script
+verifies the commit, clean worktree and merge base, but never applies patches at
+build time.
 
 Official catalog components use the canonical-aware builder from UniXNU.
 Device-local `NativeUfsProbe` and `CheeseburgerUsb` use
@@ -78,12 +82,18 @@ toolchain. The board package entry point is:
 
 ```sh
 bash scripts/package.sh --check --os 17
+UNIXNU_UNIQUE_CHIP_ID=<device-seed> \
+UNIXNU_TRUST_CACHE=/path/to/kernel.macho.trustcache \
+UNIXNU_DATA_RAMDISK=/path/to/data-seed.dbr \
+UNIXNU_SKIP_SETUP=1 \
 bash scripts/package.sh --os 17 --uefi ../edk2-msm8998
 ```
 
 The packaging entry point builds kernel, payload and package first, then uses
 the pinned `lss717/edk2-msm8998` checkout for the external firmware and boot
-image. The device tree selected by
+image. It consumes the fixed downstream checkout directly, requires it to remain
+clean, and records the downstream commit, official merge base, source-tree
+digest and edk2 revision in the manifest. The device tree selected by
 `board.toml` is compiled by the common UniXNU payload path:
 
 ```text
@@ -116,7 +126,7 @@ The current UFS configuration is intentionally considered unresolved:
 
 - `CONFIG_XNU_NATIVE_UFS_PROBE=y`;
 - `native-ufs-probe=0` in the kernel arguments;
-- runtime UFS archive enabled;
+- `build-native-ufs-runtime.py` is not in the archive plan;
 - `CONFIG_XNU_NATIVE_UFS` disabled.
 
 The next storage task is the four single-path configurations in
@@ -127,6 +137,11 @@ The next storage task is the four single-path configurations in
 Private IPSW members, trust caches, Data seeds and firmware binaries stay under
 `.cache/firmware` and are never committed. `proprietary-files.txt` records the
 source and known hashes. `local.toml.example` documents local source overrides.
+
+The package workflow downloads `UNIXNU_TRUST_CACHE_URL` and
+`UNIXNU_DATA_RAMDISK_URL` from secrets into the runner temp directory and checks
+the Data seed against `UNIXNU_DATA_RAMDISK_SHA256`. It does not publish an image
+when either private input is missing.
 
 Detailed migration evidence and open work are in `docs/migration/README.md`.
 The first macOS build command, input hashes and output hashes are recorded in

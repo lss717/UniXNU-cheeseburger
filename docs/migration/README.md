@@ -12,9 +12,10 @@ new hardware boot.
 | --- | --- | --- |
 | `UniXNU-cheeseburger` | `0c66d9998a91da526a2de1bad0e58d4f1847c88f` | Starting device revision |
 | Official `UniXNU/UniXNU` reference | `578ae75c8e7356d4d562bcfc294ab26dfe640a31` | Resolver baseline |
-| `lss717/UniXNU` fork | `d04fad7c2ed4e8d35743142d3f89d37222a2c13b` | Existing working UniXNU tree |
-| `UniXNU-msm8998-common` | `24fcb916e359f1fc207cc09b24bfc8c2901af827` | New shared skeleton |
-| `edk2-msm8998` | Not available | Workspace checkout has no Git metadata |
+| `lss717/UniXNU:upstream-format2-cheeseburger` | `d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e` | Formal downstream build input |
+| `lss717/DarwinBoot:upstream-format2-cheeseburger` | `2ba9cad556f1794fb74ac8af164bc34b0e096338` | Pinned submodule from official `5243c68e` |
+| `UniXNU-msm8998-common` | `8227828eb1706b51aea9762bd46006328d91db26` | Current shared source pin |
+| `lss717/edk2-msm8998` | `da889248ba63e3b76003e016ee8744b34aa91a01` | Firmware build input |
 
 The format 1 resolver output is saved as `before-status.json`. It reports:
 
@@ -83,17 +84,13 @@ deterministic test seed, the format 1 ADT is 14,936 bytes
 See `adt-diff-2026-11-15.md` for the raw comparison and
 `adt-diff-review-2026-11-15.md` for the ownership review.
 
-The UFS probe needs `p8,msm8998-direct-dma`. The official converter at the
-selected revision drops that property. A reviewed compatibility patch is kept
-at `patches/unixnu/0001-devicetree-export-msm8998-ufs-profile.patch`; the
-package script applies it and verification confirmed the property survives as
-a little-endian u32 value of 1.
-
-The public `zzz-boot-progress.patch` also carried a cheeseburger/sheng PMGR
-hunk whose source patch was not in the public series. A second compatibility
-patch removes that ownership leak. The device series then applies the PMGR
-source patch followed by a device progress-marker patch. The resulting patch
-order contains 61 unique entries.
+The UFS probe needs `p8,msm8998-direct-dma`. The downstream UniXNU branch
+exports it from the official device-tree converter. The branch also removes the
+cheeseburger/sheng PMGR hunk from the public boot-progress patch, carries the
+EDK II compatibility changes and provides the external-firmware release path.
+Package builds no longer create a patched worktree or run `git apply`; the
+device series applies the PMGR source patch followed by its progress marker,
+producing 61 unique patch entries.
 
 The generated format 2 ADT differs structurally from the last saved format 1
 ADT:
@@ -117,30 +114,30 @@ The following state must not be reported as a single supported storage path:
 
 - `CONFIG_XNU_NATIVE_UFS_PROBE=y` in the defconfig;
 - `native-ufs-probe=0` on the command line;
-- `build-native-ufs-runtime.py` in the archive plan;
+- `build-native-ufs-runtime.py` is absent from the archive plan;
+- `RamBlock` is bound as the current storage provider while the formal UFS
+  provider remains unresolved;
 - `CONFIG_XNU_NATIVE_UFS` not set.
 
 The A/B/C/D UFS matrix from the migration plan remains required before choosing
 the formal root storage implementation.
 
-## Next verification
+## Verification status
 
-1. Run `unixnu status --json` against the official resolver and save it beside
-   this file.
-2. Compile `dts/cheeseburger.dts` with the pinned MSM8998 include directory.
-3. Generate and compare format 1 and format 2 ADTs node by node.
-4. Run `porting-record.py check`.
-5. Record the first hardware checkpoint and failure; the host-side macOS build
-   is complete.
+1. `docs/migration/clean-status.json` records a no-override resolver run with
+   23 modules, 61 patches and no local source.
+2. `dts/cheeseburger.dts` compiles with the pinned MSM8998 include directory.
+3. The format 1/format 2 ADT comparison is recorded in the two ADT diff files.
+4. `porting-record.py check` reports 13 structured areas checked.
+5. The host-side macOS kernel, payload, EFI package, FD, boot image and ADT
+   checks are complete. The first hardware checkpoint remains pending.
 
 The MSM8998 common revision
-`24fcb916e359f1fc207cc09b24bfc8c2901af827` was published to
-`https://github.com/lss717/UniXNU-msm8998-common` on 2026-11-15. A clean
-checkout and CI can resolve the SoC source from `feeds.toml`.
+`8227828eb1706b51aea9762bd46006328d91db26` is pinned by `feeds.toml` and
+`unixnu.lock`. It changes all eight MSM8998 CPU compatible strings to
+`qcom,kryo280` while preserving the 4+4 P/E cluster tags.
 
-The first successful format 2 macOS build produced a kernel and payload from
-device commit `4ae1deb523022a4c5cf27cb07518829339b7457e`. The final packaging
-run also produced the CLANG38 FD and boot image from
-`lss717/edk2-msm8998` commit
-`da889248ba63e3b76003e016ee8744b34aa91a01`. Commands, inputs and output hashes
-are recorded in `host-build-2026-11-15.md`.
+The downstream package build produced kernel, payload, CLANG38 FD and boot image
+from the pinned UniXNU and edk2 revisions. Commands, inputs, raw hashes and the
+normalized reproducibility result are recorded in
+`host-build-2026-11-15.md` and `reproducibility-2026-11-15.md`.

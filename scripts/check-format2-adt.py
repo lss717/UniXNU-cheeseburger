@@ -102,8 +102,8 @@ def main():
         report.check(kinds == [ord("P")] * 4 + [ord("E")] * 4,
                      "CPU P/E cluster tags match the verified 4+4 topology")
         architectures = [text(cpu, "compatible") for cpu in cpus["children"]]
-        report.check(architectures == ["arm,cortex-a73"] * 4 + ["arm,cortex-a53"] * 4,
-                     "CPU compatible strings preserve current XNU ABI")
+        report.check(architectures == ["qcom,kryo280"] * 8,
+                     "CPU compatible strings describe MSM8998 Kryo 280")
 
     psci = child(root, "psci")
     report.check(psci is not None and text(psci, "method") == "smc",

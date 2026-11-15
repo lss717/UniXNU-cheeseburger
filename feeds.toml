@@ -2,4 +2,4 @@
 name = "msm8998"
 kind = "soc"
 git = "https://github.com/lss717/UniXNU-msm8998-common"
-commit = "24fcb916e359f1fc207cc09b24bfc8c2901af827"
+commit = "8227828eb1706b51aea9762bd46006328d91db26"

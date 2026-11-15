@@ -17,7 +17,7 @@ procedure = ["Run the official UniXNU defconfig, status and porting-record check
 findings = ["The format 1 resolver reported schema 1 with no components or patch order; the migration records that baseline before changing the board."]
 completion = ["The official resolver reports schema 2, four profiles, nonempty components, ordered patches and the profile-qualified output path."]
 limits = ["A successful parse is a host-side result and does not qualify a kernel or boot image on hardware."]
-next_action = ["Run the official resolver and attach the resulting status JSON to this migration record."]
+next_action = ["Use the fixed downstream source and clean status evidence for the real-seed hardware build."]
 evidence = [
   { kind = "source", reference = "docs/migration/README.md", result = "Records the format 1 baseline, source revisions and the static migration scope." },
   { kind = "source", reference = "docs/migration/after-status.json", result = "Official resolver output reports schema 2, four profiles, seven components and sixty-one ordered patches." },
@@ -25,31 +25,36 @@ evidence = [
 
 [[area]]
 id = "firmware"
-status = "planned"
+status = "implemented"
 components = ["DarwinBoot"]
 paths = ["proprietary-files.txt", ".github/workflows/package.yml"]
-inputs = ["DarwinBoot is selected from the official component catalog; the firmware checkout remains edk2-msm8998."]
+inputs = ["DarwinBoot is pinned to downstream revision 2ba9cad556f1794fb74ac8af164bc34b0e096338; firmware comes from lss717/edk2-msm8998 da889248ba63e3b76003e016ee8744b34aa91a01."]
 configuration = ["The payload keeps loader=firmware and the existing 76 MiB OP5ESP volume."]
 procedure = ["Build the firmware with edk2-msm8998, then package it with the format 2 payload and boot image steps."]
-findings = ["The current firmware checkout has no Git metadata in this workspace, so its exact source revision is not reproducible from this record yet."]
-completion = ["FD, payload and boot image build from pinned inputs and reproduce the same hashes on a clean checkout."]
-limits = ["No firmware was rebuilt in this Windows workspace."]
-next_action = ["Record the edk2-msm8998 commit and source remote before the next firmware build."]
-evidence = []
+findings = ["The downstream UniXNU branch pins a DarwinBoot build-compatibility commit based directly on official 5243c68e.", "CLANG38 plus LLVM 20 built the FD and the device script assembled the payload into a checked boot image.", "Repeated FD builds differ only in the embedded __TIME__ string."]
+completion = ["FD, payload and boot image build from pinned inputs; repeated builds are code-equivalent after enumerated build-time fields are normalized."]
+limits = ["The firmware has not been booted on the target phone; the host build uses test platform seed 0x12345678."]
+next_action = ["Bind a real-seed boot image hash to the first UEFI/DarwinBoot hardware checkpoint."]
+evidence = [
+  { kind = "host", reference = "docs/migration/reproducibility-2026-11-15.md", result = "Three clean FD builds passed structure checks; raw differences were limited to __TIME__ and normalized to zero bytes.", command = "scripts/package.sh --os 17 --uefi ../edk2-msm8998", revision = "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e" },
+]
 
 [[area]]
 id = "cpu"
-status = "planned"
+status = "implemented"
 components = ["ArmCpu"]
 paths = ["dts/**", "drivers/**"]
 inputs = ["Eight MSM8998 MPIDR values, 19.2 MHz timebase and PSCI SMC from the Linux MSM8998 and OnePlus 5 device trees."]
-configuration = ["The common DTSI preserves 4x Cortex-A73 at MPIDR 0..3 and 4x Cortex-A53 at 0x100..0x103 with P/E cluster tags."]
+configuration = ["The common DTSI uses qcom,kryo280 for all eight CPUs, preserves MPIDR 0..3 and 0x100..0x103, and keeps explicit P/E cluster tags."]
 procedure = ["Compile the board DTS, generate the ADT and boot with one CPU before enabling all cores."]
-findings = ["The current diagnostic command line still uses cpus=1 while the ADT declares all eight CPUs."]
+findings = ["ArmCpu consumes unixnu,cluster-type and does not depend on the CPU compatible string.", "The ADT checker covers all eight compatible strings, MPIDR values, P/E tags and the 19.2 MHz timebase.", "The current diagnostic command line still uses cpus=1 while the ADT declares all eight CPUs."]
 completion = ["Every enabled CPU starts and timer/IPI handling is verified on hardware."]
-limits = ["CPU topology and PSCI have not been re-qualified against the format 2 image."]
-next_action = ["Boot one CPU first, then add secondary CPUs with separate evidence."]
-evidence = []
+limits = ["Only host-side DTS and ADT evidence exists; CPU topology and PSCI have not been re-qualified against the format 2 image."]
+next_action = ["Boot one CPU first, then add the second core and both clusters with separate hardware evidence."]
+evidence = [
+  { kind = "source", reference = "feeds.toml", result = "The pinned UniXNU-msm8998-common dts/msm8998.dtsi uses qcom,kryo280 for all eight CPUs while retaining P/E cluster tags.", revision = "8227828eb1706b51aea9762bd46006328d91db26" },
+  { kind = "host", reference = "scripts/check-format2-adt.py", result = "The format 2 ADT check verifies eight Kryo 280 compatible strings, MPIDR order, P/E tags and timebase.", command = "scripts/check-format2-adt.py --adt kernel.macho.adt", revision = "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e" },
+]
 
 [[area]]
 id = "memory"
@@ -168,15 +173,16 @@ id = "packaging"
 status = "implemented"
 components = ["XnuPrelink"]
 paths = ["scripts/package.sh", ".github/workflows/**", "patches/**"]
-inputs = ["Pinned official UniXNU revision, selected OS profile, kernelcache and owner trust inputs."]
-configuration = ["The package script resolves the official checkout from board.toml and maps the OS profile to cheeseburger_defconfig."]
+inputs = ["Pinned downstream UniXNU commit d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e, official base 578ae75c8e7356d4d562bcfc294ab26dfe640a31, selected OS profile, private trust inputs and edk2-msm8998."]
+configuration = ["board.toml fixes the downstream commit; the package script verifies HEAD, clean status and merge-base and runs only the unpinned output paths."]
 procedure = ["Run release --check before the full package build."]
-findings = ["The prelink tool moved from the fork-local NativePrelink path to the official XnuPrelink component ID.", "The board applies reviewed UniXNU compatibility patches and orders the PMGR source/progress changes in its own series.", "Device-local probes use a separate builder so they cannot shadow the canonical-aware official build-arm-driver script.", "The official component builder needs a tracked compatibility patch to accept Xcode 26.3 warning options.", "Release external-firmware mode builds kernel, package and payload before the device script builds lss717/edk2-msm8998 and writes the final boot image and manifest."]
-completion = ["Clean-checkout packaging produces kernel, payload and boot image with a manifest of revisions and patch hashes."]
-limits = ["macOS produced the kernel, payload, UniXNU EFI package, FD and boot image with matched LLVM 20 tools; the image uses a test seed and has no hardware checkpoint."]
+findings = ["The prelink tool moved from the fork-local NativePrelink path to the official XnuPrelink component ID.", "Eight reviewed downstream commits carry the UniXNU and DarwinBoot compatibility changes; package builds do not execute git apply or create a patched worktree.", "Device-local probes use a separate builder so they cannot shadow the canonical-aware official build-arm-driver script.", "Release external-firmware mode builds kernel, package and payload before the device script builds lss717/edk2-msm8998 and writes the final boot image and manifest.", "The manifest records downstream commit, official base, merge-base, source-tree digest, component revisions and the edk2 revision.", "The package script extracts the payload ADT and runs the full 47-check validation.", "DTB builds are byte-identical; kernel and FD rebuilds are byte-identical after enumerated identity, debug and build-time fields are normalized."]
+completion = ["Clean fixed-commit packaging produces kernel, payload and boot image, leaves the UniXNU checkout clean, and records all source revisions in the manifest."]
+limits = ["macOS produced the kernel, payload, UniXNU EFI package, FD and boot image with matched LLVM 20 tools; the image uses a test seed and has no hardware checkpoint. Published-feed resolution is clean, but the real device seed and private CI artifact URLs are still required."]
 next_action = ["Record the first format 2 hardware checkpoint and its failure from the verified host build."]
 evidence = [
-  { kind = "host", reference = "docs/migration/host-build-2026-11-15.md", result = "macOS built a stable kernel, validated payload, UniXNU EFI package, CLANG38 FD and final boot image; edk2 revision da889248ba63e3b76003e016ee8744b34aa91a01.", command = "UNIXNU_UNIQUE_CHIP_ID=12345678 bash scripts/package.sh --os 17 --uefi ../edk2-msm8998", revision = "4ae1deb523022a4c5cf27cb07518829339b7457e" },
+  { kind = "host", reference = "docs/migration/reproducibility-2026-11-15.md", result = "Three clean downstream builds passed 47 ADT checks; normalized kernel and FD comparisons had zero byte differences.", command = "UNIXNU_UNIQUE_CHIP_ID=12345678 bash scripts/package.sh --os 17 --uefi ../edk2-msm8998", revision = "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e" },
+  { kind = "host", reference = "docs/migration/clean-status.json", result = "Fresh downstream worktree without local.toml resolved 23 modules and 61 patches with zero local overrides; MSM8998 is pinned to 8227828e.", command = "unixnu fetch && unixnu status --json && unixnu tree", revision = "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e" },
 ]
 
 [[area]]

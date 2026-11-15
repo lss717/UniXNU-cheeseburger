@@ -27,10 +27,11 @@ jobs:
           submodules: recursive
       - uses: actions/checkout@v4
         with:
-          repository: UniXNU/UniXNU
-          ref: 578ae75c8e7356d4d562bcfc294ab26dfe640a31
+          repository: lss717/UniXNU
+          ref: d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e
           path: references/UniXNU
           submodules: recursive
+          fetch-depth: 0
       - uses: actions/checkout@v4
         with:
           repository: lss717/edk2-msm8998
@@ -57,10 +58,25 @@ jobs:
             echo 'Set UNIXNU_UNIQUE_CHIP_ID to the device platform seed.' >&2
             exit 1
           fi
+      - name: private inputs
+        env:
+          TRUST_CACHE_URL: ${{ secrets.UNIXNU_TRUST_CACHE_URL }}
+          DATA_RAMDISK_URL: ${{ secrets.UNIXNU_DATA_RAMDISK_URL }}
+          DATA_RAMDISK_SHA256: ${{ secrets.UNIXNU_DATA_RAMDISK_SHA256 }}
+        run: |
+          test -n "$TRUST_CACHE_URL"
+          test -n "$DATA_RAMDISK_URL"
+          test -n "$DATA_RAMDISK_SHA256"
+          curl -fL --retry 3 "$TRUST_CACHE_URL" -o "$RUNNER_TEMP/kernel.macho.trustcache"
+          curl -fL --retry 3 "$DATA_RAMDISK_URL" -o "$RUNNER_TEMP/data-seed.dbr"
+          echo "$DATA_RAMDISK_SHA256  $RUNNER_TEMP/data-seed.dbr" | shasum -a 256 -c -
       - name: package
         working-directory: device
         env:
           UNIXNU_UNIQUE_CHIP_ID: ${{ secrets.UNIXNU_UNIQUE_CHIP_ID }}
+          UNIXNU_TRUST_CACHE: ${{ runner.temp }}/kernel.macho.trustcache
+          UNIXNU_DATA_RAMDISK: ${{ runner.temp }}/data-seed.dbr
+          UNIXNU_SKIP_SETUP: 1
           GITHUB_TOKEN: ${{ github.token }}
         run: bash scripts/package.sh --os "${{ inputs.os }}" --uefi ../uefi-msm8998
       - name: images

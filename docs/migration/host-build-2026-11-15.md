@@ -6,15 +6,16 @@ Date: 2026-11-15
 
 | Item | Revision |
 | --- | --- |
-| Device repository | `4ae1deb523022a4c5cf27cb07518829339b7457e` |
-| Final packaging revision | `e93cd11fd0915e9311fcdead3a3a67def891e9ee` |
-| Official UniXNU | `578ae75c8e7356d4d562bcfc294ab26dfe640a31` |
-| MSM8998 common | `24fcb916e359f1fc207cc09b24bfc8c2901af827` |
+| Device repository | `4f533e88a6a0e0b4499416c13f0dd729b203073a` plus the migration worktree |
+| Official UniXNU base | `578ae75c8e7356d4d562bcfc294ab26dfe640a31` |
+| Downstream UniXNU | `d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e` |
+| DarwinBoot | `2ba9cad556f1794fb74ac8af164bc34b0e096338` |
+| MSM8998 common | `8227828eb1706b51aea9762bd46006328d91db26` |
 | lss717/edk2-msm8998 | `da889248ba63e3b76003e016ee8744b34aa91a01` |
 
-The initial kernel and payload run started from a clean device checkout. The
-final packaging run also exercised the reviewed UniXNU compatibility patches
-and the external firmware path in `scripts/package.sh`.
+The final packaging runs consumed the fixed downstream checkout directly,
+verified its official merge base and kept the UniXNU checkout clean before and
+after the build. No `git apply` or compatibility-patch worktree was used.
 
 ## Host
 
@@ -63,27 +64,30 @@ installation on the phone.
   --skip-setup --unique-chip-id 12345678
 PATH=<llvm20-clang>:<llvm20-lld>:/opt/local/bin:$PATH \
   /opt/local/bin/python3.12 ./unixnu package -D ../../UniXNU-cheeseburger --target DEBUG
-UNIXNU_UNIQUE_CHIP_ID=12345678 bash scripts/package.sh \
-  --os 17 --uefi ../edk2-msm8998
+UNIXNU_UNIQUE_CHIP_ID=12345678 \
+UNIXNU_TRUST_CACHE=~/h103/kernel.macho.trustcache \
+UNIXNU_DATA_RAMDISK=~/UniXNU/out/cheeseburger/payload/data-skip-setup-9d654a549840.dbr \
+UNIXNU_SKIP_SETUP=1 \
+bash scripts/package.sh --os 17 --uefi ../edk2-msm8998
 ```
 
 ## Results
 
 | Output | Size | SHA-256 |
 | --- | ---: | --- |
-| `kernel/kernel.macho` | 52,043,776 | `2e03369c22a8ee47595e4b6ef159691a8af69faedae32c7a482896f48fa92c47` |
-| `device-tree/hardware.dtb` | 3,507 | `d8c0ec4ac6f6e4b5f5c3f0daf4192bb971166fe5454e77e8fcaa3dabb94534d1` |
-| `payload/payload.img` | 79,691,776 | `e3172be11b8793c6a78ad31ab33f0cd21c15dfd15155689cc85680a1e7934420` |
-| Extracted `kernel.macho.adt` | 16,408 | `1da397ee4f4e74b752f46bb491540e2db8e9a2eb37b175c5444f7177313a2f1c` |
-| `UniXNU.efi` | 95,232 | `5111229307666dde4e96c8e034704b09031e5f28e8f2820ef35dee7b925c07d4` |
-| `UniXNUDxe.efi` | 14,336 | `5270e328bb0f656a51f1498588352599b9c6a9a1d77fb77950ef142ba23ca018` |
-| `UniXNURamDiskDxe.efi` | 15,360 | `b5deaed49651171158ed02f1139835da8a0cce3bfd94095684bcb98529dcc148` |
-| `MSM8998PKG_UEFI.fd` | 6,291,456 | `7ed7dd32709183b62745b8a895c42f13e8b68ea188ff67c29155123f12949eb7` |
-| `boot/boot.img` | 81,274,880 | `5f2321ea0bcb4e5593fa120567b0a90426f8d80cf0522e0a5ae590171271a5c2` |
-| `package.manifest.json` | 9,135 | `1c3961933e1063c99ef9d4cb99b84e4529840182b65cd6d5eb68fa026ce65f5a` |
+| `kernel/kernel.macho` | 52,043,776 | `0990f2bc765e4c2d3f1538fef732ad65e43787a50962e13df28bf184f779b845` |
+| `device-tree/hardware.dtb` | 3,507 | `3809aa23a82a409735b32af07a9cbe9118257a8b0ed03062994ac5b2931f755b` |
+| `payload/payload.img` | 79,691,776 | `b87667315125b83a0701905254dc000d88293cdf736eedc7537444582cc11fca` |
+| Extracted `kernel.macho.adt` | 16,408 | `35cd4d0f58174cc63469aa3df7fa2b8517888da95a237e3b31729002a83c6a4d` |
+| `MSM8998PKG_UEFI.fd` | 6,291,456 | `8153faec5b3a6df507525734caab7780ca0e973b3feb1888d406c9c21690e885` |
+| `boot/boot.img` | 81,274,880 | `ce31464850db77f9d95db223a72e4bcea20074ced9be4128df5ae009d72e1b61` |
+| `package.manifest.json` | 9,551 | `d9c43d95a549e43245887c298662ef78479db390b87c2b6782ab808db198c26c` |
 
-The kernel hash was identical across two builds. Payload and ADT hashes change
-between builds because the common generator includes a random seed.
+The DTB is byte-identical between clean builds. Kernel, payload, FD, manifest
+and boot image contain expected identity, debug or randomized handoff metadata.
+After normalizing the enumerated Mach-O and build-time fields, two independent
+kernel and FD rebuilds are byte-identical. See
+`reproducibility-2026-11-15.md` for exact raw hashes and differing byte ranges.
 
 Payload contents:
 
@@ -98,6 +102,14 @@ EFI/UniXNU/unixnu.toml
 The extracted payload ADT passed `scripts/check-format2-adt.py`, including CPU
 mapping, GIC, timer, UFS/UFS PHY, RAM, root UUID, SystemVolume blob, buttons,
 and PackedRAMDisk/TrustCache placeholders.
+
+The manifest records downstream commit
+`d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e`, official base and merge base
+`578ae75c8e7356d4d562bcfc294ab26dfe640a31`, source-tree digest
+`2f1ea33e2b842c2529fe0698955473b2178df918`, DarwinBoot
+`2ba9cad556f1794fb74ac8af164bc34b0e096338`, MSM8998 common
+`8227828eb1706b51aea9762bd46006328d91db26`, and edk2 revision
+`da889248ba63e3b76003e016ee8744b34aa91a01`.
 
 ## Build issues fixed during the run
 

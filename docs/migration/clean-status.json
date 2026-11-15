@@ -1,0 +1,860 @@
+{
+  "schema_version": 2,
+  "device": "/Users/lss/codex-format2-validation-20261115/UniXNU-cheeseburger",
+  "name": "cheeseburger",
+  "output": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/cheeseburger/ipados-17.7.11-21H461/cheeseburger",
+  "configuration": "cheeseburger_defconfig",
+  "build_config": null,
+  "config_path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/cheeseburger/ipados-17.7.11-21H461/cheeseburger/.config",
+  "configured": false,
+  "profiles": {
+    "arch": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/profiles/arch/arm64",
+    "soc": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/feeds/UniXNU-msm8998-common-d405010a",
+    "os": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/profiles/os/ipados-17.7.11-21H461",
+    "device": "/Users/lss/codex-format2-validation-20261115/UniXNU-cheeseburger"
+  },
+  "configuration_sources": [
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/profiles/arch/arm64/profile.toml",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/feeds/UniXNU-msm8998-common-d405010a/soc.toml",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/profiles/os/ipados-17.7.11-21H461/profile.toml",
+    "/Users/lss/codex-format2-validation-20261115/UniXNU-cheeseburger/board.toml"
+  ],
+  "board": {
+    "arch": {
+      "name": "arm64",
+      "page_size": 4096
+    },
+    "components": {
+      "include": [
+        "ArmDTPlatform",
+        "ArmCpu",
+        "SoftwareAES",
+        "RamBlock",
+        "AppleKeyStoreState",
+        "XnuPrelink",
+        "DarwinBoot"
+      ]
+    },
+    "kernel": {
+      "config_fragments": [
+        "arch:configs/common.config",
+        "soc:configs/msm8998.config",
+        "os:configs/ipados.config"
+      ],
+      "patch_series": [
+        "arch:patches/xnu/series",
+        "soc:patches/xnu/series",
+        "os:patches/xnu/series",
+        "device:patches/xnu/series"
+      ],
+      "archives": [
+        "build-corecrypto-14.py",
+        "build-corecrypto-14.py --namespace",
+        "component:ArmDTPlatform",
+        "component:ArmCpu",
+        "component:SoftwareAES",
+        "build-software-aes-bindings.py",
+        "component:RamBlock",
+        "bind-native-ufs-storage.py --object build/ram-block/NativeRamBlock.o --archive build/ram-block/libRamBlock.a --class NativeRamBlock",
+        "component:AppleKeyStoreState",
+        "build-cheeseburger-driver.py NativeUfsProbe",
+        "build-cheeseburger-driver.py CheeseburgerUsb",
+        "build-sheng-pmgr-stub.py",
+        "build-mockfs-fixture.py",
+        "build-libpthread-kernel.py"
+      ],
+      "prelink": {
+        "tool": "kits/XnuPrelink/emit_prelink.py",
+        "kernel": "build/xnu/ios-obj/DEVELOPMENT_ARM64_BCM2837/mach.development.bcm2837.unstripped.noctf",
+        "kernelcache_sha256": "f18b4df865405f2a287b84977d7aca745e056d656d9fc9df1662970ce2969de7",
+        "slide": "0x5000000",
+        "early_security_init": "com.apple.driver.AppleMobileFileIntegrity=0xfffffff005ab4ae0",
+        "roots": [
+          "com.apple.AppleFSCompression.AppleFSCompressionTypeZlib",
+          "com.apple.driver.AppleARMPlatform",
+          "com.apple.driver.AppleARMWatchdogTimer",
+          "com.apple.driver.AppleEffaceableStorage",
+          "com.apple.driver.AppleMobileFileIntegrity",
+          "com.apple.filesystems.apfs",
+          "com.apple.iokit.IOCryptoAcceleratorFamily",
+          "com.apple.iokit.IOHIDFamily",
+          "com.apple.iokit.IOHIDEventDriver",
+          "com.apple.iokit.IOMobileGraphicsFamily",
+          "com.apple.iokit.IOGPUFamily",
+          "com.apple.iokit.IOStorageFamily",
+          "com.apple.kec.Libm",
+          "com.apple.kec.corecrypto",
+          "com.apple.kext.CoreTrust",
+          "com.apple.security.AppleImage4",
+          "com.apple.security.sandbox"
+        ]
+      },
+      "defconfig": "cheeseburger_defconfig"
+    },
+    "schema_version": 2,
+    "soc": {
+      "name": "msm8998",
+      "description": "Qualcomm Snapdragon 835 / MSM8998 shared platform"
+    },
+    "os": {
+      "name": "ipados-17.7.11-21H461",
+      "darwin": "23.6.0",
+      "xnu_version": "10063.141.1",
+      "xnu_revision": "d8b80295118ef25ac3a784134bcf95cd8e88109f",
+      "driverkit_tag": "xnu-10063.121.3",
+      "trustcache_tag": "xnu-8796.101.5",
+      "abi": [
+        "IOGPUFamily",
+        "IOHIDFamily-2031.120.4",
+        "IOMobileGraphicsFamily"
+      ]
+    },
+    "ipsw": {
+      "url": "https://updates.cdn-apple.com/2025SpringFCS/fullrestores/122-77166/DCA6CFE8-90E9-4B92-880D-3DE171798E40/iPad_Pro_HFR_17.7.11_21H461_Restore.ipsw",
+      "product": "iPad7,1",
+      "version": "17.7.11",
+      "build": "21H461",
+      "device_class": "j120ap",
+      "chip_id": 32785,
+      "board_id": 12,
+      "fetch": [
+        "KernelCache",
+        "DeviceTree",
+        "StaticTrustCache",
+        "Cryptex1,SystemTrustCache"
+      ],
+      "sha256": {
+        "044-76040-038.dmg": "3f99b859c9728379110b66657c7b15285bcb1925ad8b5726542e2cdcf8b1028d",
+        "044-76034-038.dmg": "b4908cde41d23e6bc05e6af51a2c9eeb00cf0f863a6a18b1600c96a3fd70414f"
+      }
+    },
+    "payload": {
+      "text_fixups": [
+        "dyld_shared_cache_arm64.15,421e8bc,28ad1bb0008544f9,c0035fd6008544f9"
+      ],
+      "trust_cache_sha256": [
+        "7416ca4f8377146626bb284e2133c76bee6cb4e3ee0af5d648b186235a7323a7",
+        "8900d6a93d7a59ce1a872a5c081e559f4240a218f97e12d44d22dda46644d68f"
+      ],
+      "volume": "OP5ESP",
+      "size_mib": 76,
+      "loader": "firmware",
+      "title": "OnePlus 5 IOS",
+      "skip_setup_tool": "scripts/seed-data-skip-setup.py",
+      "dram_size": "0x200000000",
+      "panic_screen": false,
+      "kernel_args": [
+        "-v",
+        "cpus=1",
+        "debug=0x14e",
+        "boot-progress=2",
+        "offline-legacy-gop=1",
+        "offline-legacy-unit-scale=1",
+        "native-ufs-probe=0",
+        "h103-log-secs=1",
+        "sheng-disable-watchdogd=1",
+        "sheng-lite=1",
+        "native-skip-coredump=1",
+        "native-skip-root-auth=1",
+        "amfi_get_out_of_my_way=1",
+        "amfi=0x94",
+        "amfi_allow_any_signature=1",
+        "cs_enforcement_disable=1",
+        "native-skip-exec-signature=1",
+        "launchd_unsecure_cache=1",
+        "dyld_flags=0x0000008A",
+        "max_task_pmem=0",
+        "-apfs_shared_datavolume"
+      ],
+      "adt": {
+        "chip_id": "0x8011",
+        "unique_chip_id": "required",
+        "owned_memory_size": "0x100000000",
+        "packed_data_ramdisk": true,
+        "root_match_volume_uuid": "04769D26-2CA0-4825-B443-E2E5F88300F2"
+      }
+    },
+    "adt": {
+      "root": {
+        "string": {
+          "model": "iPad7,1",
+          "target-type": "J120",
+          "compatible": "J120AP",
+          "unixnu,board-id": "oneplus,cheeseburger"
+        }
+      },
+      "chosen": {
+        "string": {
+          "osenvironment": "main",
+          "crypto-hash-method": "sha2-384"
+        },
+        "u32": {
+          "certificate-production-status": 0,
+          "effective-production-status-ap": 0,
+          "certificate-security-mode": 1,
+          "effective-security-mode-sep": 1,
+          "amfi-only-platform-code": 1,
+          "debug-enabled": 1
+        },
+        "bytes": {
+          "boot-manifest-hash": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "mac-address-wifi0": "020000000001",
+          "mac-address-bluetooth0": "020000000002",
+          "system-volume-auth-blob": "3081e21604494d34501604697379731601300481d00200000000000000010000002000000061f50c6269a33b16100d87e8a69de5797ccf07c1ab54ad68b02d5f236f36674500000000000000000000000000000000000000000000000000000000000000008a413a0cda7f6a6502edabd0a8d1c7f139995a1f6b3b034abcee8dbf2e6dff2900000000000000000000000000000000000000000000000000000000000000006f445c471a849af9c22fcef44be334badf77981d881549faf4bda03e8ff0750e0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "asmb": {
+          "u64": {
+            "lp-sip0": "0x6f"
+          },
+          "u32": {
+            "lp-sip1": 1
+          }
+        }
+      },
+      "product": {
+        "string": {
+          "product-name": "iPad Pro (12.9-inch) (2nd generation)",
+          "product-description": "iPad Pro (12.9-inch) (2nd generation)",
+          "artwork-device-idiom": "pad",
+          "artwork-display-gamut": "P3",
+          "compatible-device-fallback": "iPad6,7",
+          "model": "oneplus,cheeseburger"
+        },
+        "u32": {
+          "artwork-device-subtype": 1920,
+          "artwork-scale-factor": 2,
+          "thin-bezel": 1
+        },
+        "bytes": {
+          "product-id": "e9fefef6e6f9d12a5ba1a2551866cbbd749f0ec3"
+        },
+        "audio": {
+          "u32": {
+            "wireless-splitter": 1
+          }
+        }
+      },
+      "defaults": {
+        "u32": {
+          "kern.maxvnodes": 66560,
+          "sleep-disabled": 1
+        }
+      },
+      "buttons": {
+        "string": {
+          "compatible": "buttons",
+          "device_type": "buttons"
+        },
+        "strings": {
+          "button-names": [
+            "hold",
+            "voldown",
+            "volup"
+          ]
+        },
+        "u32": {
+          "home-button-type": 2
+        }
+      }
+    },
+    "userdata": {
+      "windows": [
+        {
+          "name": "OS",
+          "component": "OS"
+        },
+        {
+          "name": "SystemOS",
+          "component": "Cryptex1,SystemOS",
+          "optional": true
+        }
+      ],
+      "first_lba": 85824,
+      "last_lba": 29763578,
+      "lba_bytes": 4096
+    },
+    "root": {
+      "os_volume_uuid": "04769D26-2CA0-4825-B443-E2E5F88300F2"
+    },
+    "board": {
+      "name": "cheeseburger",
+      "soc": "MSM8998",
+      "soc_source": "msm8998",
+      "os_profile": "ipados-17.7.11-21H461",
+      "description": "OnePlus 5",
+      "kit": "cheeseburger"
+    },
+    "device_tree": {
+      "source": "device:dts/cheeseburger.dts",
+      "include_dirs": [
+        "soc:dts"
+      ]
+    },
+    "package": {
+      "unixnu": "../references/UniXNU",
+      "unixnu_repository": "https://github.com/lss717/UniXNU",
+      "unixnu_upstream_base": "578ae75c8e7356d4d562bcfc294ab26dfe640a31",
+      "unixnu_downstream_revision": "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e",
+      "defconfig": {
+        "ipados-17.7.11-21H461": "cheeseburger_defconfig"
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "ArmDTPlatform",
+      "kind": "driver",
+      "function": "Device-tree platform expert",
+      "scope": "arm64",
+      "repository": "https://github.com/UniXNU/ArmDTPlatform.git",
+      "revision": "417ff95d6a6e8607ddea9309ec45c3bfd4a67c60",
+      "path": "drivers/ArmDTPlatform",
+      "hardware": [
+        "ARM64"
+      ],
+      "os_abi": [
+        "ipados-17.7.11-21H461"
+      ],
+      "board_dependencies": [],
+      "verified_devices": [],
+      "dependencies": [],
+      "source_files": [
+        "ArmDTPlatform.cpp"
+      ],
+      "runtime_identifiers": [
+        "ArmDTPlatform.cpp",
+        "org.blu-sharky.ArmDTPlatform",
+        "ArmDTPlatform"
+      ],
+      "build_stage": "kernel",
+      "build": [
+        "build-arm-driver.py",
+        "ArmDTPlatform"
+      ],
+      "outputs": [
+        "build/armdt-platform/libArmDTPlatform.a"
+      ]
+    },
+    {
+      "id": "ArmCpu",
+      "kind": "driver",
+      "function": "ARM generic interrupt controller and timer",
+      "scope": "arm64",
+      "repository": "https://github.com/UniXNU/ArmCpu.git",
+      "revision": "93a5030c5d983d0ef90f0fca93879d6e36ad1ba8",
+      "path": "drivers/ArmCpu",
+      "hardware": [
+        "ARM GICv3",
+        "ARM generic timer"
+      ],
+      "os_abi": [
+        "ipados-17.7.11-21H461"
+      ],
+      "board_dependencies": [],
+      "verified_devices": [],
+      "dependencies": [],
+      "source_files": [
+        "ArmCpu.cpp"
+      ],
+      "runtime_identifiers": [
+        "ArmCpu.cpp",
+        "org.blu-sharky.ArmCpu",
+        "ArmCpu"
+      ],
+      "build_stage": "kernel",
+      "build": [
+        "build-arm-driver.py",
+        "ArmCpu"
+      ],
+      "outputs": [
+        "build/armcpu/libArmCpu.a"
+      ]
+    },
+    {
+      "id": "SoftwareAES",
+      "repository_id": 1426848774,
+      "kind": "driver",
+      "function": "Software AES-CBC through IOAESAccelerator",
+      "scope": "os",
+      "repository": "https://github.com/UniXNU/SoftwareAES.git",
+      "revision": "4a45326da5c2cd6fe6813d79ee43db20805628af",
+      "path": "drivers/SoftwareAES",
+      "hardware": [
+        "XNU AES routines"
+      ],
+      "os_abi": [
+        "ipados-17.7.11-21H461"
+      ],
+      "board_dependencies": [],
+      "verified_devices": [],
+      "dependencies": [],
+      "source_files": [
+        "NativeAES.cpp"
+      ],
+      "runtime_identifiers": [
+        "NativeAES",
+        "NativeAES.cpp"
+      ],
+      "build_stage": "kernel",
+      "build": [
+        "build-arm-driver.py",
+        "SoftwareAES"
+      ],
+      "outputs": [
+        "build/software-aes/libSoftwareAES.a"
+      ],
+      "legacy_name": "NativeAES",
+      "legacy_outputs": {
+        "build/native-aes/libNativeAES.a": "build/software-aes/libSoftwareAES.a"
+      }
+    },
+    {
+      "id": "RamBlock",
+      "repository_id": 1426849698,
+      "kind": "driver",
+      "function": "RAM-backed block device and sparse seed storage",
+      "scope": "storage",
+      "repository": "https://github.com/UniXNU/RamBlock.git",
+      "revision": "4be2d7eb05ef5a98126c91e0302c149140c0e3e1",
+      "path": "drivers/RamBlock",
+      "hardware": [
+        "RAM block backing"
+      ],
+      "os_abi": [
+        "ipados-17.7.11-21H461"
+      ],
+      "board_dependencies": [
+        "optional persistent storage backend"
+      ],
+      "verified_devices": [],
+      "dependencies": [],
+      "source_files": [
+        "NativeRamBlock.cpp"
+      ],
+      "runtime_identifiers": [
+        "NativeRamBlock",
+        "NativeRamBlock.cpp"
+      ],
+      "build_stage": "kernel",
+      "build": [
+        "build-arm-driver.py",
+        "RamBlock"
+      ],
+      "outputs": [
+        "build/ram-block/libRamBlock.a"
+      ],
+      "legacy_name": "NativeRamBlock",
+      "legacy_outputs": {
+        "build/native-ram-block/libNativeRamBlock.a": "build/ram-block/libRamBlock.a"
+      }
+    },
+    {
+      "id": "AppleKeyStoreState",
+      "repository_id": 1426849312,
+      "kind": "driver",
+      "function": "AppleKeyStore state and selector handling",
+      "scope": "os",
+      "repository": "https://github.com/UniXNU/AppleKeyStoreState.git",
+      "revision": "8c70daf814aafdf4a3d35e40dde0322655fd0a83",
+      "path": "drivers/AppleKeyStoreState",
+      "hardware": [
+        "AppleKeyStore ABI"
+      ],
+      "os_abi": [
+        "ipados-17.7.11-21H461",
+        "ipados-27.0.1-24A446"
+      ],
+      "board_dependencies": [
+        "platform state callbacks"
+      ],
+      "verified_devices": [],
+      "dependencies": [],
+      "source_files": [
+        "NativeKeyStoreEvents.cpp"
+      ],
+      "runtime_identifiers": [
+        "NativeKeyStoreEvents",
+        "NativeKeyStoreEvents.cpp"
+      ],
+      "build_stage": "kernel",
+      "build": [
+        "build-arm-driver.py",
+        "AppleKeyStoreState"
+      ],
+      "outputs": [
+        "build/apple-key-store-state/libAppleKeyStoreState.a"
+      ],
+      "legacy_name": "NativeKeyStoreEvents",
+      "legacy_outputs": {
+        "build/native-keystore-events/libNativeKeyStoreEvents.a": "build/apple-key-store-state/libAppleKeyStoreState.a"
+      }
+    },
+    {
+      "id": "XnuPrelink",
+      "repository_id": 1426851690,
+      "kind": "kit",
+      "function": "XNU kernelcache prelink and ABI inspection",
+      "scope": "tool",
+      "repository": "https://github.com/UniXNU/XnuPrelink.git",
+      "revision": "c645d76bb0ab8c506a76840ddf93a2276d419a0e",
+      "path": "kits/XnuPrelink",
+      "hardware": [],
+      "os_abi": [],
+      "board_dependencies": [],
+      "verified_devices": [],
+      "dependencies": [],
+      "source_files": [
+        "emit_prelink.py",
+        "native_prelink.py"
+      ],
+      "runtime_identifiers": [
+        "NativePrelink",
+        "emit_prelink.py",
+        "native_prelink.py"
+      ],
+      "build_stage": "prelink",
+      "build": [],
+      "outputs": [],
+      "legacy_name": "NativePrelink"
+    },
+    {
+      "id": "DarwinBoot",
+      "kind": "driver",
+      "function": "UEFI XNU loader",
+      "scope": "firmware",
+      "repository": "https://github.com/UniXNU/DarwinBoot.git",
+      "revision": "3c75734014cdab0acd9541e88057b7606ee7ae08",
+      "path": "drivers/DarwinBoot",
+      "hardware": [
+        "ARM64 UEFI"
+      ],
+      "os_abi": [],
+      "board_dependencies": [],
+      "verified_devices": [],
+      "dependencies": [],
+      "source_files": [],
+      "runtime_identifiers": [],
+      "build_stage": "firmware",
+      "build": [],
+      "outputs": []
+    }
+  ],
+  "modules": [
+    {
+      "kind": "driver",
+      "name": "AppleKeyStoreState",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/drivers/AppleKeyStoreState",
+      "origin": "base",
+      "local": false,
+      "revision": "6ff4f11d8fdf853351f8d98e1bbe1373fb8da2e6",
+      "pin": "8c70daf814aafdf4a3d35e40dde0322655fd0a83",
+      "scope": "os",
+      "repository": "https://github.com/unixnu/applekeystorestate"
+    },
+    {
+      "kind": "driver",
+      "name": "ArmCpu",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/drivers/ArmCpu",
+      "origin": "base",
+      "local": false,
+      "revision": "d90e457b8392623853ec85c860feef546c767621",
+      "pin": "93a5030c5d983d0ef90f0fca93879d6e36ad1ba8",
+      "scope": "arm64",
+      "repository": "https://github.com/unixnu/armcpu"
+    },
+    {
+      "kind": "driver",
+      "name": "ArmDTPlatform",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/drivers/ArmDTPlatform",
+      "origin": "base",
+      "local": false,
+      "revision": "e8bd8d5de395c6cbc00d762c1bef57dbd15a448d",
+      "pin": "417ff95d6a6e8607ddea9309ec45c3bfd4a67c60",
+      "scope": "arm64",
+      "repository": "https://github.com/unixnu/armdtplatform"
+    },
+    {
+      "kind": "driver",
+      "name": "DarwinBoot",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/drivers/DarwinBoot",
+      "origin": "base",
+      "local": false,
+      "revision": "2ba9cad556f1794fb74ac8af164bc34b0e096338",
+      "pin": "3c75734014cdab0acd9541e88057b7606ee7ae08",
+      "scope": "firmware",
+      "repository": "https://github.com/lss717/darwinboot"
+    },
+    {
+      "kind": "driver",
+      "name": "RamBlock",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/drivers/RamBlock",
+      "origin": "base",
+      "local": false,
+      "revision": "737f6dae119ef11990e77dc06bcead945098865e",
+      "pin": "4be2d7eb05ef5a98126c91e0302c149140c0e3e1",
+      "scope": "storage",
+      "repository": "https://github.com/unixnu/ramblock"
+    },
+    {
+      "kind": "driver",
+      "name": "SoftwareAES",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/drivers/SoftwareAES",
+      "origin": "base",
+      "local": false,
+      "revision": "da07dd5c7d62bbe960f5bd4fe7789574d3a49d8c",
+      "pin": "4a45326da5c2cd6fe6813d79ee43db20805628af",
+      "scope": "os",
+      "repository": "https://github.com/unixnu/softwareaes"
+    },
+    {
+      "kind": "kit",
+      "name": "XnuPrelink",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/kits/XnuPrelink",
+      "origin": "base",
+      "local": false,
+      "revision": "440589b0c31625f17edf363e24b3c82c51c70bb9",
+      "pin": "c645d76bb0ab8c506a76840ddf93a2276d419a0e",
+      "scope": "tool",
+      "repository": "https://github.com/unixnu/xnuprelink"
+    },
+    {
+      "kind": "package",
+      "name": "device",
+      "path": "/Users/lss/codex-format2-validation-20261115/UniXNU-cheeseburger/package",
+      "origin": "device",
+      "local": false,
+      "revision": "4ae1deb523022a4c5cf27cb07518829339b7457e",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "package",
+      "name": "main",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/package",
+      "origin": "base",
+      "local": false,
+      "revision": "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "patch",
+      "name": "libpthread",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/libpthread",
+      "origin": "base",
+      "local": false,
+      "revision": "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e",
+      "pin": "c0e60fb5ecfc54cf379c261d3f9572cc22ded891",
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "patch",
+      "name": "mesa",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/mesa",
+      "origin": "base",
+      "local": false,
+      "revision": "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "patch",
+      "name": "unixnu",
+      "path": "/Users/lss/codex-format2-validation-20261115/UniXNU-cheeseburger/patches/unixnu",
+      "origin": "device",
+      "local": false,
+      "revision": "4ae1deb523022a4c5cf27cb07518829339b7457e",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "patch",
+      "name": "xnu",
+      "path": "/Users/lss/codex-format2-validation-20261115/UniXNU-cheeseburger/patches/xnu",
+      "origin": "device",
+      "local": false,
+      "revision": "4ae1deb523022a4c5cf27cb07518829339b7457e",
+      "pin": "d8b80295118ef25ac3a784134bcf95cd8e88109f",
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "patch",
+      "name": "xnu-12377",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu-12377",
+      "origin": "base",
+      "local": false,
+      "revision": "d7fafc5d45a795a3b7fc9e9ae313e704c5a1938e",
+      "pin": null,
+      "scope": null,
+      "repository": null
+    },
+    {
+      "kind": "refer",
+      "name": "AvailabilityVersions",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/feeds/AvailabilityVersions-6928d18a",
+      "origin": "git",
+      "local": false,
+      "revision": "933f9360f1b70dfbda5548386a3d65e0358b4f7d",
+      "pin": "933f9360f1b70dfbda5548386a3d65e0358b4f7d",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/AvailabilityVersions.git"
+    },
+    {
+      "kind": "refer",
+      "name": "IOStorageFamily",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/feeds/IOStorageFamily-67f9003c",
+      "origin": "git",
+      "local": false,
+      "revision": "e45fbe30a7879e0b16e26dddb78538f1b00e0bff",
+      "pin": "e45fbe30a7879e0b16e26dddb78538f1b00e0bff",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/IOStorageFamily.git"
+    },
+    {
+      "kind": "refer",
+      "name": "corecrypto-2023",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/feeds/corecrypto-2023-c0651bae",
+      "origin": "git",
+      "local": false,
+      "revision": "11fba65b12d8830630e248dfa8344caf8b065f26",
+      "pin": "11fba65b12d8830630e248dfa8344caf8b065f26",
+      "scope": null,
+      "repository": "https://github.com/ONLYA/corecrypto-2023.git"
+    },
+    {
+      "kind": "refer",
+      "name": "edk2",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/feeds/mu_basecore-8f10084c",
+      "origin": "git",
+      "local": false,
+      "revision": "cfb93724a06ff86ff5ba971413368a7809ee42a5",
+      "pin": "cfb93724a06ff86ff5ba971413368a7809ee42a5",
+      "scope": null,
+      "repository": "https://github.com/microsoft/mu_basecore.git"
+    },
+    {
+      "kind": "refer",
+      "name": "libdispatch",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/feeds/libdispatch-d8f167ce",
+      "origin": "git",
+      "local": false,
+      "revision": "30fe6a7d945340ce69cef121132f049e810089a5",
+      "pin": "30fe6a7d945340ce69cef121132f049e810089a5",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/libdispatch.git"
+    },
+    {
+      "kind": "refer",
+      "name": "libplatform",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/feeds/libplatform-0f31118b",
+      "origin": "git",
+      "local": false,
+      "revision": "a00a4cc36da2110578bcf3b8eeeeb93dcc7f4e11",
+      "pin": "a00a4cc36da2110578bcf3b8eeeeb93dcc7f4e11",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/libplatform.git"
+    },
+    {
+      "kind": "refer",
+      "name": "libpthread",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/feeds/libpthread-9e5201bd",
+      "origin": "git",
+      "local": false,
+      "revision": "c0e60fb5ecfc54cf379c261d3f9572cc22ded891",
+      "pin": "c0e60fb5ecfc54cf379c261d3f9572cc22ded891",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/libpthread.git"
+    },
+    {
+      "kind": "refer",
+      "name": "xnu",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/feeds/xnu-b7545ced",
+      "origin": "git",
+      "local": false,
+      "revision": "d8b80295118ef25ac3a784134bcf95cd8e88109f",
+      "pin": "d8b80295118ef25ac3a784134bcf95cd8e88109f",
+      "scope": null,
+      "repository": "https://github.com/apple-oss-distributions/xnu.git"
+    },
+    {
+      "kind": "soc",
+      "name": "msm8998",
+      "path": "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/out/feeds/UniXNU-msm8998-common-d405010a",
+      "origin": "git",
+      "local": false,
+      "revision": "8227828eb1706b51aea9762bd46006328d91db26",
+      "pin": "8227828eb1706b51aea9762bd46006328d91db26",
+      "scope": null,
+      "repository": "https://github.com/lss717/UniXNU-msm8998-common"
+    }
+  ],
+  "patch_order": [
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/apple-only-cpu-tunables.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/architectural-timer-entry.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/armvirt-platform-personality.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/cxx-flag-dependencies.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/disabled-deferred-reclaim.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/external-archive-dependencies.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/kernel-sdk-root.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/local-availability.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/mockfs-intermediate-lookup.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/mockfs-memory-device-width.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/mockfs-statfs.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/mockfs-test-file.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/mockfs-typed-allocation.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-4k-bootstrap-capacity.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-4k-signature-hash-cache.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-4k-user-abi.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-aes-personality.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-arm-pan.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-dt-panic-region.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-lookup-trace.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-priv-work-interval.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-quiet-managed-page-report.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-text-fixup.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-trust-cache-runtime.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-union-getattrlistbulk.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-union-lower-directory.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-work-interval-soft-fail.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-work-interval-trace.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/native-work-interval-instance.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/non-apple-cache-monitor.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/non-apple-iommu-bootstrap.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/non-apple-pmap-field.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/null-root-media.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/offline-component-load-probes.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/offline-legacy-start.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/offline-native-gpu-broker.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/offline-owner-boot-manifest.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/offline-owner-cache-carrier.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/offline-owner-root-binding-audit.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/offline-owner-root-crypto-probe.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/offline-owner-systemos-mount.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/offline-owner-z-air-init.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/offline-pgz-alignment-probe.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/pgz-aligned-validation.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/public-entitlements-header.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/published-freezer-condition.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/source-corecrypto14-bootstrap.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/source-machine-layer.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/source-pthread-bootstrap.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/zzw-native-adreno-sandbox-grant.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/zzwb-native-sandbox-grant-set-properties.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/zzx-pmap-sync-64bit-pa.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/zzy-native-gpu-addon-mount.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/zzy-staged-system-apps.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/zzyb-native-cryptex-os-view.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/zzyc-owner-skip-launch-constraints.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/zzz-boot-progress.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/kits/XnuPrelink/patches/xnu-10063.141.1-security-init.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/kits/XnuPrelink/patches/xnu-10063.141.1-sparse-index.patch",
+    "/private/var/folders/kg/lm4yl5_s4wg_wzqmmz7nblbr0000gn/T/format2-clean.jWsLOG/UniXNU/patches/xnu/sheng-platform-power.patch",
+    "/Users/lss/codex-format2-validation-20261115/UniXNU-cheeseburger/patches/xnu/sheng-platform-power-progress.patch"
+  ]
+}
