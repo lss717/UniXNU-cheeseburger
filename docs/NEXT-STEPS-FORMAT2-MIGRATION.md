@@ -1581,6 +1581,56 @@ E:\WindowsData\Project\ios-backups\op5-20261115-diag-bufferfix
 `docs/migration/device-run-2026-11-15-03.md`。下一次实机测试只允许使用上面的
 buffer-fix SHA-256，保持非持久启动、手动选择 IOS 和不连续自动重试。
 
+### 第四轮 buffer-fix 实机结果与入口探针
+
+buffer-fix 候选已完成一次非持久启动：
+
+```text
+boot.img 2f1761df0784061c15e7efb2f4bf3f74baa1144116553619cdcc36c01f0605d7
+```
+
+此前 `copy-kernel` 的 alignment fault 没有再次出现。DarwinBoot 完整通过
+kernel、ADT、video 和命令行验证，并打印：
+
+```text
+stage=place-image pa=0xA1E04000 bytes=0x08000000
+stage=copy-kernel used=0x6070000
+ARM64 va=0xFFFFFFF007004000 pa=0xA1E04000 args=0xA7A30000 entry=0xA21F1488 owned=0x08000000
+video base=0x9D400000 display=1 row=4320 width=1080 height=1920 depth=32
+inputs validated; exiting boot services
+```
+
+`inputs validated; exiting boot services` 是 EBS 调用前的日志。顶部绿色横条由
+`DarwinEnter` 在 `ExitBootServices` 成功返回后绘制，因此本轮已经证明：
+
+- EBS 成功；
+- `DarwinEnter` 已开始；
+- 尚未证明 XNU `_start`、`SCTLR_EL1` 写入或 MMU enable 后执行。
+
+绿条出现后紧接黑屏，不能单独解释为 CPU 未进入 XNU，也不能排除 framebuffer
+在 handoff 后失显示。当前窗口 `0xA1E04000` 已具有 H236cj 要求的 2 MiB 内
+`0x4000` 偏移。
+
+下一版最小入口探针已经构建：
+
+```text
+probe kernel  e90ee4837c68d55f595a8ea37b1d375c3c4437351bf63a16ba3f94e0dff9fcfa
+probe payload 26ceba612810a6f15d531832bcd916c121c8b09c7c01a928fd848c9cd54764b0
+probe boot    01facb8e87233efa4e7426f6dff873167e2569f89cf1319c77c02931de2b9258
+```
+
+探针含义：
+
+- 绿条：EBS 返回且 `DarwinEnter` 开始；
+- 蓝带：XNU `_start` 执行；
+- 品红带：已到 `msr SCTLR_EL1, x0` 前；
+- 6 秒后 PSCI 重启：MMU enable 点之后仍在执行。
+
+完整记录见 `docs/migration/device-run-2026-11-16-01.md`。Windows 候选位于
+`E:\WindowsData\Project\ios-backups\op5-20261116-entry-probe`。设备当前黑屏且
+没有 ADB/Fastboot 枚举；下一次测试需要用户先手动回到 TWRP，随后只做一次
+非持久启动。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
