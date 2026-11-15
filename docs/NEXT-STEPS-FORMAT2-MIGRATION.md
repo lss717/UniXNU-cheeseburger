@@ -2202,6 +2202,22 @@ probe boot     22847449BAFD31AB4BBA94E8364FDF4707C24813A8A98D1981C0BA106979971A
 仍停在 `_machine_conf` 内部。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-kernel-bootstrap-probe`。
 
+`_kernel_bootstrap` 入口探针立即重启，说明已进入内核主启动。下一探针取其中段
+边界 `_machine_init` 入口：
+
+```text
+reset VA       0xFFFFFFF0073F4A3C
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   B600DC3EC0AB39694B1DA521B6293E4FE33A79FFF347D8254E1CC868CB1EFF7D
+probe payload  9A54B95D0BDF5E1C546D0E89AF8A7A9C3ED6EFB2398C26CDF324A612A34A37F6
+probe boot     E373B99BA34D1225151BD85438DD2E9A4712875A3B0BC8E0759F1EDE141FA991
+```
+
+立即 reset 表示前面的 VM memory、console、scheduler 和 MAC policy 等
+`_kernel_bootstrap` 阶段均已返回；不 reset 表示停点位于 `_machine_init` 之前。
+Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-machine-init-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
