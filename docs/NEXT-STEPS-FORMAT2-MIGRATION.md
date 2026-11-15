@@ -2126,6 +2126,21 @@ probe boot     59AAEE74B5B5DE4DEA4E74C7F1C4F4DA539CEFD95FC71D2468F978EA74987ED8
 `_kernel_startup_bootstrap` 到 `_arm_vm_init` 之间。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-arm-vm-entry-probe`。
 
+`_arm_vm_init` 入口探针立即重启，证明此前整段预 VM 初始化已完成。下一探针选择
+`_arm_vm_init` 返回后的首个调用 `_PE_consistent_debug_inherit` 入口：
+
+```text
+reset VA       0xFFFFFFF007944258
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   0B5332B14BDF72706E5A970FC18C1C977D2CF75B897730D9571BF8F9703AE413
+probe payload  830B668F9742A1F0A72CD3C27E5CEDA1962AFF04C7B60FA1A11EA7290C666A9F
+probe boot     8B3EF6DECDA47EE4286F32E77DBC94FAEE8C8BC9B058635C1EE42552536BBC6A
+```
+
+立即 reset 表示 `_arm_vm_init` 已返回；不 reset 表示仍停在该函数内部。Windows
+目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-pe-debug-inherit-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
