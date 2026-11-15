@@ -2294,6 +2294,21 @@ probe boot     621FAEE8E22C7E0A5C7486F5F7779276617EDB350C523F721575D723B833D886
 Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-kernel-bootstrap-thread-probe`。
 
+`_kernel_bootstrap_thread` 入口探针立即重启，证明主内核线程已开始。下一探针选择
+IOKit 平台初始化边界 `_PE_init_iokit` 入口：
+
+```text
+reset VA       0xFFFFFFF007944AA4
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   B029B8CDE95959476D0CFBD16E2EC0F8A7EDD83FFAF05A57E242DCEABE848BC8
+probe payload  E6B880EC41012C2F9A76052994521A9336BD20610406F12CA1835493AA462B12
+probe boot     235421588A13CE106F519409B4089B6EF90DF0756F5E8DF0AEF17A63F749AB19
+```
+
+立即 reset 表示 idle、调度、clock/device service、KDP 和 bootprofile 等初始化均已
+返回；不 reset 表示停点位于 `_PE_init_iokit` 之前。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-pe-init-iokit-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
