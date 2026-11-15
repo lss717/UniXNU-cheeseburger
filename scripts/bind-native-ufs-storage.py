@@ -23,6 +23,8 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--object', type=Path, required=True)
 parser.add_argument('--archive', type=Path, required=True)
 parser.add_argument('--bindings', type=Path, default=ROOT / 'scripts/data/IOStorageFamily-bindings.json')
+parser.add_argument('--class', dest='class_name', default='NativeUfsLun',
+                    help='C++ class whose vtable describes the storage transport')
 args = parser.parse_args()
 
 bindings = json.loads(args.bindings.read_text())
@@ -56,10 +58,11 @@ for index in range(count):
         name = obj[start:end].decode(errors='replace')
     symbols.append((name, value, kind))
 
+vtable_symbol = f'__ZTV{len(args.class_name)}{args.class_name}'
 vtable = next((value for name, value, kind in symbols
-               if name == '__ZTV12NativeUfsLun'), None)
+               if name == vtable_symbol), None)
 if not vtable:
-    raise SystemExit('NativeUfsLun vtable missing')
+    raise SystemExit(f'{args.class_name} vtable missing')
 relocations = {}
 for segment in image['segments']:
     for section in segment['sections']:
@@ -71,7 +74,7 @@ for segment in image['segments']:
                     relocations[section['va'] + address] = symbols[word & 0xffffff][0]
 slot_names = [relocations.get(vtable + 16 + 8 * index) for index in range(190)]
 if not all(slot_names):
-    raise SystemExit('NativeUfsLun vtable has missing slots')
+    raise SystemExit(f'{args.class_name} vtable has missing slots')
 
 undefined = [name for name, value, kind in symbols
              if kind == 1 and 'IOBlockStorageDevice' in name]
@@ -91,14 +94,14 @@ for name in undefined:
 if not out:
     raise SystemExit('no original storage imports to bind')
 
-assembly = args.archive.with_name('NativeUfsLun-original-bindings.S')
+assembly = args.archive.with_name(f'{args.class_name}-original-bindings.S')
 assembly.write_text(''.join(
     f'.globl {name}\n.set {name}, {address:#x}\n' for name, address in sorted(out.items())))
-binding_object = args.archive.with_name('NativeUfsLun-original-bindings.o')
+binding_object = args.archive.with_name(f'{args.class_name}-original-bindings.o')
 subprocess.run(['xcrun', 'clang', '-target', 'arm64-apple-ios17.0', '-Werror',
                 '-Wno-incompatible-sysroot', '-c', str(assembly), '-o', str(binding_object)],
                check=True)
 subprocess.run(['xcrun', 'ar', 'rcs', str(args.archive), str(args.object), str(binding_object)],
                check=True)
 print(f'PASS: bound {len(out)} original IOStorageFamily imports '
-      f'({len(slot_names)} NativeUfsLun slots checked)')
+      f'({len(slot_names)} {args.class_name} slots checked)')

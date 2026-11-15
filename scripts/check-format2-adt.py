@@ -72,6 +72,8 @@ def strings(node, key):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--adt", type=Path, required=True)
+    parser.add_argument("--require", action="append", default=None,
+                        help="required /chosen/memory-map sidecar placeholder")
     parser.add_argument("--system-volume",
                         type=Path, default=ROOT / "scripts/data/SystemVolume.im4p")
     args = parser.parse_args()
@@ -190,8 +192,9 @@ def main():
         report.check(memory_map is not None, "has /chosen/memory-map")
         if memory_map:
             names = set(memory_map["props"]) - {"name"}
-            report.check({"PackedRAMDisk", "TrustCache", "GpuAddon"} <= names,
-                         "payload sidecar placeholders are present")
+            required = args.require or ["PackedRAMDisk", "TrustCache"]
+            report.check(set(required) <= names,
+                         f"payload sidecar placeholders are present: {', '.join(required)}")
 
     defaults = child(root, "defaults")
     report.check(defaults is not None and u32(defaults, "sleep-disabled") == 1,

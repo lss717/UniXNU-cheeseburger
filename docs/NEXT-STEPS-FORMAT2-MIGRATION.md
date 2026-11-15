@@ -51,6 +51,19 @@ format 2 架构。迁移完成后，应能明确区分以下问题的归属：
   `build-cheeseburger-driver.py`，官方组件继续使用 UniXNU 脚本。
 - 第四次构建发现 Xcode 26.3 把旧 `-Wno-unnecessary-virtual-specifier`
   视为未知警告选项；已加入显式 `-Wno-unknown-warning-option` 兼容 patch。
+- 非 catalog 的设备 probe 不会由 resolver 链接进 `tree/drivers`；本地
+  builder 现通过 `UNIXNU_DEVICE` 直接读取设备仓库源码。
+- `build-native-ufs-runtime.py` 需要尚未提供的 VerifiedRoot signed policy，
+  且当前 `CONFIG_XNU_NATIVE_UFS` 未启用。初始 format 2 构建已移除该 builder，
+  作为 UFS 负向控制；正式 runtime 路径留到 C 配置矩阵。
+- `build-sheng-pmgr.py` 依赖已存在的 prelinked kernel，不能作为 pre-link
+  archive 执行。初始构建改用现有 `build-sheng-pmgr-stub.py`；真实 PMGR
+  在首个 kernel 候选生成后进行二次构建。
+- UFS 负向控制还需要为 `NativeRamBlock` 提供显式拒绝型 store stub。
+  `native_ufs_store_mode()=0`，因此 Data 保持纯内存，不会被误报为持久 UFS。
+- `NativeRamBlock` 的 IOBlockStorageDevice 继承槽通过现有 190-slot
+  binding 表绑定；`ml_static_mfree_prepare` 在 iPadOS 17 profile 下由 stub
+  返回 false，保留种子映射。
 
 ## 审计基线（迁移前）
 

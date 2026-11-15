@@ -68,11 +68,11 @@ archives = [
   "component:SoftwareAES",
   "build-software-aes-bindings.py",
   "component:RamBlock",
+  "bind-native-ufs-storage.py --object build/ram-block/NativeRamBlock.o --archive build/ram-block/libRamBlock.a --class NativeRamBlock",
   "component:AppleKeyStoreState",
   "build-cheeseburger-driver.py NativeUfsProbe",
   "build-cheeseburger-driver.py CheeseburgerUsb",
-  "build-native-ufs-runtime.py",
-  "build-sheng-pmgr.py",
+  "build-sheng-pmgr-stub.py",
   "build-mockfs-fixture.py",
   "build-libpthread-kernel.py",
 ]
