@@ -1799,6 +1799,54 @@ probe boot            52759A6F3EF49FB893E157159E809D5E17BBB496C6E5D64ABDD5DA04A1
 `docs/migration/device-run-2026-11-16-04.md`。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-thread-bootstrap-probe`。
 
+### 第八轮 thread-bootstrap 负结果与 configure-misc 正结果
+
+`_thread_bootstrap` 入口探针 boot
+`52759a6f3ef49fb893e157159e809d5e17bbb496c6e5d64abdd5da04a105f82c`
+未触发立即 reset；只有绿色 `DarwinEnter`，随后黑屏。故
+`_thread_bootstrap` 未到达。
+
+随后在 `_configure_misc_apple_boot_args` 入口做中点探针：
+
+```text
+boot        739c7f17b2854d6fa6305e5941392f2ee2b8d421e6d23ab3d5a1744b64555439
+kernel      1c7540a57baf2b056777359cee9a7df55d5b36901610c20dfe024ee3f1bc89db
+payload     a784178358b5c2f2c7fb78d47fd12f49c293e511797f8bc554df03c7b05dc1d0
+entry       0xFFFFFFF0073F7AF4
+source RET  0xD65F03C0
+```
+
+选择 IOS 后立即重启，证明以下调用均已返回：
+
+```text
+memmove boot_args
+cpu_data_init
+PE_init_platform
+configure_timer_apple_regs
+wfe_timeout_configure
+wfe_timeout_init
+```
+
+故障区间现为 configure-misc 后到 `_thread_bootstrap` 前。该范围包含 DT
+lookup/property、`platform_stall_panic_or_spin` 和 CPU topology。
+
+下一单点选 `_platform_stall_panic_or_spin` 入口：
+
+```text
+entry       0xFFFFFFF007279D1C
+source      0xD10083FF
+patch       0x141ED175
+kernel      8F728B7B51A0CB02602269FB5A2E7363BE2080420A43AD0266BD980D4D4CB880
+payload     E310A7C4DA630D76B0A638B31BFC68055DC9F4EE2BDD80D8B364CD5844509726
+boot        4E070C38FE1E5CB7335B9B812EA01FBF65CFA0DE8EFE35EBD05DCA021C90C031
+```
+
+该函数若 `_reattach_wait` bit 0 异常置位，会进入永久 WFE 黑屏，因此是当前
+最可疑的单点。立即 reset 表示 DT 路径已到 stall 入口；不 reset 则故障位于
+DT/configure-misc 到 stall 之前。完整记录见
+`docs/migration/device-run-2026-11-16-05.md`。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-platform-stall-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
