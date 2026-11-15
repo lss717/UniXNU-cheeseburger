@@ -6,3 +6,7 @@
 # applies the PMGR integration and its progress markers afterwards.
 arch:../../../patches/xnu/sheng-platform-power.patch
 sheng-platform-power-progress.patch
+
+# The diagnostic kernel is built as BCM2837, whose stock board profile is
+# single-cluster and limited to four CPUs. MSM8998 has 4+4 CPUs in two clusters.
+msm8998-cpu-topology.patch

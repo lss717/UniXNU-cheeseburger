@@ -1943,6 +1943,49 @@ boot        A75721DBFA8A489C8D8425DDA2590416720CC5F3B190B4D5D6CB3149838473A9
 manifest 和 payload 内嵌内核逐字节检查。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-topology-type2-branch-probe`。
 
+### 第十一轮 CPU cluster 容量修复
+
+`0x572C` 实机结果仍为黑屏不重启。结合已知正点 `0x5704`，控制流位于
+`0x5728 B.EQ 0x5920`，其目标调用：
+
+```text
+Assert("phys_cluster_id <= MAX_CPU_CLUSTER_PHY_ID")
+machine_routines.c:1099
+```
+
+根因是诊断内核沿用 `BCM2837` 目标配置：
+
+```text
+MAX_CPUS          4
+MAX_CPU_CLUSTERS  1
+MAX_CPU_CLUSTER_PHY_ID = 0
+```
+
+但 MSM8998 的 `P` 核需要 `phys_cluster_id = 1`，因此必然断言失败。新增
+`patches/xnu/msm8998-cpu-topology.patch`，只把该目标的容量改为：
+
+```text
+MAX_CPUS          8
+MAX_CPU_CLUSTERS  2
+```
+
+补丁通过 `patches/xnu/series` 在完整 package 构建中应用。新汇编已不再在
+`cluster_type == 'P'` 时跳向 `0x5920`，而是用 `CSET/ORR` 选择两个有效的
+cluster 槽位。
+
+重建候选：
+
+```text
+kernel      A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+payload     2EFADB7C3B49F165025092574BB5F84B518914DB792904BB05A9C69AC103A44F
+boot        4AED1AF3FA506B8C843D00431D9FAF10213CB235E5398D72CE0548E4622748A2
+FD          4F298C30C600CE85497F6A720979936643BFBD1681C377514750A408266A7725
+```
+
+候选已通过 47/47 ADT、FD/FV、boot header、manifest 和 payload 内嵌内核逐字节
+检查。完整记录见 `docs/migration/device-run-2026-11-16-08.md`。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-msm8998-cluster2`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>

@@ -1,0 +1,9 @@
+diff --git a/pexpert/pexpert/arm64/board_config.h b/pexpert/pexpert/arm64/board_config.h
+--- a/pexpert/pexpert/arm64/board_config.h
++++ b/pexpert/pexpert/arm64/board_config.h
+@@ -137,3 +137,3 @@
+ #define MAX_L2_CLINE                   6
+-#define MAX_CPUS                       4
+-#define MAX_CPU_CLUSTERS               1
++#define MAX_CPUS                       8
++#define MAX_CPU_CLUSTERS               2
