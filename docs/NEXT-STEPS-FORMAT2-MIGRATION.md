@@ -1631,6 +1631,61 @@ probe boot    01facb8e87233efa4e7426f6dff873167e2569f89cf1319c77c02931de2b9258
 没有 ADB/Fastboot 枚举；下一次测试需要用户先手动回到 TWRP，随后只做一次
 非持久启动。
 
+### 第五轮入口探针结果与 reset 分类
+
+入口探针 boot image
+`01facb8e87233efa4e7426f6dff873167e2569f89cf1319c77c02931de2b9258`
+已完成一次非持久实机启动。屏幕同时出现三条按源码常量绘制的色带：
+
+| 颜色 | 常量 | 位置 | 结论 |
+| --- | --- | --- | --- |
+| 绿 | `0xFF00FF00` | 顶部 1/16 | EBS 成功、`DarwinEnter` 开始 |
+| 品红 | `0xFFFF00FF` | stage 2 band | 已到 `msr SCTLR_EL1, x0` 前 |
+| 蓝 | `0xFF0000FF` | stage 1 band 8 | XNU `_start` 已执行 |
+
+随后约 6 秒设备自动重启并进入 Android。该重启对应 stage 3 的内建
+`cntpct_el0` 等待和 PSCI `0x84000009 SYSTEM_RESET`，因此已经证明：
+
+- XNU entry branch 成功；
+- `boot_args` 指针可读；
+- `SCTLR_EL1` 写入前的执行路径到达；
+- MMU enable 点之后继续运行到 stage 3；
+- PSCI reset 路径有效。
+
+这不再是未知 watchdog 的首选解释。`fastboot boot` 本身不写 boot 分区，所以
+reset 后进入已安装的 Android 是预期结果。
+
+Android 侧只读采集受 user build/SELinux 限制：
+
+```text
+ro.build.type=user
+ro.debuggable=0
+ro.boot.bootreason=bootloader
+boot_reason=0
+system_boot_reason=55
+ro.shutdown.record=192
+```
+
+`/sys/fs/pstore` 和 `/proc/cmdline` 被拒绝，`/proc/last_kmsg` 不存在。没有
+尝试提权；最强证据仍是三色 marker 与 6 秒 reset 的对应关系。
+
+下一轮停止修改 DarwinBoot 高层逻辑，只运行
+`patch-xnu-entry-probe.py --reset-at _arm_vm_init` 单点探针，判断最早 XNU VM
+初始化入口是否到达。完整记录见
+`docs/migration/device-run-2026-11-16-02.md`。
+
+单点候选已经构建并通过 47 项 ADT 与结构检查：
+
+```text
+probe kernel  32e9da61249471867c615d94ff936a917fd353640c91598541187ed6adad3174
+probe payload 497216f6158e7d9cda02ece432e582fded0e224bf2696cce44fe3626ec6cd6f7
+probe boot    1594b9ce5e5f898f4cc769ad64f582eb4b198ff0010e36486d70cd3e996d9ff5
+```
+
+Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-vm-init-probe`。该探针把
+`_arm_vm_init` 入口 `0xFFFFFFF0073EA0F4` 替换为 PSCI reset，不执行函数本身。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
