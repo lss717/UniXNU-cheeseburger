@@ -2473,6 +2473,22 @@ probe boot     6AB677D1046C2120619FC8BF9C6029AF204E85920D08F3CBA4777CD0CE9FDAC7
 更早。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-vc-progress-probe`。
 
+`_vc_progress_set` 探针冻结不重启，停点已缩到映射返回后的 vinfo 记账段。下一张取
+中点 `0xFFFFFFF0073C1F64`：
+
+```text
+reset VA       0xFFFFFFF0073C1F64
+source word    0x7100227F  CMP w19, #8
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   6AD095CFBEB041395AC307745441556BD557A0CC69B45CE62D929020EB1AAFBB
+probe payload  68D7C8A1F1D408D9049A5A883DFE87965D170B9F95C8197F066CCC811473DFBE
+probe boot     F14D304DBB722E2475BC2DD6FB9AD2A9A28143B4D51BE4F9760747827F217064
+```
+
+立即 reset 表示 framebuffer 映射记账与旧映射释放路径已通过；不 reset 表示停点位于
+映射返回到该中点之间。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-screen-postmap-mid-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
