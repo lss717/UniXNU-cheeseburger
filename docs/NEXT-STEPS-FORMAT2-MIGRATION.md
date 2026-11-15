@@ -1735,6 +1735,70 @@ probe boot        4EB2DDD6C4BA747D13AD1B9758A3500F98D122C60CF1136C361E01EC805BE0
 `docs/migration/device-run-2026-11-16-03.md`。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-arm-init-probe`。
 
+### 第七轮 arm-init 结果与 thread-bootstrap 中点
+
+`_arm_init` 单点探针 boot
+`4eb2ddd6c4ba747d13ad1b9758a3500f98d122c60cf1136c361e01ec805be00c`
+在手动选择 IOS 后立即重启。这就是 `_arm_init` 入口的 PSCI reset，不是未知
+watchdog。
+
+已验证最终 payload 中：
+
+```text
+_arm_init VA  0xFFFFFFF0079BF074
+原指令        0xD10343FF
+patch         0x1401BC9F
+kernel SHA    71C3AF4268791D83E8F68BC004BD5092D05E4C08530B568CC82EB8DE9BE06AB4
+```
+
+因此 `common_start` 已返回并进入 `_arm_init`。故障区间严格缩小为
+`_arm_init+4` 到 `0xFFFFFFF0079BF7E4` 的 `BL _arm_vm_init` 之间。
+
+当前 128 MiB 窗口路径依次经过：
+
+```text
+保存 boot_args
+cpu_data_init
+PE_init_platform
+Apple timer/misc 配置
+Secure DT lookup
+platform stall
+CPU topology
+thread_bootstrap
+machine_set_current_thread
+cpu_bootstrap
+rtclock_early_init
+kernel_startup_bootstrap
+timer_call_init
+cpu_init
+processor_bootstrap
+boot-arg PMEM/default 处理
+nanoseconds_to_absolutetime
+BL _arm_vm_init
+```
+
+该区间没有新的 MR/MSR；MMU/cache 已在 `common_start` 配置。主要栈对象是
+`0xD0` 初始帧、callee-saved 寄存器区和 `0x480` boot_args 副本。
+
+旧 H236m 成功 kernel 的 `_arm_init` 与当前均为 691 条指令；归一化链接地址后
+调用序列和控制流骨架一致，H236m 已实际进入并返回 `_arm_vm_init`。
+
+下一版取调用链中点，只替换 `_thread_bootstrap` 入口为 PSCI reset：
+
+```text
+_thread_bootstrap VA  0xFFFFFFF007991150
+原指令                0xA9BE4FF4
+patch                 0x14027468
+probe kernel          76517002324C002E7A4895264317ED7C8D800D6A8EB3ACD3F66B08C5D0BAD6A0
+probe payload         3F708760EE6AD5C606742E8B1EE31F2A094680F8D739F2FD6C1587A42C9FE3BB
+probe boot            52759A6F3EF49FB893E157159E809D5E17BBB496C6E5D64ABDD5DA04A105F82C
+```
+
+无任何 stage 色带。立即 reset 表示已通过前半段到 `_thread_bootstrap`；不 reset
+则继续在 `_arm_init` 入口到该中点之间二分。完整记录见
+`docs/migration/device-run-2026-11-16-04.md`。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-thread-bootstrap-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
