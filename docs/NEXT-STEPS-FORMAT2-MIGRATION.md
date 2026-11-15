@@ -2233,6 +2233,21 @@ probe boot     2919F68D69D212F932417BC9A1FECB8EA4332EF777DA2AA3DB4F05B1A37F4CB9
 表示停点位于 `_clock_init` 之前。Windows 目录为
 `E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-clock-init-probe`。
 
+`_clock_init` 入口探针立即重启，证明 `_machine_init` 和线程机器模板初始化均已返回。
+下一探针取后段中界 `_task_init` 入口：
+
+```text
+reset VA       0xFFFFFFF0072BE088
+source kernel  A0A11AAF765973D054F77407D308CA32FEFC70E13491061FDF9A876ED1BA0F99
+probe kernel   E12D9F4A4A4EEEE94175DDAF9BDE136A5BA4630B363D6D4AA796CEFC8426EC88
+probe payload  38C5406CA357AE12FE24CF26AFF671007E93248F4468AB5DF7977AA89ABA5F6A
+probe boot     CC1E5F634795FB941F96893C124BA9A48B63A6EF00CA69D64026E2EA9593E191
+```
+
+立即 reset 表示 clock、thread-group、coalitions 和 code-signing 初始化均已返回；
+不 reset 表示停点位于 `_task_init` 之前。Windows 目录为
+`E:\WindowsData\Project\ios-backups\op5-20261116-cluster2-task-init-probe`。
+
 ## 官方参考
 
 - <https://unixnu.com/porting/>
