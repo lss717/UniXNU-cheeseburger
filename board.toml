@@ -110,44 +110,51 @@ ui_title = "UniXNU"
 dram_size = "0x200000000"          # 8 GiB installed; the DarwinBoot window can land above 4 GiB
 panic_screen = false                # H67: skip fixed panic cave; use kernel console
 kernel_args = [
-  "-v",
-  # DinnerABC's successful iPadOS 17.7.11 baseline runs a single CPU.
-  "cpus=1",
-  "debug=0x14e",
-  "boot-progress=2",
+  "sheng-disable-jobs=com.apple.mobileactivationd,com.apple.PerfPowerServices",
+  "native-probe-quiet=2",
+  "offline-mobile-graphics-load=1",
   "offline-legacy-gop=1",
-  "offline-legacy-unit-scale=1",
+  "h103-log-secs=60",
+  "offline-legacy-phase=4",
+  "offline-legacy-register=1",
+  "offline-legacy-validate=1",
+  "offline-legacy-transfer=1",
+  "offline-legacy-retire=1",
+  "offline-legacy-pm=1",
+  "offline-legacy-unit-scale=3",
   "native-ufs-probe=0",
-  # H272k: the ring flush interval is 10 s by default, so an I/O storm that ends the
-  # boot inside one interval leaves nothing on disk (H272e: 51 err 60 then panic, no
-  # ring lines).  1 s turns every short run into a data point; writes are incremental
-  # and silent when nothing changed (H106 batching), so wear is unchanged.
-  "h103-log-secs=1",
-  # sheng bring-up policy: disable watchdogd and the known XPC/crash-loop
-  # launch daemons before launchd exec.
   "sheng-disable-watchdogd=1",
   "sheng-lite=1",
-  # Diagnostic H82l: keep the launchd core from scrolling the console and
-  # from spending two minutes on a 256 MiB Data volume.
+  "sheng-log=1",
+  "native-cpufreq-early=2",
   "native-skip-coredump=1",
-  # Temporary B5 bring-up only: allow the unsealed iPad restore root to reach
-  # launchd/AMFI. Remove this once VerifiedRoot is wired.
   "native-skip-root-auth=1",
-  # Diagnostic only: launchd was rejected with OS_REASON_EXEC /
-  # EXEC_EXIT_REASON_SECURITY_POLICY. Restore real AMFI/VerifiedRoot later.
   "amfi_get_out_of_my_way=1",
   "amfi=0x94",
   "amfi_allow_any_signature=1",
   "cs_enforcement_disable=1",
   "native-skip-exec-signature=1",
   "launchd_unsecure_cache=1",
-  # QEMU/iPadOS17 bring-up: testMode + skip ignition, so DYLD_AMFI_FAKE is
-  # honored and the fallback SystemOS cache can be used.
   "dyld_flags=0x0000008A",
-  # Temporary H81: -1 falls back to max_task_footprint; 0 removes the global
-  # per-task cap so the private cache cannot trigger per-process jetsam.
   "max_task_pmem=0",
   "-apfs_shared_datavolume",
+  "cpus=2",
+  "cheeseburger-usb=2",
+  "sheng-data-persist=1",
+  "allow-root-hash-mismatch=1",
+  "sheng-pmgr=2",
+  "native-trace-amfi-syscall=1",
+  "native-trace-trust-cache=1",
+  "h103-slot=1",
+  "h103-load-iogpu=0",
+  "h103-log-secs=60",
+  "h114-gic=1",
+  "h114-icc=0",
+  "h109-tick=0",
+  "offline-accelerator=0",
+  "sheng-gpu-addon=0",
+  "offline-legacy-dot-pitch=163",
+  "sheng-aks-publish=1",
 ]
 
 # Extra action entries appended after the kernel entry. The UniXNU UI already
