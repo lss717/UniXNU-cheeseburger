@@ -87,6 +87,7 @@ constexpr uint32_t kTrbCtlSetup = 2U << 4;
 constexpr uint32_t kTrbCtlStatus2 = 3U << 4;
 constexpr uint32_t kTrbCtlStatus3 = 4U << 4;
 constexpr uint32_t kTrbCtlData = 5U << 4;
+constexpr uint32_t kDepevtStatusBusErr = 1U << 0;
 
 constexpr uint8_t kDeviceDescriptor[] = {
 	18, 1, 0x00, 0x02, 0xff, 0x00, 0x00, 64,
@@ -649,7 +650,7 @@ struct Ep0Device {
 			return;
 		}
 		if (type == 1) {
-			if (status != 0) {
+			if ((status & kDepevtStatusBusErr) != 0) {
 				IOLog("CHEESEBURGER_USB: transfer error ep=%u status=%u\n",
 				    endpoint, status);
 				fault = true;
