@@ -72,7 +72,7 @@ constexpr uint32_t kDctlCsftrst = 1U << 30;
 constexpr uint32_t kDstsDevctrlhlt = 1U << 22;
 constexpr uint32_t kGctlPrtcapdirShift = 12;
 constexpr uint32_t kGctlPrtcapdirMask = 3U << kGctlPrtcapdirShift;
-constexpr uint32_t kGctlPrtcapdirDevice = 0;
+constexpr uint32_t kGctlPrtcapdirDevice = 2;
 constexpr uint32_t kDepcmdCmdact = 1U << 10;
 constexpr uint32_t kDepcmdTypeSetEpConfig = 1U;
 constexpr uint32_t kDepcmdTypeSetTransferResource = 2U;
@@ -285,7 +285,7 @@ syncDma(void *address, size_t length, bool invalidate)
 constexpr uint32_t
 depcmdPar0(unsigned endpoint)
 {
-	return 0xc800 + 0x10 * endpoint;
+	return 0xc808 + 0x10 * endpoint;
 }
 
 constexpr uint32_t
@@ -297,7 +297,7 @@ depcmdPar1(unsigned endpoint)
 constexpr uint32_t
 depcmdPar2(unsigned endpoint)
 {
-	return 0xc808 + 0x10 * endpoint;
+	return 0xc800 + 0x10 * endpoint;
 }
 
 constexpr uint32_t
