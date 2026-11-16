@@ -70,6 +70,9 @@ constexpr uint32_t kDataOffset = 0x1200;
 constexpr uint32_t kDctlRunStop = 1U << 31;
 constexpr uint32_t kDctlCsftrst = 1U << 30;
 constexpr uint32_t kDstsDevctrlhlt = 1U << 22;
+constexpr uint32_t kGctlPrtcapdirShift = 12;
+constexpr uint32_t kGctlPrtcapdirMask = 3U << kGctlPrtcapdirShift;
+constexpr uint32_t kGctlPrtcapdirDevice = 0;
 constexpr uint32_t kDepcmdCmdact = 1U << 10;
 constexpr uint32_t kDepcmdTypeSetEpConfig = 1U;
 constexpr uint32_t kDepcmdTypeSetTransferResource = 2U;
@@ -752,8 +755,16 @@ struct Ep0Device {
 		}
 		IOSleep(10);
 		uint32_t gctl = read(kGctl);
-		gctl = (gctl & ~(3U << 12)) | (1U << 12);
+		gctl = (gctl & ~kGctlPrtcapdirMask) |
+		    (kGctlPrtcapdirDevice << kGctlPrtcapdirShift);
 		write(kGctl, gctl);
+		if (((read(kGctl) >> kGctlPrtcapdirShift) & 3U) !=
+		    kGctlPrtcapdirDevice) {
+			IOLog("CHEESEBURGER_USB: device mode set failed gctl=%08x\n",
+			    read(kGctl));
+			return false;
+		}
+		IOLog("CHEESEBURGER_USB: device mode gctl=%08x\n", read(kGctl));
 		IOSleep(10);
 
 		const uint64_t eventPhysical = dmaPhysical + kEventOffset;
