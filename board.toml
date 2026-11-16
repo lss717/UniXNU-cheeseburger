@@ -53,7 +53,6 @@ archives = [
   "build-arm-driver.py NativeUfsProbe",
   "build-arm-driver.py CheeseburgerUsb",
   "build-arm-driver.py NativeKeyStoreEvents",
-  "build-native-ufs-runtime.py",
   "build-sheng-pmgr.py",
   "build-mockfs-fixture.py",
   "build-libpthread-kernel.py",
