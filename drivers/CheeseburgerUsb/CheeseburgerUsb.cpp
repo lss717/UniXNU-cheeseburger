@@ -455,8 +455,6 @@ struct Ep0Device {
 	uint32_t transferResource[6] = {};
 	int pendingStatusEndpoint = -1;
 	bool endTransferEventPending = false;
-	bool deferredLineCoding = false;
-	bool controlDataSkipped = false;
 	bool h103FreezeScheduled = false;
 	uint64_t h103FreezeDeadline = 0;
 	uint32_t bootId = 0;
@@ -632,7 +630,7 @@ struct Ep0Device {
 			if (attempt != 0) {
 				IODelay(100);
 			}
-			const uint32_t statusControl = (dataIn && !controlDataSkipped) ?
+			const uint32_t statusControl = dataIn ?
 			    kTrbCtlStatus3 : kTrbCtlStatus2;
 			started = startTransfer(endpoint,
 			    endpoint == 0 ? kStatusOutTrbOffset : kStatusInTrbOffset,
@@ -902,9 +900,7 @@ struct Ep0Device {
 		unsigned responseLength = 0;
 		bool ok = true;
 		bool dataStageOut = false;
-		bool zeroLengthDataStatus = false;
 
-		controlDataSkipped = false;
 		dataIn = (requestType & 0x80) != 0;
 		setupCount++;
 		if (setupCount <= 64) {
@@ -1006,16 +1002,11 @@ struct Ep0Device {
 		} else if (requestType == 0xa1 && request == 0x21) {
 			if (value != 0 || index != 0 || length != 7) {
 				ok = false;
-			} else if (!deferredLineCoding) {
+			} else {
 				if (!h103FreezeScheduled) {
 					h103FreezeScheduled = true;
 					h103FreezeDeadline = mach_absolute_time() + 30ULL * 19200000ULL;
 				}
-				deferredLineCoding = true;
-				zeroLengthDataStatus = true;
-				controlDataSkipped = true;
-				IOLog("CHEESEBURGER_USB: deferred first GET_LINE_CODING data stage\n");
-			} else {
 				memcpy(data, lineCoding, sizeof(lineCoding));
 				responseLength = sizeof(lineCoding);
 			}
@@ -1062,7 +1053,7 @@ struct Ep0Device {
 			}
 			return;
 		}
-		if (length == 0 || zeroLengthDataStatus) {
+		if (length == 0) {
 			phase = Phase::WaitStatus;
 			IOLog("CHEESEBURGER_USB: control wait-status no data\n");
 			return;
