@@ -130,11 +130,13 @@ static_assert(sizeof(kConfigDescriptor) == 67);
 static_assert((kConfigDescriptor[2] | (kConfigDescriptor[3] << 8)) ==
     sizeof(kConfigDescriptor));
 static_assert(kConfigDescriptor[4] == 2);
-static_assert(kConfigDescriptor[12] == 9 && kConfigDescriptor[13] == 4 &&
-    kConfigDescriptor[14] == 1 && kConfigDescriptor[15] == 0x02 &&
-    kConfigDescriptor[16] == 0x02 && kConfigDescriptor[17] == 0x01);
+static_assert(kConfigDescriptor[9] == 9 && kConfigDescriptor[10] == 4 &&
+    kConfigDescriptor[11] == 0 && kConfigDescriptor[13] == 1 &&
+    kConfigDescriptor[14] == 0x02 && kConfigDescriptor[15] == 0x02 &&
+    kConfigDescriptor[16] == 0x01);
 static_assert(kConfigDescriptor[44] == 9 && kConfigDescriptor[45] == 4 &&
-    kConfigDescriptor[46] == 2 && kConfigDescriptor[49] == 0x0a);
+    kConfigDescriptor[46] == 1 && kConfigDescriptor[48] == 2 &&
+    kConfigDescriptor[49] == 0x0a);
 static_assert(kConfigDescriptor[39] == 0x82 && kConfigDescriptor[55] == 0x01 &&
     kConfigDescriptor[62] == 0x81);
 
