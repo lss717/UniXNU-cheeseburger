@@ -153,6 +153,9 @@ struct CheeseburgerMsgBuf {
 };
 
 extern "C" struct CheeseburgerMsgBuf *msgbufp;
+extern "C" void native_h103_log_freeze(void);
+
+static void h103FreezeThread(void *, wait_result_t);
 
 uint32_t
 crc32(const uint8_t *data, size_t length)
@@ -416,6 +419,14 @@ stringDescriptor(unsigned index, uint8_t *out)
 	return length;
 }
 
+static void
+h103FreezeThread(void *, wait_result_t)
+{
+	IOSleep(30000);
+	native_h103_log_freeze();
+	thread_terminate(current_thread());
+}
+
 struct Ep0Device {
 	enum class Phase {
 		Idle,
@@ -455,6 +466,7 @@ struct Ep0Device {
 	int pendingStatusEndpoint = -1;
 	bool endTransferEventPending = false;
 	bool deferredLineCoding = false;
+	bool h103FreezeScheduled = false;
 	uint32_t bootId = 0;
 	uint32_t logSequence = 0;
 	uint32_t txFrames = 0;
@@ -991,6 +1003,14 @@ struct Ep0Device {
 			if (value != 0 || index != 0 || length != 7) {
 				ok = false;
 			} else if (!deferredLineCoding) {
+				if (!h103FreezeScheduled) {
+					h103FreezeScheduled = true;
+					thread_t thread = nullptr;
+					if (kernel_thread_start(h103FreezeThread, nullptr, &thread) ==
+					    KERN_SUCCESS) {
+						thread_deallocate(thread);
+					}
+				}
 				deferredLineCoding = true;
 				zeroLengthDataStatus = true;
 				IOLog("CHEESEBURGER_USB: deferred first GET_LINE_CODING data stage\n");
