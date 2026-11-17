@@ -41,7 +41,7 @@ function Read-Byte {
     while ($true) {
         try { return $stream.ReadByte() }
         catch [TimeoutException] {
-            if ($script:deadline -and [DateTime]::UtcNow -ge $script:deadline) { throw "capture deadline reached" }
+            if ($script:deadline -and [DateTime]::UtcNow -ge $script:deadline) { return -1 }
         }
     }
 }
