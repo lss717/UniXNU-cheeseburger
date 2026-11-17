@@ -31,6 +31,8 @@ $serial.DtrEnable = $true
 $serial.RtsEnable = $true
 $serial.ReadTimeout = 500
 $serial.Open()
+$serial.DtrEnable = $true
+$serial.RtsEnable = $true
 $stream = $serial.BaseStream
 $text = [IO.File]::Open($textPath, [IO.FileMode]::Append, [IO.FileAccess]::Write, [IO.FileShare]::Read)
 $frames = [IO.File]::Open($framePath, [IO.FileMode]::Append, [IO.FileAccess]::Write, [IO.FileShare]::Read)
@@ -38,7 +40,9 @@ $frames = [IO.File]::Open($framePath, [IO.FileMode]::Append, [IO.FileAccess]::Wr
 function Read-Byte {
     while ($true) {
         try { return $stream.ReadByte() }
-        catch [TimeoutException] { }
+        catch [TimeoutException] {
+            if ($script:deadline -and [DateTime]::UtcNow -ge $script:deadline) { throw "capture deadline reached" }
+        }
     }
 }
 
