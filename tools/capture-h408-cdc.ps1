@@ -42,6 +42,8 @@ public static class H408RawCom {
     [DllImport("kernel32.dll", SetLastError=true)]
     public static extern bool ReadFile(SafeFileHandle handle, byte[] buffer,
         uint count, out uint read, IntPtr overlapped);
+    [DllImport("kernel32.dll", SetLastError=true)]
+    public static extern bool EscapeCommFunction(SafeFileHandle handle, uint function);
 }
 "@
 
@@ -64,6 +66,13 @@ $timeouts.ReadTotalTimeoutMultiplier = [uint32]0
 $timeouts.ReadTotalTimeoutConstant = [uint32]500
 $timeouts.WriteTotalTimeoutMultiplier = [uint32]0
 $timeouts.WriteTotalTimeoutConstant = [uint32]500
+if (-not [H408RawCom]::EscapeCommFunction($handle, 5) -or
+    -not [H408RawCom]::EscapeCommFunction($handle, 3)) {
+    $errorCode = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+    $handle.Dispose()
+    throw "SetDTR/SetRTS failed with Win32 error $errorCode"
+}
+
 if (-not [H408RawCom]::SetCommTimeouts($handle, [ref]$timeouts)) {
     $errorCode = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
     $handle.Dispose()
