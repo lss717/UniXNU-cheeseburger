@@ -453,6 +453,7 @@ struct Ep0Device {
 	uint32_t transferRequested[6] = {};
 	uint32_t transferResource[6] = {};
 	int pendingStatusEndpoint = -1;
+	bool endTransferEventPending = false;
 	uint32_t bootId = 0;
 	uint32_t logSequence = 0;
 	uint32_t txFrames = 0;
@@ -603,7 +604,8 @@ struct Ep0Device {
 			    (resource << 16), 0, 0, 0)) {
 				transferBusy[1] = false;
 				transferResource[1] = 0;
-				IOLog("CHEESEBURGER_USB: control data-in ended resource=%u\n",
+				endTransferEventPending = true;
+				IOLog("CHEESEBURGER_USB: control data-in end requested resource=%u\n",
 				    resource);
 				return 1;
 			}
@@ -651,10 +653,8 @@ struct Ep0Device {
 		if (!endControlData()) {
 			return 1;
 		}
-		pendingStatusEndpoint = -1;
-		phase = Phase::Idle;
-		IOLog("CHEESEBURGER_USB: control data-in stall and restart\n");
-		stall();
+		phase = Phase::WaitStatus;
+		IOLog("CHEESEBURGER_USB: control waiting for end-transfer completion\n");
 		return 1;
 	}
 
@@ -1071,6 +1071,7 @@ struct Ep0Device {
 			setupArmed = false;
 			phase = Phase::Idle;
 			pendingStatusEndpoint = -1;
+			endTransferEventPending = false;
 			bzero(transferBusy, sizeof(transferBusy));
 			bzero(transferResource, sizeof(transferResource));
 			IOLog("CHEESEBURGER_USB: disconnect\n");
@@ -1084,6 +1085,7 @@ struct Ep0Device {
 			setupArmed = false;
 			phase = Phase::Idle;
 			pendingStatusEndpoint = -1;
+			endTransferEventPending = false;
 			bzero(transferBusy, sizeof(transferBusy));
 			bzero(transferResource, sizeof(transferResource));
 			IOLog("CHEESEBURGER_USB: bus reset\n");
@@ -1209,8 +1211,18 @@ struct Ep0Device {
 				pendingStatusEndpoint = static_cast<int>(endpoint);
 				IOLog("CHEESEBURGER_USB: control status arrived before data "
 				    "complete ep=%u\n", endpoint);
-			} else if (status == 2 && phase == Phase::WaitStatus) {
+			} else if (status == 2 && phase == Phase::WaitStatus &&
+			    !endTransferEventPending) {
 				(void)startControlStatus(endpoint);
+			}
+		} else if (type == 7 && endpoint == 1 &&
+		    ((event >> 24) & 0xfU) == kDepcmdTypeEndTransfer &&
+		    endTransferEventPending) {
+			endTransferEventPending = false;
+			IOLog("CHEESEBURGER_USB: control end-transfer complete\n");
+			if (phase == Phase::WaitStatus && pendingStatusEndpoint >= 0) {
+				(void)startControlStatus(
+				    static_cast<unsigned>(pendingStatusEndpoint));
 			}
 		}
 	}
