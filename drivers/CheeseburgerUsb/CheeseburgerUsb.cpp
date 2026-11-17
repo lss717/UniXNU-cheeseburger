@@ -743,7 +743,6 @@ struct Ep0Device {
 		dtr = false;
 		notifyPending = false;
 		pendingStatusEndpoint = -1;
-		deferredLineCoding = false;
 		bzero(transferBusy, sizeof(transferBusy));
 		bzero(transferResource, sizeof(transferResource));
 		return true;
@@ -1091,7 +1090,6 @@ struct Ep0Device {
 			phase = Phase::Idle;
 			pendingStatusEndpoint = -1;
 			endTransferEventPending = false;
-			deferredLineCoding = false;
 			bzero(transferBusy, sizeof(transferBusy));
 			bzero(transferResource, sizeof(transferResource));
 			IOLog("CHEESEBURGER_USB: disconnect\n");
@@ -1106,7 +1104,6 @@ struct Ep0Device {
 			phase = Phase::Idle;
 			pendingStatusEndpoint = -1;
 			endTransferEventPending = false;
-			deferredLineCoding = false;
 			bzero(transferBusy, sizeof(transferBusy));
 			bzero(transferResource, sizeof(transferResource));
 			IOLog("CHEESEBURGER_USB: bus reset\n");
