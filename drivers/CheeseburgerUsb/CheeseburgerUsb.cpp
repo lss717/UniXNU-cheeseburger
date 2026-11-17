@@ -821,7 +821,7 @@ struct Ep0Device {
 	bool
 	sendLogFrame()
 	{
-		if (!configured || !dataEndpoints || !dtr || fault || transferBusy[3]) {
+		if (!configured || !dataEndpoints || fault || transferBusy[3]) {
 			return !fault;
 		}
 		uint8_t *frame = dma + kTxOffset;
@@ -861,7 +861,7 @@ struct Ep0Device {
 	void
 	transmit()
 	{
-		if (!configured || !dtr || fault) {
+		if (!configured || fault) {
 			return;
 		}
 		sendNotification();

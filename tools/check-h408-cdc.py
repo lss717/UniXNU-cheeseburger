@@ -92,7 +92,10 @@ def main():
     receiver = RECEIVER.read_text()
     for required in (
         "'^USB\\\\VID_1209&PID_0001'",
-        "$serial.DtrEnable = $true",
+        "CreateFile",
+        "SetCommTimeouts",
+        "ReadFile",
+        "No valid UXL1 frames received",
         "Sequence gap",
         "CRC mismatch",
         'if ($build -ne "H408")',
