@@ -602,6 +602,7 @@ struct Ep0Device {
 			if (command(1, kDepcmdTypeEndTransfer | kDepcmdCmdIoc |
 			    (resource << 16), 0, 0, 0)) {
 				transferBusy[1] = false;
+				transferResource[1] = 0;
 				IOLog("CHEESEBURGER_USB: control data-in ended resource=%u\n",
 				    resource);
 				return 1;
@@ -650,10 +651,10 @@ struct Ep0Device {
 		if (!endControlData()) {
 			return 1;
 		}
-		phase = Phase::WaitStatus;
-		if (pendingStatusEndpoint >= 0) {
-			(void)startControlStatus(static_cast<unsigned>(pendingStatusEndpoint));
-		}
+		pendingStatusEndpoint = -1;
+		phase = Phase::Idle;
+		IOLog("CHEESEBURGER_USB: control data-in stall and restart\n");
+		stall();
 		return 1;
 	}
 
