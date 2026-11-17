@@ -454,6 +454,7 @@ struct Ep0Device {
 	uint32_t transferResource[6] = {};
 	int pendingStatusEndpoint = -1;
 	bool endTransferEventPending = false;
+	bool deferredLineCoding = false;
 	uint32_t bootId = 0;
 	uint32_t logSequence = 0;
 	uint32_t txFrames = 0;
@@ -729,6 +730,7 @@ struct Ep0Device {
 		dtr = false;
 		notifyPending = false;
 		pendingStatusEndpoint = -1;
+		deferredLineCoding = false;
 		bzero(transferBusy, sizeof(transferBusy));
 		bzero(transferResource, sizeof(transferResource));
 		return true;
@@ -885,6 +887,7 @@ struct Ep0Device {
 		unsigned responseLength = 0;
 		bool ok = true;
 		bool dataStageOut = false;
+		bool zeroLengthDataStatus = false;
 
 		dataIn = (requestType & 0x80) != 0;
 		setupCount++;
@@ -987,6 +990,10 @@ struct Ep0Device {
 		} else if (requestType == 0xa1 && request == 0x21) {
 			if (value != 0 || index != 0 || length != 7) {
 				ok = false;
+			} else if (!deferredLineCoding) {
+				deferredLineCoding = true;
+				zeroLengthDataStatus = true;
+				IOLog("CHEESEBURGER_USB: deferred first GET_LINE_CODING data stage\n");
 			} else {
 				memcpy(data, lineCoding, sizeof(lineCoding));
 				responseLength = sizeof(lineCoding);
@@ -1034,7 +1041,7 @@ struct Ep0Device {
 			}
 			return;
 		}
-		if (length == 0) {
+		if (length == 0 || zeroLengthDataStatus) {
 			phase = Phase::WaitStatus;
 			IOLog("CHEESEBURGER_USB: control wait-status no data\n");
 			return;
@@ -1072,6 +1079,7 @@ struct Ep0Device {
 			phase = Phase::Idle;
 			pendingStatusEndpoint = -1;
 			endTransferEventPending = false;
+			deferredLineCoding = false;
 			bzero(transferBusy, sizeof(transferBusy));
 			bzero(transferResource, sizeof(transferResource));
 			IOLog("CHEESEBURGER_USB: disconnect\n");
@@ -1086,6 +1094,7 @@ struct Ep0Device {
 			phase = Phase::Idle;
 			pendingStatusEndpoint = -1;
 			endTransferEventPending = false;
+			deferredLineCoding = false;
 			bzero(transferBusy, sizeof(transferBusy));
 			bzero(transferResource, sizeof(transferResource));
 			IOLog("CHEESEBURGER_USB: bus reset\n");
