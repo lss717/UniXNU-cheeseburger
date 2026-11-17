@@ -1049,9 +1049,11 @@ struct Ep0Device {
 		}
 		if (dataStageOut) {
 			phase = Phase::DataOut;
+			const uint32_t transferLength = (length + 63U) & ~63U;
 			IOLog("CHEESEBURGER_USB: control data-out start length=%u "
-			    "busy0=%u\n", length, transferBusy[0] ? 1U : 0U);
-			if (!startTransfer(0, kDataTrbOffset, kDataOffset, length,
+			    "transfer=%u busy0=%u\n", length, transferLength,
+			    transferBusy[0] ? 1U : 0U);
+			if (!startTransfer(0, kDataTrbOffset, kDataOffset, transferLength,
 			    kTrbCtlData)) {
 				fault = true;
 			}
