@@ -99,6 +99,7 @@ constexpr uint32_t kTrbCtlStatus3 = 4U << 4;
 constexpr uint32_t kTrbCtlData = 5U << 4;
 constexpr uint32_t kTrbCtlNormal = 1U << 4;
 constexpr uint32_t kDepevtStatusBusErr = 1U << 0;
+constexpr uint32_t kTrbStatusSetupPending = 2;
 
 constexpr uint8_t kDeviceDescriptor[] = {
 	18, 1, 0x00, 0x02, 0x02, 0x02, 0x01, 64,
@@ -568,6 +569,26 @@ struct Ep0Device {
 		return static_cast<int>(transferRequested[endpoint] - remaining);
 	}
 
+	uint32_t
+	consumeSetupPendingDataIn(unsigned endpoint)
+	{
+		if (endpoint != 0 || phase != Phase::DataIn || !transferBusy[1]) {
+			return 0;
+		}
+		syncDma(dma + kDataTrbOffset, sizeof(uint32_t) * 4, true);
+		volatile uint32_t *trb = reinterpret_cast<volatile uint32_t *>(
+		    dma + kDataTrbOffset);
+		const uint32_t trbStatus = trb[2] >> 28;
+		if ((trb[3] & kTrbHwo) != 0 || trbStatus != kTrbStatusSetupPending) {
+			return 0;
+		}
+		transferBusy[1] = false;
+		phase = Phase::WaitStatus;
+		IOLog("CHEESEBURGER_USB: control setup-pending aborted data-in "
+		    "trb=%08x/%08x\n", trb[2], trb[3]);
+		return 1;
+	}
+
 	bool
 	armReceive()
 	{
@@ -1027,6 +1048,9 @@ struct Ep0Device {
 				    static_cast<unsigned>(phase), transferBusy[0] ? 1U : 0U,
 				    transferBusy[1] ? 1U : 0U);
 			}
+			if (consumeSetupPendingDataIn(endpoint)) {
+				return;
+			}
 			if ((status & kDepevtStatusBusErr) != 0) {
 				IOLog("CHEESEBURGER_USB: transfer error ep=%u status=%u\n",
 				    endpoint, status);
@@ -1041,7 +1065,7 @@ struct Ep0Device {
 			} else if (endpoint == 1 && phase == Phase::DataIn) {
 				trbOffset = kDataTrbOffset;
 			} else if (phase == Phase::Status) {
-				trbOffset = dataIn ? kStatusOutTrbOffset : kStatusInTrbOffset;
+				trbOffset = endpoint == 0 ? kStatusOutTrbOffset : kStatusInTrbOffset;
 			} else if (endpoint == 2) {
 				trbOffset = kRxTrbOffset;
 			} else if (endpoint == 3) {
@@ -1092,14 +1116,13 @@ struct Ep0Device {
 				    lastSetupDataIn ? 1U : 0U, lastSetupDataOut ? 1U : 0U);
 			}
 			if (status == 2 && phase == Phase::WaitStatus) {
-				const bool statusOut = dataIn;
 				phase = Phase::Status;
-				IOLog("CHEESEBURGER_USB: control status start ep=%u\n",
-				    statusOut ? 0U : 1U);
-				if (!startTransfer(statusOut ? 0 : 1,
-				    statusOut ? kStatusOutTrbOffset : kStatusInTrbOffset,
+				IOLog("CHEESEBURGER_USB: control status start ep=%u data_in=%u\n",
+				    endpoint, dataIn ? 1U : 0U);
+				if (!startTransfer(endpoint,
+				    endpoint == 0 ? kStatusOutTrbOffset : kStatusInTrbOffset,
 				    kDataOffset, 0,
-				    statusOut ? kTrbCtlStatus3 : kTrbCtlStatus2)) {
+				    dataIn ? kTrbCtlStatus3 : kTrbCtlStatus2)) {
 					fault = true;
 				}
 			}
