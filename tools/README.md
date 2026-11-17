@@ -1,6 +1,6 @@
-# H408 CDC ACM live-log tools
+# H408/H410 CDC ACM live-log tools
 
-The H408 driver advertises a two-interface CDC ACM device with:
+The device-side driver advertises a two-interface CDC ACM device with:
 
 - notification endpoint `0x82`, interrupt, 16-byte maximum packet;
 - data OUT endpoint `0x01`, bulk, 512-byte maximum packet;
@@ -8,6 +8,28 @@ The H408 driver advertises a two-interface CDC ACM device with:
 
 Windows binds it as `usbser` with PnP ID
 `USB\VID_1209&PID_0001\OP5CDCH408`.
+
+## Live console and normal reboot
+
+`h410-cdc-console.ps1` opens one exclusive COM handle, decodes `UXL1` live,
+appends readable text and frames to disk, and can send the only supported
+host command (normal reboot) through the same handle:
+
+```powershell
+.\tools\h410-cdc-console.ps1 -Port COM8 -Seconds 600 `
+  -TextOutput H410-live.log -FrameOutput H410-live.frames.bin
+
+.\tools\h410-cdc-console.ps1 -Port COM8 -Reboot -RequestId 12345 -Seconds 120
+```
+
+The reboot command is a 16-byte `UXC1` frame on Bulk-OUT:
+`"UXC1"`, version `1`, opcode `1`, payload length `0`, non-zero request ID
+and CRC32 over the first 12 bytes. The device only accepts exactly 16 bytes
+with a valid CRC; there is no text, shell, memory or register channel. It
+replies `NATIVE_USB_CMD: ack req=<id> op=reboot`, then a dedicated kernel
+worker calls `halt_all_cpus(TRUE)`. This is a normal reboot only; it does not
+set a recovery marker. Full Windows instructions and the COM troubleshooting
+checklist are in `../UniXNU/docs/zh/devices/cheeseburger/usb-com-log-guide.md`.
 
 ## Capture
 
@@ -70,7 +92,7 @@ All integers are little-endian. The fixed header is 32 bytes:
 | 8 | 4 | boot ID |
 | 12 | 4 | monotonic sequence number |
 | 16 | 4 | cumulative dropped log bytes |
-| 20 | 4 | build ID, currently `H408` |
+| 20 | 4 | build ID, currently `H410` |
 | 24 | 2 | payload length, at most 1984 |
 | 28 | 4 | CRC-32/IEEE of the payload |
 

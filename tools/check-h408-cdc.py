@@ -14,6 +14,11 @@ RECEIVER = ROOT / "tools/capture-h408-cdc.ps1"
 MAGIC = b"UXL1"
 HEADER_BYTES = 32
 MAX_PAYLOAD = 1984
+CMD_MAGIC = b"UXC1"
+CMD_BYTES = 16
+CMD_VERSION = 1
+CMD_REBOOT = 1
+BUILD = b"H410"
 
 
 def array(name):
@@ -81,7 +86,7 @@ def parse_stream(data):
             index += 1
             continue
         build = header[20:24]
-        if build != b"H408":
+        if build != BUILD:
             raise AssertionError(
                 f"unexpected build ID {build!r} at byte offset {index}"
             )
@@ -114,12 +119,53 @@ def frame(payload, sequence, boot, corrupt=False):
     header[5] = HEADER_BYTES
     header[8:12] = boot.to_bytes(4, "little")
     header[12:16] = sequence.to_bytes(4, "little")
-    header[20:24] = b"H408"
+    header[20:24] = BUILD
     header[24:26] = len(payload).to_bytes(2, "little")
     header[28:32] = crc32(payload).to_bytes(4, "little")
     if corrupt:
         payload = bytes((payload[0] ^ 0xFF,)) + payload[1:]
     return bytes(header) + payload
+
+
+def command_frame(opcode=CMD_REBOOT, request=0x12345678, payload_len=0,
+                  corrupt=False, version=CMD_VERSION, magic=CMD_MAGIC):
+    body = bytearray(16)
+    body[0:4] = magic
+    body[4] = version
+    body[5] = opcode
+    body[6:8] = payload_len.to_bytes(2, "little")
+    body[8:12] = request.to_bytes(4, "little")
+    crc = crc32(bytes(body[0:12]))
+    if corrupt:
+        crc ^= 0xFFFFFFFF
+    body[12:16] = crc.to_bytes(4, "little")
+    return bytes(body)
+
+
+def decode_command(frame):
+    if len(frame) != CMD_BYTES:
+        return None
+    if frame[0:4] != CMD_MAGIC or frame[4] != CMD_VERSION:
+        return None
+    opcode = frame[5]
+    payload_len = int.from_bytes(frame[6:8], "little")
+    request = int.from_bytes(frame[8:12], "little")
+    want = int.from_bytes(frame[12:16], "little")
+    if payload_len != 0 or request == 0:
+        return None
+    if crc32(bytes(frame[0:12])) != want:
+        return None
+    return (opcode, request)
+
+
+def command_self_test():
+    assert decode_command(command_frame()) == (CMD_REBOOT, 0x12345678)
+    assert decode_command(command_frame(corrupt=True)) is None
+    assert decode_command(command_frame(magic=b"UXC2")) is None
+    assert decode_command(command_frame(version=2)) is None
+    assert decode_command(command_frame(payload_len=1)) is None
+    assert decode_command(command_frame(request=0)) is None
+    assert decode_command(command_frame()[:-1]) is None
 
 
 def edge_fixture():
@@ -217,7 +263,35 @@ def validate_contract():
         'if ($build -ne "H408")',
     ):
         assert required in receiver, required
-    print("H408 CDC descriptors, endpoint map, CRC and receiver contract: PASS")
+    source = DRIVER.read_text()
+    for required in (
+        "constexpr uint32_t kCommandBytes = 16;",
+        "constexpr uint32_t kCommandOpReboot = 1;",
+        "parseCommand",
+        "native_usb_reboot_requested",
+        "native_usb_status_started",
+        "native_usb_status_connected",
+        "native_usb_status_active",
+        "halt_all_cpus(TRUE)",
+        "usbCommandWorkerThread",
+    ):
+        assert required in source, required
+
+    console = ROOT / "tools/h410-cdc-console.ps1"
+    assert console.exists(), console
+    text = console.read_text()
+    for required in (
+        "UXC1",
+        "[switch]$Reboot",
+        "WriteFile",
+        "EscapeCommFunction",
+        "CRC mismatch",
+        "sequence gap",
+        "H410 frames=",
+    ):
+        assert required in text, required
+
+    print("H410 CDC descriptors, endpoint map, CRC, UXC1 command and receiver contract: PASS")
 
 
 def main():
@@ -244,7 +318,8 @@ def main():
         print(f"H408 edge replay fixture: {path}")
     if args.self_test:
         replay_self_test()
-        print("H408 receiver replay edge cases: PASS")
+        command_self_test()
+        print("H410 receiver replay and UXC1 command edge cases: PASS")
     for path in args.replay or ():
         result = parse_stream(Path(path).read_bytes())
         print(f"{path}: {json.dumps(result, sort_keys=True)}")
@@ -262,7 +337,7 @@ def main():
         if failures:
             raise AssertionError(f"{path}: {', '.join(failures)}")
     if args.replay:
-        print("H408 captured-stream replay: PASS")
+        print("H410 captured-stream replay: PASS")
 
 
 if __name__ == "__main__":

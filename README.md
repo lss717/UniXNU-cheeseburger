@@ -91,26 +91,39 @@ fastboot boot out/cheeseburger/boot/boot.img
 
 `fastboot boot` only loads the image into RAM; nothing is written to a partition.
 
-## H408 CDC ACM live log
+## H408/H410 CDC ACM live log
 
-The H408 USB device exposes a CDC ACM port at
-`USB\VID_1209&PID_0001\OP5CDCH408`. The host-side capture tools live in
-[`tools/`](tools/README.md):
+The USB device exposes a CDC ACM port at `USB\VID_1209&PID_0001`. The build tag
+in every `UXL1` frame is `H410` for the current image. The host-side tools live
+in [`tools/`](tools/README.md); the full usage guide (Windows COM setup,
+live decode, normal reboot and troubleshooting) is
+[`docs/zh/devices/cheeseburger/usb-com-log-guide.md`][guide].
 
 ```powershell
-# Capture six minutes, auto-selecting the single H408 COM port.
+# Decode live and append readable text while keeping the full frame stream.
+.\tools\h410-cdc-console.ps1 -Seconds 360 `
+  -TextOutput H410-live.log -FrameOutput H410-live.frames.bin
+
+# Capture only; decode after the run.
 .\tools\capture-h408-cdc.ps1 -Seconds 360 `
-  -TextOutput H408-live.log -FrameOutput H408-live.frames.bin
+  -TextOutput H410-live.log -FrameOutput H410-live.frames.bin
 
 # Replay a saved wire stream and exercise CRC, truncation,
-# resynchronization, sequence-wrap and boot-switch handling.
+# resynchronization, sequence-wrap, boot-switch and UXC1 command handling.
 python .\tools\check-h408-cdc.py --self-test `
-  --replay H408-live.frames.bin
+  --replay H410-live.frames.bin
+
+# Send the only supported command (normal reboot) over the same COM handle.
+.\tools\h410-cdc-console.ps1 -Reboot -RequestId 12345 -Seconds 120
 ```
 
 The receiver asserts DTR and RTS before reading; firmware sends no `UXL1`
-frames until both lines are active. Treat any nonzero CRC-error or
-sequence-gap count as a transport failure.
+frames until both lines are active. The wire format is binary, not a text REPL.
+Treat any nonzero CRC-error or sequence-gap count as a transport failure. The
+`-Reboot` command uses the bounded 16-byte `UXC1` frame and the existing PSCI
+reset path; it does not implement recovery or slot changes.
+
+[guide]: https://github.com/lss717/UniXNU/blob/main/docs/zh/devices/cheeseburger/usb-com-log-guide.md
 
 ## macOS CI
 

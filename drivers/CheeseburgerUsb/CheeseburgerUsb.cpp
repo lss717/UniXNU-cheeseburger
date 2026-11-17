@@ -23,7 +23,15 @@ volatile uint32_t native_usb_status_fault = 0;
 volatile uint32_t native_usb_status_tx_completions = 0;
 volatile uint64_t native_usb_status_tx_bytes = 0;
 volatile uint64_t native_usb_status_last_complete_ticks = 0;
+// H410: set by the USB thread after a valid command ACK has been submitted;
+// the dedicated command worker consumes it once and performs the reboot.
+volatile uint32_t native_usb_reboot_requested = 0;
 }
+
+// H410: the standard arm64 XNU reboot entry. It calls PEHaltRestart, which
+// ArmDTPlatform now routes to the existing PSCI SYSTEM_RESET. Never call this
+// from the USB poll/completion path; only the command worker thread does.
+extern "C" void halt_all_cpus(boolean_t reboot) __attribute__((noreturn));
 
 namespace {
 
@@ -93,6 +101,12 @@ constexpr uint32_t kRxBytes = 512;
 // single completion is not enough to pause disk logging; the UFS side also
 // requires several completions across a sustained window.
 constexpr uint64_t kStatusActiveHoldTicks = 500ULL * 19200000ULL / 1000ULL;
+// H410: bounded host->device command frame. Layout (16 bytes, LE):
+//   0..3 "UXC1"  4 version=1  5 opcode (1=reboot)  6..7 payload=0
+//   8..11 request id (non-zero)  12..15 CRC32 over bytes 0..11
+constexpr uint32_t kCommandBytes = 16;
+constexpr uint32_t kCommandOpReboot = 1;
+constexpr uint64_t kRebootAckWaitTicks = 1000ULL * 19200000ULL / 1000ULL;
 constexpr uint32_t kLogPayloadMax = 1984;
 constexpr uint32_t kLogHeaderBytes = 32;
 
@@ -468,6 +482,13 @@ struct Ep0Device {
 	uint64_t txBytes = 0;
 	uint64_t rxBytes = 0;
 	uint64_t droppedBytes = 0;
+	// H410: reboot command state, only touched from usbEp0Thread.
+	bool rebootPending = false;
+	bool rebootAckSubmitted = false;
+	bool rebootArmed = false;
+	uint32_t rebootRequestId = 0;
+	uint64_t rebootAckTicks = 0;
+	uint32_t rebootAckCompletions = 0;
 	int logCursor = -1;
 	uint8_t lineCoding[7] = {0x00, 0xc2, 0x01, 0x00, 0x00, 0x00, 0x08};
 
@@ -810,6 +831,11 @@ struct Ep0Device {
 			IOSleep(10);
 			return true;
 		}
+		if (rebootPending) {
+			rebootPending = false;
+			rebootAckSubmitted = true;
+			rebootAckCompletions = native_usb_status_tx_completions;
+		}
 		logSequence++;
 		txFrames++;
 		txBytes += payloadLength;
@@ -1056,6 +1082,47 @@ struct Ep0Device {
 	}
 
 	void
+	parseCommand(uint32_t length)
+	{
+		if (length != kCommandBytes || rebootPending ||
+		    rebootAckSubmitted || rebootArmed) {
+			return;
+		}
+		const uint8_t *frame = dma + kRxOffset;
+		if (frame[0] != 'U' || frame[1] != 'X' || frame[2] != 'C' ||
+		    frame[3] != '1' || frame[4] != 1) {
+			return;
+		}
+		const uint8_t opcode = frame[5];
+		const uint16_t payloadLength =
+		    static_cast<uint16_t>(frame[6] | (frame[7] << 8));
+		const uint32_t request = static_cast<uint32_t>(frame[8]) |
+		    (static_cast<uint32_t>(frame[9]) << 8) |
+		    (static_cast<uint32_t>(frame[10]) << 16) |
+		    (static_cast<uint32_t>(frame[11]) << 24);
+		const uint32_t expected = static_cast<uint32_t>(frame[12]) |
+		    (static_cast<uint32_t>(frame[13]) << 8) |
+		    (static_cast<uint32_t>(frame[14]) << 16) |
+		    (static_cast<uint32_t>(frame[15]) << 24);
+		if (payloadLength != 0 || request == 0) {
+			return;
+		}
+		if (crc32(frame, 12) != expected) {
+			IOLog("CHEESEBURGER_USB: command crc error req=%u\n", request);
+			return;
+		}
+		if (opcode != kCommandOpReboot) {
+			IOLog("CHEESEBURGER_USB: command unsupported op=%u req=%u\n",
+			    opcode, request);
+			return;
+		}
+		rebootRequestId = request;
+		rebootAckTicks = mach_absolute_time();
+		rebootPending = true;
+		IOLog("NATIVE_USB_CMD: ack req=%u op=reboot\n", request);
+	}
+
+	void
 	handleEvent(uint32_t event)
 	{
 		if ((event & 1U) != 0) {
@@ -1105,6 +1172,10 @@ struct Ep0Device {
 			}
 			if (endpoint == 2) {
 				rxBytes += static_cast<uint32_t>(completed);
+				if (completed > 0) {
+					syncDma(dma + kRxOffset, completed, true);
+					parseCommand(static_cast<uint32_t>(completed));
+				}
 				armReceive();
 				return;
 			}
@@ -1301,6 +1372,19 @@ struct Ep0Device {
 			    mach_absolute_time() - lastComplete <
 			    kStatusActiveHoldTicks;
 			native_usb_status_active = fresh ? 1U : 0U;
+			if (rebootAckSubmitted && !rebootArmed) {
+				const bool acked = native_usb_status_tx_completions >
+				    rebootAckCompletions;
+				const bool timeout = mach_absolute_time() - rebootAckTicks >=
+				    kRebootAckWaitTicks;
+				if (acked || timeout) {
+					rebootArmed = true;
+					__atomic_store_n(&native_usb_reboot_requested, 1U,
+					    __ATOMIC_RELEASE);
+					IOLog("NATIVE_USB_CMD: reboot armed req=%u acked=%u\n",
+					    rebootRequestId, acked ? 1U : 0U);
+				}
+			}
 			if (++summaryTicks >= 60000) {
 				summaryTicks = 0;
 				IOLog("CHEESEBURGER_USB: alive configured=%u dtr=%u "
@@ -1323,6 +1407,21 @@ struct Ep0Device {
 		    read(kDevten));
 	}
 };
+
+void
+usbCommandWorkerThread(void *, wait_result_t)
+{
+	thread_set_thread_name(current_thread(), "h410_usb_cmd");
+	for (;;) {
+		IOSleep(20);
+		if (__atomic_exchange_n(&native_usb_reboot_requested, 0U,
+		    __ATOMIC_ACQ_REL) != 0U) {
+			IOLog("NATIVE_USB_CMD: executing normal reboot\n");
+			IOSleep(100);
+			halt_all_cpus(TRUE);
+		}
+	}
+}
 
 void
 usbEp0Thread(void *, wait_result_t)
@@ -1351,6 +1450,13 @@ usbEp0Thread(void *, wait_result_t)
 		IOLog("CHEESEBURGER_USB: mode2 EP0 bring-up failed\n");
 		delete device;
 		thread_terminate(current_thread());
+	}
+	thread_t commandThread = nullptr;
+	if (kernel_thread_start(usbCommandWorkerThread, nullptr,
+	    &commandThread) == KERN_SUCCESS) {
+		thread_deallocate(commandThread);
+	} else {
+		IOLog("CHEESEBURGER_USB: command worker start failed\n");
 	}
 	device->run();
 	thread_terminate(current_thread());
