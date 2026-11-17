@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
-// OnePlus 5 USB handoff probe and opt-in EP0 bring-up. Mode 1 is read-only.
-// Mode 2 owns DWC3 DMA/EP0 after proving that firmware left power and clocks on.
+// OnePlus 5 USB handoff probe, EP0 validation and opt-in CDC ACM live log.
+// Mode 1 is read-only. Mode 2 owns DWC3 EP0 and the CDC data endpoints.
 #include <IOKit/IOLib.h>
 #include <IOKit/IOBufferMemoryDescriptor.h>
 #include <IOKit/IOMemoryDescriptor.h>
 #include <kern/task.h>
+#include <kern/clock.h>
 #include <kern/thread.h>
 #include <libkern/libkern.h>
 #include <pexpert/pexpert.h>
@@ -64,8 +65,17 @@ constexpr uint32_t kSetupTrbOffset = 0x1000;
 constexpr uint32_t kDataTrbOffset = 0x1040;
 constexpr uint32_t kStatusInTrbOffset = 0x1080;
 constexpr uint32_t kStatusOutTrbOffset = 0x10c0;
-constexpr uint32_t kSetupOffset = 0x1100;
-constexpr uint32_t kDataOffset = 0x1200;
+constexpr uint32_t kRxTrbOffset = 0x1100;
+constexpr uint32_t kBulkInTrbOffset = 0x1140;
+constexpr uint32_t kNotifyTrbOffset = 0x1180;
+constexpr uint32_t kSetupOffset = 0x1200;
+constexpr uint32_t kDataOffset = 0x1300;
+constexpr uint32_t kNotifyOffset = 0x1500;
+constexpr uint32_t kRxOffset = 0x1800;
+constexpr uint32_t kTxOffset = 0x2000;
+constexpr uint32_t kRxBytes = 512;
+constexpr uint32_t kLogPayloadMax = 1984;
+constexpr uint32_t kLogHeaderBytes = 32;
 
 constexpr uint32_t kDctlRunStop = 1U << 31;
 constexpr uint32_t kDctlCsftrst = 1U << 30;
@@ -87,19 +97,89 @@ constexpr uint32_t kTrbCtlSetup = 2U << 4;
 constexpr uint32_t kTrbCtlStatus2 = 3U << 4;
 constexpr uint32_t kTrbCtlStatus3 = 4U << 4;
 constexpr uint32_t kTrbCtlData = 5U << 4;
+constexpr uint32_t kTrbCtlNormal = 1U << 4;
 constexpr uint32_t kDepevtStatusBusErr = 1U << 0;
+constexpr uint32_t kTrbStatusSetupPending = 2;
+constexpr int kCompletionSetupPending = -2;
 
 constexpr uint8_t kDeviceDescriptor[] = {
-	18, 1, 0x00, 0x02, 0xff, 0x00, 0x00, 64,
+	18, 1, 0x00, 0x02, 0x02, 0x02, 0x01, 64,
 	0x09, 0x12, 0x01, 0x00, 0x00, 0x01, 1, 2, 3, 1
 };
 constexpr uint8_t kConfigDescriptor[] = {
-	9, 2, 18, 0, 1, 1, 0, 0x80, 250,
-	9, 4, 0, 0, 0, 0xff, 0x00, 0x00, 0
+	9, 2, 67, 0, 2, 1, 0, 0x80, 250,
+	9, 4, 0, 0, 1, 0x02, 0x02, 0x01, 0,
+	5, 0x24, 0, 0x10, 1,
+	5, 0x24, 1, 0, 1,
+	4, 0x24, 2, 2,
+	5, 0x24, 6, 0, 1,
+	7, 5, 0x82, 3, 16, 0, 9,
+	9, 4, 1, 0, 2, 0x0a, 0, 0, 0,
+	7, 5, 0x01, 2, 0, 2, 0,
+	7, 5, 0x81, 2, 0, 2, 0
 };
 constexpr uint8_t kQualifierDescriptor[] = {
-	10, 6, 0x00, 0x02, 0xff, 0x00, 0x00, 64, 1, 0
+	10, 6, 0x00, 0x02, 0x02, 0x02, 0x01, 64, 1, 0
 };
+constexpr uint8_t kBosDescriptor[] = {
+	5, 15, 5, 0, 0
+};
+
+static_assert(sizeof(kDeviceDescriptor) == 18);
+static_assert(kDeviceDescriptor[4] == 0x02 && kDeviceDescriptor[5] == 0x02 &&
+    kDeviceDescriptor[6] == 0x01);
+static_assert(sizeof(kConfigDescriptor) == 67);
+static_assert((kConfigDescriptor[2] | (kConfigDescriptor[3] << 8)) ==
+    sizeof(kConfigDescriptor));
+static_assert(kConfigDescriptor[4] == 2);
+static_assert(kConfigDescriptor[9] == 9 && kConfigDescriptor[10] == 4 &&
+    kConfigDescriptor[11] == 0 && kConfigDescriptor[13] == 1 &&
+    kConfigDescriptor[14] == 0x02 && kConfigDescriptor[15] == 0x02 &&
+    kConfigDescriptor[16] == 0x01);
+static_assert(kConfigDescriptor[44] == 9 && kConfigDescriptor[45] == 4 &&
+    kConfigDescriptor[46] == 1 && kConfigDescriptor[48] == 2 &&
+    kConfigDescriptor[49] == 0x0a);
+static_assert(kConfigDescriptor[39] == 0x82 && kConfigDescriptor[55] == 0x01 &&
+    kConfigDescriptor[62] == 0x81);
+
+struct CheeseburgerMsgBuf {
+	int msg_magic;
+	int msg_size;
+	int msg_bufx;
+	int msg_bufr;
+	char *msg_bufc;
+};
+
+extern "C" struct CheeseburgerMsgBuf *msgbufp;
+
+uint32_t
+crc32(const uint8_t *data, size_t length)
+{
+	uint32_t crc = 0xffffffffU;
+	for (size_t index = 0; index < length; index++) {
+		crc ^= data[index];
+		for (unsigned bit = 0; bit < 8; bit++) {
+			crc = (crc >> 1) ^ (0xedb88320U & (0U - (crc & 1U)));
+		}
+	}
+	return ~crc;
+}
+
+void
+putLe16(uint8_t *data, uint16_t value)
+{
+	data[0] = static_cast<uint8_t>(value);
+	data[1] = static_cast<uint8_t>(value >> 8);
+}
+
+void
+putLe32(uint8_t *data, uint32_t value)
+{
+	data[0] = static_cast<uint8_t>(value);
+	data[1] = static_cast<uint8_t>(value >> 8);
+	data[2] = static_cast<uint8_t>(value >> 16);
+	data[3] = static_cast<uint8_t>(value >> 24);
+}
 
 struct Mapping {
 	IOMemoryMap *map = nullptr;
@@ -311,7 +391,7 @@ unsigned
 stringDescriptor(unsigned index, uint8_t *out)
 {
 	static const char *const strings[] = {
-		nullptr, "OnePlus 5", "UniXNU USB EP0", "OP5USB0001"
+		nullptr, "OnePlus 5", "UniXNU USB CDC", "OP5CDCH408"
 	};
 	if (index == 0) {
 		out[0] = 4;
@@ -339,6 +419,7 @@ struct Ep0Device {
 		Idle,
 		Setup,
 		DataIn,
+		DataOut,
 		WaitStatus,
 		Status
 	};
@@ -354,9 +435,22 @@ struct Ep0Device {
 	uint32_t connectGeneration = 0;
 	Phase phase = Phase::Idle;
 	bool configured = false;
+	bool dataEndpoints = false;
 	bool setupArmed = false;
 	bool dataIn = false;
+	bool dtr = false;
+	bool notifyPending = false;
 	bool fault = false;
+	bool transferBusy[6] = {};
+	uint32_t transferRequested[6] = {};
+	uint32_t bootId = 0;
+	uint32_t logSequence = 0;
+	uint32_t txFrames = 0;
+	uint64_t txBytes = 0;
+	uint64_t rxBytes = 0;
+	uint64_t droppedBytes = 0;
+	int logCursor = -1;
+	uint8_t lineCoding[7] = {0x00, 0xc2, 0x01, 0x00, 0x00, 0x00, 0x08};
 
 	~Ep0Device()
 	{
@@ -420,6 +514,9 @@ struct Ep0Device {
 	startTransfer(unsigned endpoint, uint32_t trbOffset, uint32_t dataOffset,
 	    uint32_t length, uint32_t control)
 	{
+		if (endpoint >= 6 || transferBusy[endpoint]) {
+			return false;
+		}
 		const uint64_t buffer = dmaPhysical + dataOffset;
 		const uint64_t trbPhysical = dmaPhysical + trbOffset;
 		volatile uint32_t *trb = reinterpret_cast<volatile uint32_t *>(
@@ -428,13 +525,125 @@ struct Ep0Device {
 		trb[1] = static_cast<uint32_t>(buffer >> 32);
 		trb[2] = length;
 		trb[3] = control | kTrbHwo | kTrbLst | kTrbIspImi | kTrbIoc;
-		if (length != 0 && (control == kTrbCtlData)) {
+		if (length != 0 && (control == kTrbCtlData || control == kTrbCtlNormal)) {
 			syncDma(dma + dataOffset, length, false);
 		}
 		syncDma(dma + trbOffset, sizeof(uint32_t) * 4, false);
-		return command(endpoint, kDepcmdTypeStartTransfer,
+		transferBusy[endpoint] = true;
+		transferRequested[endpoint] = length;
+		if (command(endpoint, kDepcmdTypeStartTransfer,
 		    static_cast<uint32_t>(trbPhysical >> 32),
-		    static_cast<uint32_t>(trbPhysical), 0);
+		    static_cast<uint32_t>(trbPhysical), 0)) {
+			return true;
+		}
+		transferBusy[endpoint] = false;
+		return false;
+	}
+
+	int
+	completeTransfer(unsigned endpoint, uint32_t trbOffset)
+	{
+		if (endpoint >= 6 || !transferBusy[endpoint]) {
+			IOLog("CHEESEBURGER_USB: unexpected completion ep=%u\n", endpoint);
+			fault = true;
+			return -1;
+		}
+		syncDma(dma + trbOffset, sizeof(uint32_t) * 4, true);
+		volatile uint32_t *trb = reinterpret_cast<volatile uint32_t *>(
+		    dma + trbOffset);
+		const uint32_t remaining = trb[2] & 0xffffffU;
+		const uint32_t status = trb[2] >> 28;
+		if ((trb[3] & kTrbHwo) != 0 ||
+		    remaining > transferRequested[endpoint]) {
+			IOLog("CHEESEBURGER_USB: invalid completion ep=%u trb=%08x/%08x\n",
+			    endpoint, trb[2], trb[3]);
+			fault = true;
+			return -1;
+		}
+		transferBusy[endpoint] = false;
+		if (endpoint <= 1 && status == kTrbStatusSetupPending) {
+			return kCompletionSetupPending;
+		}
+		if (status != 0) {
+			IOLog("CHEESEBURGER_USB: invalid completion ep=%u trb=%08x/%08x\n",
+			    endpoint, trb[2], trb[3]);
+			fault = true;
+			return -1;
+		}
+		return static_cast<int>(transferRequested[endpoint] - remaining);
+	}
+
+	uint32_t
+	startControlStatus(unsigned endpoint)
+	{
+		phase = Phase::Status;
+		IOLog("CHEESEBURGER_USB: control status start ep=%u data_in=%u\n",
+		    endpoint, dataIn ? 1U : 0U);
+		unsigned started = 0;
+		for (unsigned attempt = 0; attempt < 8 && !started; attempt++) {
+			if (attempt != 0) {
+				IODelay(100);
+			}
+			const uint32_t statusControl = dataIn ?
+			    kTrbCtlStatus3 : kTrbCtlStatus2;
+			started = startTransfer(endpoint,
+			    endpoint == 0 ? kStatusOutTrbOffset : kStatusInTrbOffset,
+			    kDataOffset, 0, statusControl);
+		}
+		if (!started) {
+			IOLog("CHEESEBURGER_USB: control status retries exhausted ep=%u\n",
+			    endpoint);
+			fault = true;
+			return 0;
+		}
+		return 1;
+	}
+
+	bool
+	armReceive()
+	{
+		if (!dataEndpoints || fault || transferBusy[2]) {
+			return !fault;
+		}
+		if (!startTransfer(2, kRxTrbOffset, kRxOffset, kRxBytes,
+		    kTrbCtlNormal)) {
+			fault = true;
+			return false;
+		}
+		return true;
+	}
+
+	bool
+	configureDataEndpoints()
+	{
+		if (dataEndpoints || fault) {
+			return !fault;
+		}
+		const uint32_t bulkIn = (2U << 1) | (512U << 3) | (1U << 17);
+		const uint32_t bulkOut = (2U << 1) | (512U << 3);
+		const uint32_t interruptIn = (3U << 1) | (16U << 3) | (2U << 17);
+		if (!command(0, kDepcmdTypeStartConfig | (2U << 16), 0, 0, 0) ||
+		    !command(2, kDepcmdTypeSetEpConfig, bulkOut,
+		    (1U << 8) | (2U << 25), 0) ||
+		    !command(2, kDepcmdTypeSetTransferResource, 1, 0, 0) ||
+		    !command(3, kDepcmdTypeSetEpConfig, bulkIn,
+		    (1U << 8) | (3U << 25), 0) ||
+		    !command(3, kDepcmdTypeSetTransferResource, 1, 0, 0) ||
+		    !command(5, kDepcmdTypeSetEpConfig, interruptIn,
+		    (1U << 8) | (8U << 16) | (5U << 25), 0) ||
+		    !command(5, kDepcmdTypeSetTransferResource, 1, 0, 0)) {
+			fault = true;
+			return false;
+		}
+		write(kDalepena, read(kDalepena) | 3U | (1U << 2) | (1U << 3) |
+		    (1U << 5));
+		dataEndpoints = true;
+		if (!armReceive()) {
+			return false;
+		}
+		IOLog("CHEESEBURGER_USB: CDC data endpoints enabled out=%u in=%u irq=%u\n",
+		    2U, 3U, 5U);
+		return true;
 	}
 
 	bool
@@ -456,7 +665,11 @@ struct Ep0Device {
 		    !command(1, kDepcmdTypeSetTransferResource, 1, 0, 0)) {
 			return false;
 		}
-		write(kDalepena, read(kDalepena) | 3U);
+		write(kDalepena, 3U);
+		dataEndpoints = false;
+		dtr = false;
+		notifyPending = false;
+		bzero(transferBusy, sizeof(transferBusy));
 		return true;
 	}
 
@@ -467,9 +680,16 @@ struct Ep0Device {
 			return !fault;
 		}
 		phase = Phase::Setup;
-		setupArmed = startTransfer(0, kSetupTrbOffset, kSetupOffset, 8,
-		    kTrbCtlSetup);
+		setupArmed = false;
+		for (unsigned attempt = 0; attempt < 8 && !setupArmed; attempt++) {
+			if (attempt != 0) {
+				IODelay(100);
+			}
+			setupArmed = startTransfer(0, kSetupTrbOffset, kSetupOffset, 8,
+			    kTrbCtlSetup);
+		}
 		if (!setupArmed) {
+			IOLog("CHEESEBURGER_USB: EP0 setup arm retries exhausted\n");
 			fault = true;
 		}
 		return setupArmed;
@@ -484,6 +704,107 @@ struct Ep0Device {
 		}
 		setupArmed = false;
 		armSetup();
+	}
+
+	uint32_t
+	collectLog(uint8_t *output, uint32_t capacity)
+	{
+		struct CheeseburgerMsgBuf *buffer = msgbufp;
+		if (buffer == nullptr || buffer->msg_bufc == nullptr ||
+		    buffer->msg_size <= 0 || buffer->msg_bufx < 0 ||
+		    buffer->msg_bufx >= buffer->msg_size) {
+			return 0;
+		}
+		const uint32_t size = static_cast<uint32_t>(buffer->msg_size);
+		const uint32_t current = static_cast<uint32_t>(buffer->msg_bufx);
+		if (logCursor < 0 || static_cast<uint32_t>(logCursor) >= size) {
+			logCursor = static_cast<int>(current);
+			return 0;
+		}
+		const uint32_t previous = static_cast<uint32_t>(logCursor);
+		uint32_t length = (current + size - previous) % size;
+		if (length == 0) {
+			return 0;
+		}
+		uint32_t offset = previous;
+		if (length > capacity) {
+			droppedBytes += length - capacity;
+			length = capacity;
+			offset = (current + size - length) % size;
+		}
+		for (uint32_t index = 0; index < length; index++) {
+			output[index] = static_cast<uint8_t>(buffer->msg_bufc[(offset + index) % size]);
+		}
+		logCursor = static_cast<int>(current);
+		return length;
+	}
+
+	bool
+	sendNotification()
+	{
+		if (!notifyPending || transferBusy[5]) {
+			return !fault;
+		}
+		uint8_t *data = dma + kNotifyOffset;
+		const uint8_t serialState[10] = {0xa1, 0x20, 0, 0, 0, 0, 2, 0, 3, 0};
+		memcpy(data, serialState, sizeof(serialState));
+		if (!startTransfer(5, kNotifyTrbOffset, kNotifyOffset,
+		    sizeof(serialState), kTrbCtlNormal)) {
+			fault = true;
+			return false;
+		}
+		notifyPending = false;
+		return true;
+	}
+
+	bool
+	sendLogFrame()
+	{
+		if (!configured || !dataEndpoints || !dtr || fault || transferBusy[3]) {
+			return !fault;
+		}
+		uint8_t *frame = dma + kTxOffset;
+		uint8_t *payload = frame + kLogHeaderBytes;
+		const uint32_t payloadLength = collectLog(payload, kLogPayloadMax);
+		if (payloadLength == 0) {
+			return true;
+		}
+		bzero(frame, kLogHeaderBytes);
+		frame[0] = 'U';
+		frame[1] = 'X';
+		frame[2] = 'L';
+		frame[3] = '1';
+		frame[4] = 1;
+		frame[5] = kLogHeaderBytes;
+		putLe32(frame + 8, bootId);
+		putLe32(frame + 12, logSequence);
+		putLe32(frame + 16, static_cast<uint32_t>(droppedBytes));
+		frame[20] = 'H';
+		frame[21] = '4';
+		frame[22] = '0';
+		frame[23] = '8';
+		putLe16(frame + 24, static_cast<uint16_t>(payloadLength));
+		putLe32(frame + 28, crc32(payload, payloadLength));
+		const uint32_t length = kLogHeaderBytes + payloadLength;
+		if (!startTransfer(3, kBulkInTrbOffset, kTxOffset, length,
+		    kTrbCtlNormal)) {
+			IOSleep(10);
+			return true;
+		}
+		logSequence++;
+		txFrames++;
+		txBytes += payloadLength;
+		return true;
+	}
+
+	void
+	transmit()
+	{
+		if (!configured || fault) {
+			return;
+		}
+		sendNotification();
+		sendLogFrame();
 	}
 
 	void
@@ -502,6 +823,7 @@ struct Ep0Device {
 		    (setup[7] << 8));
 		unsigned responseLength = 0;
 		bool ok = true;
+		bool dataStageOut = false;
 
 		dataIn = (requestType & 0x80) != 0;
 		setupCount++;
@@ -510,9 +832,7 @@ struct Ep0Device {
 			    "index=%04x length=%u\n", requestType, request, value,
 			    index, length);
 		}
-		if ((requestType & 0x60) != 0) {
-			ok = false;
-		} else if (request == 6) {
+		if ((requestType & 0x60) == 0 && request == 6) {
 			switch (value >> 8) {
 			case 1:
 				if ((value & 0xff) == 0) {
@@ -544,36 +864,100 @@ struct Ep0Device {
 					ok = false;
 				}
 				break;
+			case 15:
+				if ((value & 0xff) == 0) {
+					memcpy(data, kBosDescriptor, sizeof(kBosDescriptor));
+					responseLength = sizeof(kBosDescriptor);
+				} else {
+					ok = false;
+				}
+				break;
 			default:
 				ok = false;
 				break;
 			}
-		} else if (request == 5) {
+		} else if ((requestType & 0x60) == 0 && request == 5) {
 			const uint32_t dcfg = read(kDcfg) & ~(0x7fU << 3);
 			write(kDcfg, dcfg | (static_cast<uint32_t>(value & 0x7f) << 3));
-		} else if (request == 9) {
-			configured = value == 1;
-			if (configured) {
-				IOLog("CHEESEBURGER_USB: host configured EP0-only device\n");
+		} else if ((requestType & 0x60) == 0 && request == 9) {
+			if (index != 0 || length != 0 || value > 1) {
+				ok = false;
+			} else if (value == 1) {
+				if (!configureDataEndpoints()) {
+					ok = false;
+				} else {
+					configured = true;
+					dtr = false;
+					IOLog("CHEESEBURGER_USB: host configured CDC ACM device\n");
+				}
+			} else {
+				configured = false;
+				dataEndpoints = false;
+				dtr = false;
 			}
-		} else if (request == 8) {
+		} else if ((requestType & 0x60) == 0 && request == 8) {
 			data[0] = configured ? 1 : 0;
 			responseLength = 1;
-		} else if (request == 0) {
+		} else if ((requestType & 0x60) == 0 && request == 0) {
 			data[0] = 0;
 			data[1] = 0;
 			responseLength = 2;
-		} else if (request == 10) {
-			data[0] = 0;
-			responseLength = 1;
-		} else if (request == 11 || request == 1 || request == 3) {
-			// No endpoints or remote wakeup are advertised by this EP0-only image.
+		} else if ((requestType & 0x7f) == 0x01 && request == 10) {
+			if (length != 1 || value != 0 || index > 1) {
+				ok = false;
+			} else {
+				data[0] = 0;
+				responseLength = 1;
+			}
+		} else if ((requestType & 0x7f) == 0x01 && request == 11) {
+			if (length != 0 || value != 0 || index > 1) {
+				ok = false;
+			}
+		} else if ((requestType & 0x7f) == 0x02 && request == 1) {
+			if (length != 0 || (index != 0x01 && index != 0x81 && index != 0x82)) {
+				ok = false;
+			}
+		} else if (requestType == 0x21 && request == 0x20) {
+			if (value != 0 || index != 0 || length != 7) {
+				ok = false;
+			} else {
+				dataStageOut = true;
+			}
+		} else if (requestType == 0xa1 && request == 0x21) {
+			if (value != 0 || index != 0 || length != 7) {
+				ok = false;
+			} else {
+				memcpy(data, lineCoding, sizeof(lineCoding));
+				responseLength = sizeof(lineCoding);
+			}
+		} else if (requestType == 0x21 && request == 0x22) {
+			if (index != 0 || length != 0 || (value & ~3U) != 0) {
+				ok = false;
+			} else {
+				dtr = configured && ((value & 1U) != 0);
+				if (dtr) {
+					notifyPending = true;
+				}
+			}
+		} else if (requestType == 0x21 && request == 0x23) {
+			if (length != 0) {
+				ok = false;
+			}
 		} else {
 			ok = false;
 		}
 
 		if (!ok) {
 			stall();
+			return;
+		}
+		if (dataStageOut) {
+			phase = Phase::DataOut;
+			const uint32_t transferLength = (length + 63U) & ~63U;
+			if (!startTransfer(0, kDataTrbOffset, kDataOffset, transferLength,
+			    kTrbCtlData)) {
+				fault = true;
+			}
 			return;
 		}
 		if (length == 0) {
@@ -604,15 +988,23 @@ struct Ep0Device {
 		const unsigned type = (event >> 8) & 0xf;
 		if (type == 0) {
 			configured = false;
+			dataEndpoints = false;
+			dtr = false;
+			notifyPending = false;
 			setupArmed = false;
 			phase = Phase::Idle;
+			bzero(transferBusy, sizeof(transferBusy));
 			IOLog("CHEESEBURGER_USB: disconnect\n");
 		} else if (type == 1) {
 			const uint32_t dcfg = read(kDcfg) & ~(0x7fU << 3);
 			write(kDcfg, dcfg);
 			configured = false;
+			dataEndpoints = false;
+			dtr = false;
+			notifyPending = false;
 			setupArmed = false;
 			phase = Phase::Idle;
+			bzero(transferBusy, sizeof(transferBusy));
 			IOLog("CHEESEBURGER_USB: bus reset\n");
 			if (!configureEp0()) {
 				fault = true;
@@ -646,7 +1038,8 @@ struct Ep0Device {
 		const unsigned endpoint = (event >> 1) & 0x1f;
 		const unsigned type = (event >> 6) & 0xf;
 		const unsigned status = (event >> 12) & 0xf;
-		if (endpoint > 1) {
+		if (endpoint != 0 && endpoint != 1 && endpoint != 2 &&
+		    endpoint != 3 && endpoint != 5) {
 			return;
 		}
 		if (type == 1) {
@@ -656,23 +1049,64 @@ struct Ep0Device {
 				fault = true;
 				return;
 			}
+			uint32_t trbOffset = 0;
+			if (endpoint == 0 && phase == Phase::Setup) {
+				trbOffset = kSetupTrbOffset;
+			} else if (endpoint == 0 && phase == Phase::DataOut) {
+				trbOffset = kDataTrbOffset;
+			} else if (endpoint == 1 && phase == Phase::DataIn) {
+				trbOffset = kDataTrbOffset;
+			} else if (phase == Phase::Status) {
+				trbOffset = endpoint == 0 ? kStatusOutTrbOffset : kStatusInTrbOffset;
+			} else if (endpoint == 2) {
+				trbOffset = kRxTrbOffset;
+			} else if (endpoint == 3) {
+				trbOffset = kBulkInTrbOffset;
+			} else if (endpoint == 5) {
+				trbOffset = kNotifyTrbOffset;
+			}
+			const int completed = trbOffset ? completeTransfer(endpoint, trbOffset) : -1;
+			if (completed == kCompletionSetupPending) {
+				IOLog("CHEESEBURGER_USB: control setup-pending rearm ep=%u\n",
+				    endpoint);
+				phase = Phase::Idle;
+				armSetup();
+				return;
+			}
+			if (completed < 0) {
+				return;
+			}
+			if (endpoint == 2) {
+				rxBytes += static_cast<uint32_t>(completed);
+				armReceive();
+				return;
+			}
+			if (endpoint == 3 || endpoint == 5) {
+				return;
+			}
 			if (phase == Phase::Setup && endpoint == 0) {
 				setupArmed = false;
 				handleSetup();
 			} else if (phase == Phase::DataIn && endpoint == 1) {
 				phase = Phase::WaitStatus;
+			} else if (phase == Phase::DataOut && endpoint == 0) {
+				if (completed == 7) {
+					syncDma(dma + kDataOffset, 7, true);
+					memcpy(lineCoding, dma + kDataOffset, 7);
+				} else {
+					IOLog("CHEESEBURGER_USB: bad line coding length=%d\n",
+					    completed);
+					fault = true;
+					return;
+				}
+				phase = Phase::WaitStatus;
 			} else if (phase == Phase::Status) {
 				phase = Phase::Idle;
 				armSetup();
 			}
-		} else if (type == 3 && status == 2 &&
-		    phase == Phase::WaitStatus) {
-			const bool statusOut = dataIn;
-			phase = Phase::Status;
-			if (!startTransfer(statusOut ? 0 : 1,
-			    statusOut ? kStatusOutTrbOffset : kStatusInTrbOffset,
-			    kDataOffset, 0, statusOut ? kTrbCtlStatus3 : kTrbCtlStatus2)) {
-				fault = true;
+		} else if (type == 3 && (endpoint == 0 || endpoint == 1)) {
+			if (status == 2 && phase == Phase::WaitStatus) {
+				(void)startControlStatus(endpoint);
 			}
 		}
 	}
@@ -696,9 +1130,6 @@ struct Ep0Device {
 			    dma + kEventOffset + eventPosition);
 			eventPosition = (eventPosition + 4) % kEventBytes;
 			eventCount++;
-			if (eventCount <= 128) {
-				IOLog("CHEESEBURGER_USB: event=%08x\n", event);
-			}
 			handleEvent(event);
 		}
 		write(kGevntcount, count);
@@ -740,6 +1171,13 @@ struct Ep0Device {
 		}
 		bzero(dma, kDmaBytes);
 		syncDma(dma, kDmaBytes, false);
+		const uint64_t ticks = mach_absolute_time();
+		bootId = static_cast<uint32_t>(ticks) ^
+		    static_cast<uint32_t>(ticks >> 32);
+		if (bootId == 0) {
+			bootId = 1;
+		}
+		logCursor = -1;
 
 		write(kDevten, 0);
 		write(kDctl, read(kDctl) & ~kDctlRunStop);
@@ -801,6 +1239,7 @@ struct Ep0Device {
 		IOLog("CHEESEBURGER_USB: EP0 running dma=%llx low=%u dsts=%08x "
 		    "qscratch_hs=%08x\n", dmaPhysical, lowDma ? 1U : 0U,
 		    read(kDsts), read32(qscratch.address, kQscratchHsPhyCtrl));
+		IOLog("CHEESEBURGER_USB: build=H408 cdc-acm boot=%08x\n", bootId);
 		return true;
 	}
 
@@ -810,11 +1249,17 @@ struct Ep0Device {
 		uint32_t summaryTicks = 0;
 		while (!fault) {
 			poll();
+			transmit();
 			if (++summaryTicks >= 60000) {
 				summaryTicks = 0;
-				IOLog("CHEESEBURGER_USB: ep0 alive configured=%u "
-				    "events=%u setups=%u dsts=%08x\n",
-				    configured ? 1U : 0U, eventCount, setupCount,
+				IOLog("CHEESEBURGER_USB: alive configured=%u dtr=%u "
+				    "events=%u setups=%u frames=%u tx=%llu rx=%llu "
+				    "dropped=%llu dsts=%08x\n",
+				    configured ? 1U : 0U, dtr ? 1U : 0U,
+				    eventCount, setupCount, txFrames,
+				    static_cast<unsigned long long>(txBytes),
+				    static_cast<unsigned long long>(rxBytes),
+				    static_cast<unsigned long long>(droppedBytes),
 				    read(kDsts));
 			}
 			IOSleep(1);
