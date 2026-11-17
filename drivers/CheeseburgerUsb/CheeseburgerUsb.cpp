@@ -1429,6 +1429,8 @@ struct Ep0Device {
 		IOLog("CHEESEBURGER_USB: EP0 fault event=%u setup=%u dsts=%08x "
 		    "devten=%08x\n", eventCount, setupCount, read(kDsts),
 		    read(kDevten));
+		IOSleep(2000);
+		native_h103_log_freeze();
 	}
 };
 

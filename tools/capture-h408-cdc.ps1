@@ -79,8 +79,11 @@ function Get-Crc32([byte[]]$Data) {
     foreach ($value in $Data) {
         $crc = $crc -bxor [uint32]$value
         for ($bit = 0; $bit -lt 8; $bit++) {
-            $mask = [uint32](0 - ($crc -band 1))
-            $crc = ($crc -shr 1) -bxor (0xedb88320 -band $mask)
+            if (($crc -band 1) -ne 0) {
+                $crc = ($crc -shr 1) -bxor [uint32]3988292384
+            } else {
+                $crc = $crc -shr 1
+            }
         }
     }
     return ($crc -bxor [uint32]4294967295)
