@@ -1240,7 +1240,7 @@ struct Ep0Device {
 				    lastSetupDataIn ? 1U : 0U, lastSetupDataOut ? 1U : 0U);
 			}
 			if (status == 2 && phase == Phase::DataIn) {
-				pendingStatusEndpoint = static_cast<int>(endpoint);
+				pendingStatusEndpoint = 0;
 				IOLog("CHEESEBURGER_USB: control status arrived before data "
 				    "complete ep=%u\n", endpoint);
 			} else if (status == 2 && phase == Phase::WaitStatus &&
