@@ -153,9 +153,6 @@ struct CheeseburgerMsgBuf {
 };
 
 extern "C" struct CheeseburgerMsgBuf *msgbufp;
-extern "C" void native_h103_log_freeze(void);
-
-static void h103FreezeThread(void *, wait_result_t);
 
 uint32_t
 crc32(const uint8_t *data, size_t length)
@@ -419,14 +416,6 @@ stringDescriptor(unsigned index, uint8_t *out)
 	return length;
 }
 
-static void
-h103FreezeThread(void *, wait_result_t)
-{
-	IOSleep(30000);
-	native_h103_log_freeze();
-	thread_terminate(current_thread());
-}
-
 struct Ep0Device {
 	enum class Phase {
 		Idle,
@@ -467,7 +456,6 @@ struct Ep0Device {
 	bool endTransferEventPending = false;
 	bool deferredLineCoding = false;
 	bool controlDataSkipped = false;
-	bool h103FreezeScheduled = false;
 	uint32_t bootId = 0;
 	uint32_t logSequence = 0;
 	uint32_t txFrames = 0;
@@ -837,8 +825,8 @@ struct Ep0Device {
 		memcpy(data, serialState, sizeof(serialState));
 		if (!startTransfer(5, kNotifyTrbOffset, kNotifyOffset,
 		    sizeof(serialState), kTrbCtlNormal)) {
-			IOSleep(10);
-			return true;
+			fault = true;
+			return false;
 		}
 		notifyPending = false;
 		return true;
@@ -847,7 +835,7 @@ struct Ep0Device {
 	bool
 	sendLogFrame()
 	{
-		if (!configured || !dataEndpoints || fault || transferBusy[3]) {
+		if (!configured || !dataEndpoints || !dtr || fault || transferBusy[3]) {
 			return !fault;
 		}
 		uint8_t *frame = dma + kTxOffset;
@@ -1016,14 +1004,6 @@ struct Ep0Device {
 			if (value != 0 || index != 0 || length != 7) {
 				ok = false;
 			} else if (!deferredLineCoding) {
-				if (!h103FreezeScheduled) {
-					h103FreezeScheduled = true;
-					thread_t thread = nullptr;
-					if (kernel_thread_start(h103FreezeThread, nullptr, &thread) ==
-					    KERN_SUCCESS) {
-						thread_deallocate(thread);
-					}
-				}
 				deferredLineCoding = true;
 				zeroLengthDataStatus = true;
 				controlDataSkipped = true;
@@ -1429,8 +1409,6 @@ struct Ep0Device {
 		IOLog("CHEESEBURGER_USB: EP0 fault event=%u setup=%u dsts=%08x "
 		    "devten=%08x\n", eventCount, setupCount, read(kDsts),
 		    read(kDevten));
-		IOSleep(2000);
-		native_h103_log_freeze();
 	}
 };
 
