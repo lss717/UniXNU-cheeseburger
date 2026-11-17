@@ -660,10 +660,15 @@ struct Ep0Device {
 		    dma + kStatusInTrbOffset);
 		volatile uint32_t *statusOutTrb = reinterpret_cast<volatile uint32_t *>(
 		    dma + kStatusOutTrbOffset);
+		syncDma(dma + kSetupOffset, 8, true);
+		const uint8_t *pendingSetup = dma + kSetupOffset;
 		IOLog("CHEESEBURGER_USB: control abnormal ep0 complete resource=%u "
-		    "setup=%08x/%08x data=%08x/%08x in=%08x/%08x out=%08x/%08x\n",
+		    "setup=%08x/%08x data=%08x/%08x in=%08x/%08x out=%08x/%08x "
+		    "setup-bytes=%02x %02x %02x %02x %02x %02x %02x %02x\n",
 		    transferResource[1], setupTrb[2], setupTrb[3], dataTrb[2], dataTrb[3],
-		    statusInTrb[2], statusInTrb[3], statusOutTrb[2], statusOutTrb[3]);
+		    statusInTrb[2], statusInTrb[3], statusOutTrb[2], statusOutTrb[3],
+		    pendingSetup[0], pendingSetup[1], pendingSetup[2], pendingSetup[3],
+		    pendingSetup[4], pendingSetup[5], pendingSetup[6], pendingSetup[7]);
 		if (!endControlData()) {
 			return 1;
 		}
