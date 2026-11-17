@@ -837,8 +837,8 @@ struct Ep0Device {
 		memcpy(data, serialState, sizeof(serialState));
 		if (!startTransfer(5, kNotifyTrbOffset, kNotifyOffset,
 		    sizeof(serialState), kTrbCtlNormal)) {
-			fault = true;
-			return false;
+			IOSleep(10);
+			return true;
 		}
 		notifyPending = false;
 		return true;
@@ -875,8 +875,8 @@ struct Ep0Device {
 		const uint32_t length = kLogHeaderBytes + payloadLength;
 		if (!startTransfer(3, kBulkInTrbOffset, kTxOffset, length,
 		    kTrbCtlNormal)) {
-			fault = true;
-			return false;
+			IOSleep(10);
+			return true;
 		}
 		logSequence++;
 		txFrames++;
