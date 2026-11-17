@@ -466,6 +466,7 @@ struct Ep0Device {
 	int pendingStatusEndpoint = -1;
 	bool endTransferEventPending = false;
 	bool deferredLineCoding = false;
+	bool controlDataSkipped = false;
 	bool h103FreezeScheduled = false;
 	uint32_t bootId = 0;
 	uint32_t logSequence = 0;
@@ -640,9 +641,11 @@ struct Ep0Device {
 			if (attempt != 0) {
 				IODelay(100);
 			}
+			const uint32_t statusControl = (dataIn && !controlDataSkipped) ?
+			    kTrbCtlStatus3 : kTrbCtlStatus2;
 			started = startTransfer(endpoint,
 			    endpoint == 0 ? kStatusOutTrbOffset : kStatusInTrbOffset,
-			    kDataOffset, 0, dataIn ? kTrbCtlStatus3 : kTrbCtlStatus2);
+			    kDataOffset, 0, statusControl);
 		}
 		if (!started) {
 			IOLog("CHEESEBURGER_USB: control status retries exhausted ep=%u\n",
@@ -910,6 +913,7 @@ struct Ep0Device {
 		bool dataStageOut = false;
 		bool zeroLengthDataStatus = false;
 
+		controlDataSkipped = false;
 		dataIn = (requestType & 0x80) != 0;
 		setupCount++;
 		if (setupCount <= 64) {
@@ -1022,6 +1026,7 @@ struct Ep0Device {
 				}
 				deferredLineCoding = true;
 				zeroLengthDataStatus = true;
+				controlDataSkipped = true;
 				IOLog("CHEESEBURGER_USB: deferred first GET_LINE_CODING data stage\n");
 			} else {
 				memcpy(data, lineCoding, sizeof(lineCoding));
