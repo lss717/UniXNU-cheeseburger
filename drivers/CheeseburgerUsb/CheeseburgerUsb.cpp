@@ -1155,9 +1155,7 @@ struct Ep0Device {
 				    static_cast<unsigned>(phase), transferBusy[0] ? 1U : 0U,
 				    transferBusy[1] ? 1U : 0U);
 			}
-			if (endpoint == 0 && phase == Phase::DataIn &&
-			    transferBusy[1]) {
-				IOLog("CHEESEBURGER_USB: control ignoring EP0 completion before data-in\n");
+			if (consumeSetupPendingDataIn(endpoint)) {
 				return;
 			}
 			if ((status & kDepevtStatusBusErr) != 0) {
