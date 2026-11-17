@@ -431,6 +431,12 @@ struct Ep0Device {
 	uint32_t eventCount = 0;
 	uint32_t setupCount = 0;
 	uint32_t connectGeneration = 0;
+	uint32_t lastSetupType = 0;
+	uint32_t lastSetupRequest = 0;
+	uint32_t lastSetupLength = 0;
+	uint32_t lastSetupResponse = 0;
+	bool lastSetupDataIn = false;
+	bool lastSetupDataOut = false;
 	Phase phase = Phase::Idle;
 	bool configured = false;
 	bool dataEndpoints = false;
@@ -903,12 +909,26 @@ struct Ep0Device {
 			ok = false;
 		}
 
+		lastSetupType = requestType;
+		lastSetupRequest = request;
+		lastSetupLength = length;
+		lastSetupResponse = responseLength;
+		lastSetupDataIn = dataIn;
+		lastSetupDataOut = dataStageOut;
+		if ((requestType & 0x60) != 0 || setupCount <= 16) {
+			IOLog("CHEESEBURGER_USB: control parse type=%02x request=%02x "
+			    "length=%u response=%u in=%u out=%u ok=%u\n",
+			    requestType, request, length, responseLength,
+			    dataIn ? 1U : 0U, dataStageOut ? 1U : 0U, ok ? 1U : 0U);
+		}
 		if (!ok) {
 			stall();
 			return;
 		}
 		if (dataStageOut) {
 			phase = Phase::DataOut;
+			IOLog("CHEESEBURGER_USB: control data-out start length=%u "
+			    "busy0=%u\n", length, transferBusy[0] ? 1U : 0U);
 			if (!startTransfer(0, kDataTrbOffset, kDataOffset, length,
 			    kTrbCtlData)) {
 				fault = true;
@@ -917,6 +937,7 @@ struct Ep0Device {
 		}
 		if (length == 0) {
 			phase = Phase::WaitStatus;
+			IOLog("CHEESEBURGER_USB: control wait-status no data\n");
 			return;
 		}
 		if (!dataIn) {
@@ -931,6 +952,8 @@ struct Ep0Device {
 			return;
 		}
 		phase = Phase::DataIn;
+		IOLog("CHEESEBURGER_USB: control data-in start length=%u busy1=%u\n",
+		    responseLength, transferBusy[1] ? 1U : 0U);
 		if (!startTransfer(1, kDataTrbOffset, kDataOffset, responseLength,
 		    kTrbCtlData)) {
 			fault = true;
@@ -998,6 +1021,12 @@ struct Ep0Device {
 			return;
 		}
 		if (type == 1) {
+			if ((endpoint == 0 || endpoint == 1) && setupCount <= 32) {
+				IOLog("CHEESEBURGER_USB: control complete ep=%u status=%u "
+				    "phase=%u busy0=%u busy1=%u\n", endpoint, status,
+				    static_cast<unsigned>(phase), transferBusy[0] ? 1U : 0U,
+				    transferBusy[1] ? 1U : 0U);
+			}
 			if ((status & kDepevtStatusBusErr) != 0) {
 				IOLog("CHEESEBURGER_USB: transfer error ep=%u status=%u\n",
 				    endpoint, status);
@@ -1052,14 +1081,27 @@ struct Ep0Device {
 				phase = Phase::Idle;
 				armSetup();
 			}
-		} else if (type == 3 && status == 2 &&
-		    phase == Phase::WaitStatus) {
-			const bool statusOut = dataIn;
-			phase = Phase::Status;
-			if (!startTransfer(statusOut ? 0 : 1,
-			    statusOut ? kStatusOutTrbOffset : kStatusInTrbOffset,
-			    kDataOffset, 0, statusOut ? kTrbCtlStatus3 : kTrbCtlStatus2)) {
-				fault = true;
+		} else if (type == 3 && (endpoint == 0 || endpoint == 1)) {
+			if (setupCount <= 32) {
+				IOLog("CHEESEBURGER_USB: control not-ready ep=%u status=%u "
+				    "phase=%u busy0=%u busy1=%u request=%02x length=%u "
+				    "response=%u in=%u out=%u\n", endpoint, status,
+				    static_cast<unsigned>(phase), transferBusy[0] ? 1U : 0U,
+				    transferBusy[1] ? 1U : 0U, lastSetupRequest,
+				    lastSetupLength, lastSetupResponse,
+				    lastSetupDataIn ? 1U : 0U, lastSetupDataOut ? 1U : 0U);
+			}
+			if (status == 2 && phase == Phase::WaitStatus) {
+				const bool statusOut = dataIn;
+				phase = Phase::Status;
+				IOLog("CHEESEBURGER_USB: control status start ep=%u\n",
+				    statusOut ? 0U : 1U);
+				if (!startTransfer(statusOut ? 0 : 1,
+				    statusOut ? kStatusOutTrbOffset : kStatusInTrbOffset,
+				    kDataOffset, 0,
+				    statusOut ? kTrbCtlStatus3 : kTrbCtlStatus2)) {
+					fault = true;
+				}
 			}
 		}
 	}
