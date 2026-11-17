@@ -700,7 +700,7 @@ struct Ep0Device {
 		const uint32_t bulkIn = (2U << 1) | (512U << 3) | (1U << 17);
 		const uint32_t bulkOut = (2U << 1) | (512U << 3);
 		const uint32_t interruptIn = (3U << 1) | (16U << 3) | (2U << 17);
-		if (!command(0, kDepcmdTypeStartConfig, 2U << 16, 0, 0) ||
+		if (!command(0, kDepcmdTypeStartConfig | (2U << 16), 0, 0, 0) ||
 		    !command(2, kDepcmdTypeSetEpConfig, bulkOut,
 		    (1U << 8) | (2U << 25), 0) ||
 		    !command(2, kDepcmdTypeSetTransferResource, 1, 0, 0) ||
@@ -1242,7 +1242,7 @@ struct Ep0Device {
 				    lastSetupDataIn ? 1U : 0U, lastSetupDataOut ? 1U : 0U);
 			}
 			if (status == 2 && phase == Phase::DataIn) {
-				pendingStatusEndpoint = -1;
+				pendingStatusEndpoint = static_cast<int>(endpoint);
 				IOLog("CHEESEBURGER_USB: control status arrived before data "
 				    "complete ep=%u\n", endpoint);
 			} else if (status == 2 && phase == Phase::WaitStatus &&
