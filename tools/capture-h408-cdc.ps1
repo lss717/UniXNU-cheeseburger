@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$Port,
     [string]$TextOutput = "H408-live.log",
     [string]$FrameOutput = "H408-live.frames.bin",
@@ -47,6 +47,7 @@ public static class H408RawCom {
 
 $textPath = [IO.Path]::GetFullPath($TextOutput)
 $framePath = [IO.Path]::GetFullPath($FrameOutput)
+$rawPath = "$framePath.raw.bin"
 New-Item -ItemType Directory -Force -Path (Split-Path $textPath) | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path $framePath) | Out-Null
 
@@ -74,7 +75,7 @@ function Get-Le32([byte[]]$Data, [int]$Offset) {
 }
 
 function Get-Crc32([byte[]]$Data) {
-    [uint32]$crc = 0xffffffff
+    [uint32]$crc = [uint32]4294967295
     foreach ($value in $Data) {
         $crc = $crc -bxor [uint32]$value
         for ($bit = 0; $bit -lt 8; $bit++) {
@@ -82,7 +83,7 @@ function Get-Crc32([byte[]]$Data) {
             $crc = ($crc -shr 1) -bxor (0xedb88320 -band $mask)
         }
     }
-    return [uint32](-bnot $crc)
+    return ($crc -bxor [uint32]4294967295)
 }
 
 $capture = [IO.MemoryStream]::new()
@@ -104,6 +105,7 @@ try {
 
 $data = $capture.ToArray()
 $capture.Dispose()
+[IO.File]::WriteAllBytes($rawPath, $data)
 $text = [IO.MemoryStream]::new()
 $frames = [IO.MemoryStream]::new()
 $index = 0
@@ -165,4 +167,5 @@ $text.Dispose(); $frames.Dispose()
 Write-Host "H408 frames=$frameCount bytes=$($data.Length)"
 Write-Host "text=$textPath"
 Write-Host "frames=$framePath"
+Write-Host "raw=$rawPath"
 if ($frameCount -eq 0) { throw "No valid UXL1 frames received" }

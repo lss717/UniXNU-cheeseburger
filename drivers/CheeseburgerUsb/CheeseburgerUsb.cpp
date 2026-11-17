@@ -635,9 +635,18 @@ struct Ep0Device {
 		pendingStatusEndpoint = -1;
 		IOLog("CHEESEBURGER_USB: control status start ep=%u data_in=%u\n",
 		    endpoint, dataIn ? 1U : 0U);
-		if (!startTransfer(endpoint,
-		    endpoint == 0 ? kStatusOutTrbOffset : kStatusInTrbOffset,
-		    kDataOffset, 0, dataIn ? kTrbCtlStatus3 : kTrbCtlStatus2)) {
+		unsigned started = 0;
+		for (unsigned attempt = 0; attempt < 8 && !started; attempt++) {
+			if (attempt != 0) {
+				IODelay(100);
+			}
+			started = startTransfer(endpoint,
+			    endpoint == 0 ? kStatusOutTrbOffset : kStatusInTrbOffset,
+			    kDataOffset, 0, dataIn ? kTrbCtlStatus3 : kTrbCtlStatus2);
+		}
+		if (!started) {
+			IOLog("CHEESEBURGER_USB: control status retries exhausted ep=%u\n",
+			    endpoint);
 			fault = true;
 			return 0;
 		}
