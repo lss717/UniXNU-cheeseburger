@@ -101,6 +101,8 @@ constexpr uint32_t kTrbCtlStatus3 = 4U << 4;
 constexpr uint32_t kTrbCtlData = 5U << 4;
 constexpr uint32_t kTrbCtlNormal = 1U << 4;
 constexpr uint32_t kDepevtStatusBusErr = 1U << 0;
+constexpr uint32_t kTrbStatusSetupPending = 2;
+constexpr int kCompletionSetupPending = -2;
 
 constexpr uint8_t kDeviceDescriptor[] = {
 	18, 1, 0x00, 0x02, 0x02, 0x02, 0x01, 64,
@@ -564,7 +566,7 @@ struct Ep0Device {
 		    dma + trbOffset);
 		const uint32_t remaining = trb[2] & 0xffffffU;
 		const uint32_t status = trb[2] >> 28;
-		if ((trb[3] & kTrbHwo) != 0 || status != 0 ||
+		if ((trb[3] & kTrbHwo) != 0 ||
 		    remaining > transferRequested[endpoint]) {
 			IOLog("CHEESEBURGER_USB: invalid completion ep=%u trb=%08x/%08x\n",
 			    endpoint, trb[2], trb[3]);
@@ -572,6 +574,15 @@ struct Ep0Device {
 			return -1;
 		}
 		transferBusy[endpoint] = false;
+		if (endpoint <= 1 && status == kTrbStatusSetupPending) {
+			return kCompletionSetupPending;
+		}
+		if (status != 0) {
+			IOLog("CHEESEBURGER_USB: invalid completion ep=%u trb=%08x/%08x\n",
+			    endpoint, trb[2], trb[3]);
+			fault = true;
+			return -1;
+		}
 		return static_cast<int>(transferRequested[endpoint] - remaining);
 	}
 
@@ -1144,6 +1155,14 @@ struct Ep0Device {
 				trbOffset = kNotifyTrbOffset;
 			}
 			const int completed = trbOffset ? completeTransfer(endpoint, trbOffset) : -1;
+			if (completed == kCompletionSetupPending) {
+				IOLog("CHEESEBURGER_USB: control setup-pending rearm ep=%u\n",
+				    endpoint);
+				pendingStatusEndpoint = -1;
+				phase = Phase::Idle;
+				armSetup();
+				return;
+			}
 			if (completed < 0) {
 				return;
 			}
