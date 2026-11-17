@@ -88,7 +88,9 @@ constexpr uint32_t kDepcmdTypeSetEpConfig = 1U;
 constexpr uint32_t kDepcmdTypeSetTransferResource = 2U;
 constexpr uint32_t kDepcmdTypeSetStall = 4U;
 constexpr uint32_t kDepcmdTypeStartTransfer = 6U;
+constexpr uint32_t kDepcmdTypeEndTransfer = 8U;
 constexpr uint32_t kDepcmdTypeStartConfig = 9U;
+constexpr uint32_t kDepcmdCmdIoc = 1U << 8;
 constexpr uint32_t kTrbHwo = 1U << 0;
 constexpr uint32_t kTrbLst = 1U << 1;
 constexpr uint32_t kTrbIspImi = 1U << 10;
@@ -99,7 +101,6 @@ constexpr uint32_t kTrbCtlStatus3 = 4U << 4;
 constexpr uint32_t kTrbCtlData = 5U << 4;
 constexpr uint32_t kTrbCtlNormal = 1U << 4;
 constexpr uint32_t kDepevtStatusBusErr = 1U << 0;
-constexpr uint32_t kTrbStatusSetupPending = 2;
 
 constexpr uint8_t kDeviceDescriptor[] = {
 	18, 1, 0x00, 0x02, 0x02, 0x02, 0x01, 64,
@@ -448,6 +449,8 @@ struct Ep0Device {
 	bool fault = false;
 	bool transferBusy[6] = {};
 	uint32_t transferRequested[6] = {};
+	uint32_t transferResource[6] = {};
+	int pendingStatusEndpoint = -1;
 	uint32_t bootId = 0;
 	uint32_t logSequence = 0;
 	uint32_t txFrames = 0;
@@ -505,6 +508,9 @@ struct Ep0Device {
 					IOLog("CHEESEBURGER_USB: ep%u command %u failed status=%u\n",
 					    endpoint, type, status);
 					return false;
+				}
+				if ((type & 0xfU) == kDepcmdTypeStartTransfer) {
+					transferResource[endpoint] = (value >> 16) & 0x7fU;
 				}
 				return true;
 			}
@@ -570,22 +576,73 @@ struct Ep0Device {
 	}
 
 	uint32_t
+	endControlData()
+	{
+		if (!transferBusy[1]) {
+			return 1;
+		}
+		const uint32_t resource = transferResource[1];
+		if (resource == 0) {
+			IOLog("CHEESEBURGER_USB: control data-in missing resource index\n");
+			fault = true;
+			return 0;
+		}
+		for (unsigned attempt = 0; attempt < 3; attempt++) {
+			if (command(1, kDepcmdTypeEndTransfer | kDepcmdCmdIoc |
+			    (resource << 16), 0, 0, 0)) {
+				transferBusy[1] = false;
+				IOLog("CHEESEBURGER_USB: control data-in ended resource=%u\n",
+				    resource);
+				return 1;
+			}
+			IODelay(100);
+		}
+		fault = true;
+		return 0;
+	}
+
+	uint32_t
+	startControlStatus(unsigned endpoint)
+	{
+		phase = Phase::Status;
+		pendingStatusEndpoint = -1;
+		IOLog("CHEESEBURGER_USB: control status start ep=%u data_in=%u\n",
+		    endpoint, dataIn ? 1U : 0U);
+		if (!startTransfer(endpoint,
+		    endpoint == 0 ? kStatusOutTrbOffset : kStatusInTrbOffset,
+		    kDataOffset, 0, dataIn ? kTrbCtlStatus3 : kTrbCtlStatus2)) {
+			fault = true;
+			return 0;
+		}
+		return 1;
+	}
+
+	uint32_t
 	consumeSetupPendingDataIn(unsigned endpoint)
 	{
 		if (endpoint != 0 || phase != Phase::DataIn || !transferBusy[1]) {
 			return 0;
 		}
-		syncDma(dma + kDataTrbOffset, sizeof(uint32_t) * 4, true);
-		volatile uint32_t *trb = reinterpret_cast<volatile uint32_t *>(
+		syncDma(dma + kSetupTrbOffset, sizeof(uint32_t) * 4 * 4, true);
+		volatile uint32_t *setupTrb = reinterpret_cast<volatile uint32_t *>(
+		    dma + kSetupTrbOffset);
+		volatile uint32_t *dataTrb = reinterpret_cast<volatile uint32_t *>(
 		    dma + kDataTrbOffset);
-		const uint32_t trbStatus = trb[2] >> 28;
-		if ((trb[3] & kTrbHwo) != 0 || trbStatus != kTrbStatusSetupPending) {
-			return 0;
+		volatile uint32_t *statusInTrb = reinterpret_cast<volatile uint32_t *>(
+		    dma + kStatusInTrbOffset);
+		volatile uint32_t *statusOutTrb = reinterpret_cast<volatile uint32_t *>(
+		    dma + kStatusOutTrbOffset);
+		IOLog("CHEESEBURGER_USB: control abnormal ep0 complete resource=%u "
+		    "setup=%08x/%08x data=%08x/%08x in=%08x/%08x out=%08x/%08x\n",
+		    transferResource[1], setupTrb[2], setupTrb[3], dataTrb[2], dataTrb[3],
+		    statusInTrb[2], statusInTrb[3], statusOutTrb[2], statusOutTrb[3]);
+		if (!endControlData()) {
+			return 1;
 		}
-		transferBusy[1] = false;
 		phase = Phase::WaitStatus;
-		IOLog("CHEESEBURGER_USB: control setup-pending aborted data-in "
-		    "trb=%08x/%08x\n", trb[2], trb[3]);
+		if (pendingStatusEndpoint >= 0) {
+			(void)startControlStatus(static_cast<unsigned>(pendingStatusEndpoint));
+		}
 		return 1;
 	}
 
@@ -659,7 +716,9 @@ struct Ep0Device {
 		dataEndpoints = false;
 		dtr = false;
 		notifyPending = false;
+		pendingStatusEndpoint = -1;
 		bzero(transferBusy, sizeof(transferBusy));
+		bzero(transferResource, sizeof(transferResource));
 		return true;
 	}
 
@@ -999,7 +1058,9 @@ struct Ep0Device {
 			notifyPending = false;
 			setupArmed = false;
 			phase = Phase::Idle;
+			pendingStatusEndpoint = -1;
 			bzero(transferBusy, sizeof(transferBusy));
+			bzero(transferResource, sizeof(transferResource));
 			IOLog("CHEESEBURGER_USB: disconnect\n");
 		} else if (type == 1) {
 			const uint32_t dcfg = read(kDcfg) & ~(0x7fU << 3);
@@ -1010,7 +1071,9 @@ struct Ep0Device {
 			notifyPending = false;
 			setupArmed = false;
 			phase = Phase::Idle;
+			pendingStatusEndpoint = -1;
 			bzero(transferBusy, sizeof(transferBusy));
+			bzero(transferResource, sizeof(transferResource));
 			IOLog("CHEESEBURGER_USB: bus reset\n");
 			if (!configureEp0()) {
 				fault = true;
@@ -1122,16 +1185,12 @@ struct Ep0Device {
 				    lastSetupLength, lastSetupResponse,
 				    lastSetupDataIn ? 1U : 0U, lastSetupDataOut ? 1U : 0U);
 			}
-			if (status == 2 && phase == Phase::WaitStatus) {
-				phase = Phase::Status;
-				IOLog("CHEESEBURGER_USB: control status start ep=%u data_in=%u\n",
-				    endpoint, dataIn ? 1U : 0U);
-				if (!startTransfer(endpoint,
-				    endpoint == 0 ? kStatusOutTrbOffset : kStatusInTrbOffset,
-				    kDataOffset, 0,
-				    dataIn ? kTrbCtlStatus3 : kTrbCtlStatus2)) {
-					fault = true;
-				}
+			if (status == 2 && phase == Phase::DataIn) {
+				pendingStatusEndpoint = static_cast<int>(endpoint);
+				IOLog("CHEESEBURGER_USB: control status arrived before data "
+				    "complete ep=%u\n", endpoint);
+			} else if (status == 2 && phase == Phase::WaitStatus) {
+				(void)startControlStatus(endpoint);
 			}
 		}
 	}
