@@ -670,9 +670,16 @@ struct Ep0Device {
 			return !fault;
 		}
 		phase = Phase::Setup;
-		setupArmed = startTransfer(0, kSetupTrbOffset, kSetupOffset, 8,
-		    kTrbCtlSetup);
+		setupArmed = false;
+		for (unsigned attempt = 0; attempt < 8 && !setupArmed; attempt++) {
+			if (attempt != 0) {
+				IODelay(100);
+			}
+			setupArmed = startTransfer(0, kSetupTrbOffset, kSetupOffset, 8,
+			    kTrbCtlSetup);
+		}
 		if (!setupArmed) {
+			IOLog("CHEESEBURGER_USB: EP0 setup arm retries exhausted\n");
 			fault = true;
 		}
 		return setupArmed;
