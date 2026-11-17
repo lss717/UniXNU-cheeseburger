@@ -455,8 +455,6 @@ struct Ep0Device {
 	uint32_t transferResource[6] = {};
 	int pendingStatusEndpoint = -1;
 	bool endTransferEventPending = false;
-	bool h103FreezeScheduled = false;
-	uint64_t h103FreezeDeadline = 0;
 	uint32_t bootId = 0;
 	uint32_t logSequence = 0;
 	uint32_t txFrames = 0;
@@ -1007,10 +1005,6 @@ struct Ep0Device {
 			if (value != 0 || index != 0 || length != 7) {
 				ok = false;
 			} else {
-				if (!h103FreezeScheduled) {
-					h103FreezeScheduled = true;
-					h103FreezeDeadline = mach_absolute_time() + 30ULL * 19200000ULL;
-				}
 				memcpy(data, lineCoding, sizeof(lineCoding));
 				responseLength = sizeof(lineCoding);
 			}
@@ -1403,12 +1397,6 @@ struct Ep0Device {
 		while (!fault) {
 			poll();
 			transmit();
-			if (h103FreezeDeadline != 0 &&
-			    mach_absolute_time() >= h103FreezeDeadline) {
-				h103FreezeDeadline = 0;
-				IOLog("CHEESEBURGER_USB: freezing H103 after USB trace\n");
-				native_h103_log_freeze();
-			}
 			if (++summaryTicks >= 60000) {
 				summaryTicks = 0;
 				IOLog("CHEESEBURGER_USB: alive configured=%u dtr=%u "
