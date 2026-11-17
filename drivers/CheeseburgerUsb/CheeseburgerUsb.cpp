@@ -1187,6 +1187,15 @@ struct Ep0Device {
 			} else if (endpoint == 5) {
 				trbOffset = kNotifyTrbOffset;
 			}
+			if (endpoint == 0 && phase == Phase::Status &&
+			    !transferBusy[0] && transferBusy[1]) {
+				IOLog("CHEESEBURGER_USB: control setup-pending during status\n");
+				if (endControlData()) {
+					phase = Phase::Idle;
+					armSetup();
+				}
+				return;
+			}
 			const int completed = trbOffset ? completeTransfer(endpoint, trbOffset) : -1;
 			if (completed == kCompletionSetupPending) {
 				IOLog("CHEESEBURGER_USB: control setup-pending rearm ep=%u\n",
