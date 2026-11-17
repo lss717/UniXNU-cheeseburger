@@ -10,6 +10,21 @@
 #include <libkern/libkern.h>
 #include <pexpert/pexpert.h>
 
+// H410: USB CDC live-log status exported to the framebuffer status panel and
+// the UFS disk-log worker. Updated only from usbEp0Thread; readers are
+// lock-free. connected means the host set CONF=1 and the CDC data endpoints
+// were enabled. active means Bulk-IN log frames actually completed within
+// kStatusActiveHoldTicks; the counters are monotonic evidence of transfer.
+extern "C" {
+volatile uint32_t native_usb_status_started = 0;
+volatile uint32_t native_usb_status_connected = 0;
+volatile uint32_t native_usb_status_active = 0;
+volatile uint32_t native_usb_status_fault = 0;
+volatile uint32_t native_usb_status_tx_completions = 0;
+volatile uint64_t native_usb_status_tx_bytes = 0;
+volatile uint64_t native_usb_status_last_complete_ticks = 0;
+}
+
 namespace {
 
 constexpr uint64_t kGccBase = 0x00100000;
@@ -74,6 +89,10 @@ constexpr uint32_t kNotifyOffset = 0x1500;
 constexpr uint32_t kRxOffset = 0x1800;
 constexpr uint32_t kTxOffset = 0x2000;
 constexpr uint32_t kRxBytes = 512;
+// H410: how long one completed Bulk-IN frame keeps the link "active". A
+// single completion is not enough to pause disk logging; the UFS side also
+// requires several completions across a sustained window.
+constexpr uint64_t kStatusActiveHoldTicks = 500ULL * 19200000ULL / 1000ULL;
 constexpr uint32_t kLogPayloadMax = 1984;
 constexpr uint32_t kLogHeaderBytes = 32;
 
@@ -781,8 +800,8 @@ struct Ep0Device {
 		putLe32(frame + 16, static_cast<uint32_t>(droppedBytes));
 		frame[20] = 'H';
 		frame[21] = '4';
-		frame[22] = '0';
-		frame[23] = '8';
+		frame[22] = '1';
+		frame[23] = '0';
 		putLe16(frame + 24, static_cast<uint16_t>(payloadLength));
 		putLe32(frame + 28, crc32(payload, payloadLength));
 		const uint32_t length = kLogHeaderBytes + payloadLength;
@@ -888,12 +907,16 @@ struct Ep0Device {
 				} else {
 					configured = true;
 					dtr = false;
+					native_usb_status_connected =
+					    dataEndpoints ? 1U : 0U;
 					IOLog("CHEESEBURGER_USB: host configured CDC ACM device\n");
 				}
 			} else {
 				configured = false;
 				dataEndpoints = false;
 				dtr = false;
+				native_usb_status_connected = 0U;
+				native_usb_status_active = 0U;
 			}
 		} else if ((requestType & 0x60) == 0 && request == 8) {
 			data[0] = configured ? 1 : 0;
@@ -994,6 +1017,8 @@ struct Ep0Device {
 			setupArmed = false;
 			phase = Phase::Idle;
 			bzero(transferBusy, sizeof(transferBusy));
+			native_usb_status_connected = 0U;
+			native_usb_status_active = 0U;
 			IOLog("CHEESEBURGER_USB: disconnect\n");
 		} else if (type == 1) {
 			const uint32_t dcfg = read(kDcfg) & ~(0x7fU << 3);
@@ -1005,6 +1030,8 @@ struct Ep0Device {
 			setupArmed = false;
 			phase = Phase::Idle;
 			bzero(transferBusy, sizeof(transferBusy));
+			native_usb_status_connected = 0U;
+			native_usb_status_active = 0U;
 			IOLog("CHEESEBURGER_USB: bus reset\n");
 			if (!configureEp0()) {
 				fault = true;
@@ -1081,7 +1108,19 @@ struct Ep0Device {
 				armReceive();
 				return;
 			}
-			if (endpoint == 3 || endpoint == 5) {
+			if (endpoint == 3) {
+				if (completed > 0) {
+					native_usb_status_tx_completions =
+					    native_usb_status_tx_completions + 1U;
+					native_usb_status_tx_bytes =
+					    native_usb_status_tx_bytes +
+					    static_cast<uint64_t>(completed);
+					native_usb_status_last_complete_ticks =
+					    mach_absolute_time();
+				}
+				return;
+			}
+			if (endpoint == 5) {
 				return;
 			}
 			if (phase == Phase::Setup && endpoint == 0) {
@@ -1239,7 +1278,8 @@ struct Ep0Device {
 		IOLog("CHEESEBURGER_USB: EP0 running dma=%llx low=%u dsts=%08x "
 		    "qscratch_hs=%08x\n", dmaPhysical, lowDma ? 1U : 0U,
 		    read(kDsts), read32(qscratch.address, kQscratchHsPhyCtrl));
-		IOLog("CHEESEBURGER_USB: build=H408 cdc-acm boot=%08x\n", bootId);
+		IOLog("CHEESEBURGER_USB: build=H410 cdc-acm boot=%08x\n", bootId);
+		native_usb_status_started = 1U;
 		return true;
 	}
 
@@ -1250,6 +1290,17 @@ struct Ep0Device {
 		while (!fault) {
 			poll();
 			transmit();
+			// H410: streaming is healthy only when real Bulk-IN log frames
+			// finish; submission alone is not evidence the host is reading.
+			const uint64_t lastComplete =
+			    native_usb_status_last_complete_ticks;
+			const uint32_t connected =
+			    (configured && dataEndpoints) ? 1U : 0U;
+			native_usb_status_connected = connected;
+			const bool fresh = connected && lastComplete != 0 &&
+			    mach_absolute_time() - lastComplete <
+			    kStatusActiveHoldTicks;
+			native_usb_status_active = fresh ? 1U : 0U;
 			if (++summaryTicks >= 60000) {
 				summaryTicks = 0;
 				IOLog("CHEESEBURGER_USB: alive configured=%u dtr=%u "
@@ -1264,6 +1315,9 @@ struct Ep0Device {
 			}
 			IOSleep(1);
 		}
+		native_usb_status_fault = 1U;
+		native_usb_status_connected = 0U;
+		native_usb_status_active = 0U;
 		IOLog("CHEESEBURGER_USB: EP0 fault event=%u setup=%u dsts=%08x "
 		    "devten=%08x\n", eventCount, setupCount, read(kDsts),
 		    read(kDevten));
