@@ -91,6 +91,27 @@ fastboot boot out/cheeseburger/boot/boot.img
 
 `fastboot boot` only loads the image into RAM; nothing is written to a partition.
 
+## H408 CDC ACM live log
+
+The H408 USB device exposes a CDC ACM port at
+`USB\VID_1209&PID_0001\OP5CDCH408`. The host-side capture tools live in
+[`tools/`](tools/README.md):
+
+```powershell
+# Capture six minutes, auto-selecting the single H408 COM port.
+.\tools\capture-h408-cdc.ps1 -Seconds 360 `
+  -TextOutput H408-live.log -FrameOutput H408-live.frames.bin
+
+# Replay a saved wire stream and exercise CRC, truncation,
+# resynchronization, sequence-wrap and boot-switch handling.
+python .\tools\check-h408-cdc.py --self-test `
+  --replay H408-live.frames.bin
+```
+
+The receiver asserts DTR and RTS before reading; firmware sends no `UXL1`
+frames until both lines are active. Treat any nonzero CRC-error or
+sequence-gap count as a transport failure.
+
 ## macOS CI
 
 The UniXNU repository carries `.github/workflows/macos-cheeseburger.yml` for the steps that
