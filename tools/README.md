@@ -104,3 +104,23 @@ both conditions are detected and reported explicitly.
 Capture is read-only with respect to the phone. The receiver opens the COM
 port, asserts modem control lines, reads bytes and closes the handle. It does
 not reset, flash or clear the phone.
+
+## H411 bounded recovery loop
+
+`h411-recovery-loop.ps1` records a state file at every boundary and stops at
+the first failed prerequisite. It requires exactly one live `VID_1209&PID_0001`
+CDC interface, no simultaneous ADB/Fastboot transport, one H411 candidate and
+a fixed serial. It sends exactly one UXC1 reboot request, never retries a lost
+ACK, then waits with fixed deadlines for the CDC to disappear, authorized
+Android ADB, `sys.boot_completed`, `adb reboot recovery`, and authorized TWRP.
+
+```powershell
+.\tools\h411-recovery-loop.ps1 -RequestId 424243
+```
+
+This script is for a surviving CDC path. If the PnP node is
+`CM_PROB_FAILED_START`, `CreateFile` fails and the loop must stop without
+sending a reboot. For the H411 2026-11-18 run that is the observed terminal
+state. Use `h410-cdc-console.ps1` in capture-only mode for H410 transport
+builds; the older `capture-h408-cdc.ps1` intentionally rejects any build ID
+other than H408 after capture.
