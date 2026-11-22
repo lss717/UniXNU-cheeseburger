@@ -147,7 +147,6 @@ kernel_args = [
   "native-trace-trust-cache=1",
   "h103-slot=1",
   "h103-load-iogpu=0",
-  "h103-log-secs=60",
   "h114-gic=1",
   "h114-icc=0",
   "h109-tick=0",
