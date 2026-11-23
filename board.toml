@@ -110,50 +110,61 @@ ui_title = "UniXNU"
 dram_size = "0x200000000"          # 8 GiB installed; the DarwinBoot window can land above 4 GiB
 panic_screen = false                # H67: skip fixed panic cave; use kernel console
 kernel_args = [
-  "sheng-disable-jobs=com.apple.mobileactivationd,com.apple.PerfPowerServices",
-  "native-probe-quiet=2",
-  "offline-mobile-graphics-load=1",
-  "offline-legacy-gop=1",
-  "h103-log-secs=60",
-  "offline-legacy-phase=4",
-  "offline-legacy-register=1",
-  "offline-legacy-validate=1",
-  "offline-legacy-transfer=1",
-  "offline-legacy-retire=1",
-  "offline-legacy-pm=1",
-  "offline-legacy-unit-scale=3",
-  "native-ufs-probe=0",
-  "sheng-disable-watchdogd=1",
-  "sheng-lite=1",
-  "sheng-log=1",
-  "native-cpufreq-early=2",
-  "native-skip-coredump=1",
-  "native-skip-root-auth=1",
-  "amfi_get_out_of_my_way=1",
-  "amfi=0x94",
-  "amfi_allow_any_signature=1",
-  "cs_enforcement_disable=1",
-  "native-skip-exec-signature=1",
-  "launchd_unsecure_cache=1",
-  "dyld_flags=0x0000008A",
-  "max_task_pmem=0",
-  "-apfs_shared_datavolume",
-  "cpus=2",
-  "cheeseburger-usb=2",
-  "sheng-data-persist=1",
-  "allow-root-hash-mismatch=1",
-  "sheng-pmgr=2",
-  "native-trace-amfi-syscall=1",
-  "native-trace-trust-cache=1",
-  "h103-slot=1",
-  "h103-load-iogpu=0",
-  "h114-gic=1",
-  "h114-icc=0",
-  "h109-tick=0",
-  "offline-accelerator=0",
-  "sheng-gpu-addon=0",
-  "offline-legacy-dot-pitch=163",
-  "sheng-aks-publish=1",
+  # H611: this list is the byte-exact argument set that was in effect in the H610 image.
+  # Before H611 these arguments existed only inside the payload, produced by hand-editing
+  # EFI/UniXNU/unixnu.toml after each package step. Joining the entries below with single
+  # spaces reproduces the H610 command line exactly (45 entries, 1000 bytes), so a normal
+  # "unixnu build payload" now yields the image that H610 actually booted.
+  # sheng-gpu-power=7 is required: the C3 GPU bring-up gate only runs at mode 7, and
+  # without it BoAlloc returns kIOReturnNotReady (0xe00002d8). dyld_flags is written as
+  # 0x8a rather than 0x0000008A to keep the command line plus the DarwinBoot-appended
+  # zap-base under the 1024-byte boot_args limit. native-trace-amfi-syscall=1 and
+  # h114-icc=0 are dropped because they were absent from every image since H603.
+  "sheng-disable-jobs=com.apple.mobileactivationd,com.apple.PerfPowerServices"
+  "native-probe-quiet=2"
+  "offline-mobile-graphics-load=1"
+  "offline-legacy-gop=1"
+  "h103-log-secs=60"
+  "offline-legacy-phase=4"
+  "offline-legacy-register=1"
+  "offline-legacy-validate=1"
+  "offline-legacy-transfer=1"
+  "offline-legacy-retire=1"
+  "offline-legacy-pm=1"
+  "offline-legacy-unit-scale=3"
+  "native-ufs-probe=0"
+  "sheng-disable-watchdogd=1"
+  "sheng-lite=1"
+  "sheng-log=1"
+  "native-cpufreq-early=2"
+  "native-skip-coredump=1"
+  "native-skip-root-auth=1"
+  "amfi_get_out_of_my_way=1"
+  "amfi=0x94"
+  "amfi_allow_any_signature=1"
+  "cs_enforcement_disable=1"
+  "native-skip-exec-signature=1"
+  "launchd_unsecure_cache=1"
+  "dyld_flags=0x8a"
+  "max_task_pmem=0"
+  "-apfs_shared_datavolume"
+  "cpus=2"
+  "cheeseburger-usb=2"
+  "sheng-data-persist=1"
+  "allow-root-hash-mismatch=1"
+  "sheng-pmgr=2"
+  "native-trace-trust-cache=1"
+  "h103-slot=1"
+  "h103-load-iogpu=0"
+  "h114-gic=1"
+  "h109-tick=0"
+  "offline-legacy-dot-pitch=163"
+  "sheng-aks-publish=1"
+  "sheng-gpu-addon=1"
+  "sheng-no-lc=1"
+  "offline-accelerator=1"
+  "_offline-accelerator-plugin=A540Trace"
+  "sheng-gpu-power=7"
 ]
 
 # Extra action entries appended after the kernel entry. The UniXNU UI already
