@@ -120,7 +120,7 @@ kernel_args = [
   # 0x8a rather than 0x0000008A to keep the command line plus the DarwinBoot-appended
   # zap-base under the 1024-byte boot_args limit. native-trace-amfi-syscall=1 and
   # h114-icc=0 are dropped because they were absent from every image since H603.
-  "sheng-disable-jobs=com.apple.mobileactivationd,com.apple.PerfPowerServices,com.apple.callservicesd",
+  "sheng-disable-jobs=com.apple.mobileactivationd,com.apple.PerfPowerServices,com.apple.telephonyutilities.callservicesd",
   "native-probe-quiet=2",
   "offline-mobile-graphics-load=1",
   "offline-legacy-gop=1",
@@ -153,7 +153,6 @@ kernel_args = [
   "allow-root-hash-mismatch=1",
   "sheng-pmgr=2",
   "native-trace-trust-cache=1",
-  "h103-slot=1",
   "h114-gic=1",
   "h109-tick=0",
   "offline-legacy-dot-pitch=163",
