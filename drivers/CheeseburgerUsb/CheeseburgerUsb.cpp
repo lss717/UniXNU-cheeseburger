@@ -10,7 +10,6 @@
 #include <libkern/libkern.h>
 #include <pexpert/pexpert.h>
 #include <sys/vnode.h>
-#include <sys/vattr.h>
 #include <sys/dirent.h>
 #include <sys/uio.h>
 #include <libkern/crypto/sha2.h>
