@@ -1050,7 +1050,7 @@ struct Ep0Device {
 			of |= 0x10;   /* EMPTY */
 		}
 		uxfRecord(kUxfOpen, expTxid, id, size0,
-		          static_cast<uint16_t>(of | (VATTR_PRESENT(&va, va_modify_time) ? 0x20 : 0)),
+		          static_cast<uint16_t>(of | ((va.va_active & VNODE_ATTR_BIT(va_modify_time)) ? 0x20 : 0)),
 		          reinterpret_cast<const uint8_t *>(relpath),
 		          static_cast<uint32_t>(relLen));
 		if (size0 == 0) {
