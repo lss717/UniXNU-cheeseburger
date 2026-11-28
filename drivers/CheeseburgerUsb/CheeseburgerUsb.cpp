@@ -134,7 +134,7 @@ constexpr uint64_t kUxfSessionCap = 12582912ULL;   // 12 MiB per session
 constexpr uint32_t kUxfFilesMax = 96;
 constexpr uint32_t kUxfIpsMax = 8;
 constexpr uint64_t kUxfSessionTicks = 11520000000ULL; // 10 min at 19.2MHz
-constexpr uint8_t  kUxfBegin = 1, kUxfOpen = 2, kUxfData = 3, kUxfClose = 4, kUxfEnd = 5, kUxfSkip = 6;
+constexpr uint8_t  kUxfBegin = 1, kUxfOpen = 2, kUxfData = 3, kUxfClose = 4, kUxfEnd = 5;
 constexpr uint64_t kRebootAckWaitTicks = 1000ULL * 19200000ULL / 1000ULL;
 constexpr uint32_t kLogPayloadMax = 1984;
 constexpr uint32_t kLogHeaderBytes = 32;
