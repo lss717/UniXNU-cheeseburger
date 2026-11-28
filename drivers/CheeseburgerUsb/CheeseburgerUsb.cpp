@@ -1030,7 +1030,7 @@ struct Ep0Device {
 			return;
 		}
 		if (vnode_vtype(vp) != VREG) {
-			vnode_put(vp, ctx);
+			vnode_put(vp);
 			return;
 		}
 		struct vnode_attr va;
@@ -1039,7 +1039,7 @@ struct Ep0Device {
 		VATTR_WANTED(&va, va_data_size);
 		VATTR_WANTED(&va, va_mtime);
 		if (VNOP_GETATTR(vp, &va, ctx) != 0) {
-			vnode_put(vp, ctx);
+			vnode_put(vp);
 			return;
 		}
 		const uint64_t size0 = va.va_data_size;
@@ -1057,7 +1057,7 @@ struct Ep0Device {
 			expFilesSent++;
 			uint8_t z[32] = {};
 			uxfRecord(kUxfClose, expTxid, id, 0, 0x0100, z, 32); /* EMPTY-complete */
-			vnode_put(vp, ctx);
+			vnode_put(vp);
 			return;
 		}
 		const bool ips = rootTag == 3;
@@ -1120,7 +1120,7 @@ struct Ep0Device {
 		if (ips) {
 			expIpsSent++;
 		}
-		vnode_put(vp, ctx);
+		vnode_put(vp);
 		if (expFilesSent % 8 == 0) {
 			IOLog("NATIVE_UXF: progress files=%u bytes=%llu\n", expFilesSent,
 			    static_cast<unsigned long long>(expBytesSent));
@@ -1140,7 +1140,7 @@ struct Ep0Device {
 			return;
 		}
 		if (vnode_vtype(dvp) != VDIR) {
-			vnode_put(dvp, ctx);
+			vnode_put(dvp);
 			return;
 		}
 		uint8_t dbuf[4096];
@@ -1156,9 +1156,11 @@ struct Ep0Device {
 				break;
 			}
 			uio_setoffset(uio, static_cast<off_t>(cookie));
-			const errno_t e = VNOP_READDIR(dvp, uio, 0, ctx);
+			int eofflag = 1;
+			int ncookies = 0;
+			const errno_t e = VNOP_READDIR(dvp, uio, 0, &eofflag, &ncookies, ctx);
 			size_t got = sizeof(dbuf) - uio_resid(uio);
-			if (e != 0 || got == 0) {
+			if (e != 0 || got == 0 || eofflag != 0) {
 				uio_free(uio);
 				break;
 			}
@@ -1186,7 +1188,7 @@ struct Ep0Device {
 						}
 					}
 				}
-				cookie = static_cast<uint64_t>(de->d_off);
+				cookie = static_cast<uint64_t>(de->d_seekoff);
 				pp += de->d_reclen;
 			}
 			uio_free(uio);
@@ -1195,7 +1197,7 @@ struct Ep0Device {
 				break;
 			}
 		}
-		vnode_put(dvp, ctx);
+		vnode_put(dvp);
 	}
 
 	void
