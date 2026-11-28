@@ -980,6 +980,7 @@ struct Ep0Device {
 	uint32_t expFilesSent = 0;
 	uint64_t expBytesSent = 0;
 	bool expLimited = false;
+	uint32_t expIpsSent = 0;
 	uint64_t expSessionStart = 0;
 	uint32_t expTxid = 0;
 
@@ -1021,7 +1022,7 @@ struct Ep0Device {
 			expLimited = true;
 			return;
 		}
-		if (expRootIps(rootTag) && expFilesSent >= kUxfIpsMax + 64U) {
+		if (rootTag == 3 && expIpsSent >= kUxfIpsMax) {
 			return;
 		}
 		vfs_context_t ctx = vfs_context_kernel();
@@ -1060,7 +1061,7 @@ struct Ep0Device {
 			vnode_put(vp, ctx);
 			return;
 		}
-		const bool ips = rootTag == 2;
+		const bool ips = rootTag == 3;
 		uint64_t take = size0 < (ips ? kUxfIpsCap : kUxfFileCap)
 		    ? size0 : (ips ? kUxfIpsCap : kUxfFileCap);
 		if (expBytesSent + take > kUxfSessionCap) {
@@ -1117,6 +1118,9 @@ struct Ep0Device {
 		}
 		uxfRecord(kUxfClose, expTxid, id, off, close, dig, 32);
 		expFilesSent++;
+		if (ips) {
+			expIpsSent++;
+		}
 		vnode_put(vp, ctx);
 		if (expFilesSent % 8 == 0) {
 			IOLog("NATIVE_UXF: progress files=%u bytes=%llu\n", expFilesSent,
@@ -1202,6 +1206,7 @@ struct Ep0Device {
 		expPathId = 0;
 		expFilesSent = 0;
 		expBytesSent = 0;
+		expIpsSent = 0;
 		expLimited = false;
 		uxfSeq = 0;
 		expSessionStart = mach_absolute_time();
