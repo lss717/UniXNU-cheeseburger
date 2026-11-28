@@ -1037,7 +1037,7 @@ struct Ep0Device {
 		memset(&va, 0, sizeof(va));
 		VATTR_INIT(&va);
 		VATTR_WANTED(&va, va_data_size);
-		VATTR_WANTED(&va, va_mtime);
+		VATTR_WANTED(&va, va_modify_time);
 		if (VNOP_GETATTR(vp, &va, ctx) != 0) {
 			vnode_put(vp);
 			return;
@@ -1050,7 +1050,7 @@ struct Ep0Device {
 			of |= 0x10;   /* EMPTY */
 		}
 		uxfRecord(kUxfOpen, expTxid, id, size0,
-		          static_cast<uint16_t>(of | (VATTR_PRESENT(&va, va_mtime) ? 0x20 : 0)),
+		          static_cast<uint16_t>(of | (VATTR_PRESENT(&va, va_modify_time) ? 0x20 : 0)),
 		          reinterpret_cast<const uint8_t *>(relpath),
 		          static_cast<uint32_t>(relLen));
 		if (size0 == 0) {
@@ -1188,9 +1188,9 @@ struct Ep0Device {
 						}
 					}
 				}
-				cookie = static_cast<uint64_t>(de->d_seekoff);
 				pp += de->d_reclen;
 			}
+			cookie = static_cast<uint64_t>(uio_offset(uio));
 			uio_free(uio);
 			if (mach_absolute_time() - expSessionStart > kUxfSessionTicks) {
 				expLimited = true;
